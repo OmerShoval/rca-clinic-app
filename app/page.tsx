@@ -1,65 +1,213 @@
-import Image from "next/image";
+"use client";
+
+import { useState } from "react";
+import { AnimatePresence, motion } from "motion/react";
+import { ClinicSelector } from "@/components/clinic-selector";
+import { StudentSelector } from "@/components/student-selector";
+import { StudentCard } from "@/components/student-card";
+import { InDepthView } from "@/components/in-depth-view";
+import { DaySessionPicker } from "@/components/day-session-picker";
+import { CheckInScreen } from "@/components/check-in-screen";
+import { BreathingExercise } from "@/components/breathing-exercise";
+import { WaveSession } from "@/components/wave-session";
+import { ProgressAnalytics } from "@/components/progress-analytics";
+import { supabase } from "@/lib/supabase";
+import type { Student, Session, CheckIn } from "@/lib/database.types";
+
+type Screen =
+  | "clinic"
+  | "student"
+  | "dashboard"
+  | "indepth"
+  | "daypicker"
+  | "checkin"
+  | "breathing"
+  | "session"
+  | "analytics";
 
 export default function Home() {
+  const [screen, setScreen] = useState<Screen>("clinic");
+  const [clinicNumber, setClinicNumber] = useState<number | null>(null);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [activeStudent, setActiveStudent] = useState<Student | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const [dayNumber, setDayNumber] = useState(1);
+  const [sessionNumber, setSessionNumber] = useState(1);
+  const [activeSession, setActiveSession] = useState<Session | null>(null);
+  const [, setCheckIn] = useState<CheckIn | null>(null);
+
+  async function handleClinicSelect(num: number) {
+    setLoading(true);
+    setClinicNumber(num);
+
+    const { data: clinicRow } = await supabase
+      .from("clinics")
+      .select("*")
+      .eq("number", num)
+      .single();
+
+    const clinic = clinicRow as { id: number } | null;
+
+    if (clinic) {
+      const { data: studentList } = await supabase
+        .from("students")
+        .select("*")
+        .eq("clinic_id", clinic.id)
+        .order("name");
+      setStudents(studentList ?? []);
+    }
+
+    setLoading(false);
+    setScreen("student");
+  }
+
+  function handleStudentSelect(student: Student) {
+    setActiveStudent(student);
+    setScreen("dashboard");
+  }
+
+  function handleCheckInComplete(sess: Session, ci: CheckIn, needsBreathing: boolean) {
+    setActiveSession(sess);
+    setCheckIn(ci);
+    setScreen(needsBreathing ? "breathing" : "session");
+  }
+
+  const slide = {
+    initial: { opacity: 0, x: 20 },
+    animate: { opacity: 1, x: 0 },
+    exit: { opacity: 0, x: -20 },
+    transition: { duration: 0.35, ease: [0.22, 1, 0.36, 1] as const },
+  };
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <main className="min-h-screen bg-background">
+      <AnimatePresence mode="wait">
+        {screen === "clinic" && (
+          <motion.div key="clinic" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0, x: -20 }} transition={{ duration: 0.3 }}>
+            <ClinicSelector onSelect={handleClinicSelect} />
+          </motion.div>
+        )}
+
+        {screen === "student" && (
+          <motion.div key="student" {...slide}>
+            {loading ? (
+              <LoadingScreen />
+            ) : (
+              <StudentSelector
+                clinicNumber={clinicNumber!}
+                students={students}
+                onSelect={handleStudentSelect}
+                onBack={() => { setScreen("clinic"); setStudents([]); }}
+              />
+            )}
+          </motion.div>
+        )}
+
+        {screen === "dashboard" && activeStudent && (
+          <motion.div key="dashboard" {...slide} className="min-h-screen gradient-ocean flex flex-col py-10">
+            <div className="flex items-center justify-between px-6 mb-8">
+              <button
+                onClick={() => setScreen("student")}
+                className="text-muted-foreground hover:text-foreground text-sm transition-colors"
+              >
+                ← Back
+              </button>
+              <span className="text-xs text-muted-foreground tracking-widest uppercase">
+                Clinic {clinicNumber}
+              </span>
+            </div>
+            <StudentCard
+              student={activeStudent}
+              clinicNumber={clinicNumber!}
+              onInDepth={() => setScreen("indepth")}
+              onStartSession={() => setScreen("daypicker")}
+              onViewProgress={() => setScreen("analytics")}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+          </motion.div>
+        )}
+
+        {screen === "indepth" && activeStudent && (
+          <motion.div key="indepth" {...slide}>
+            <InDepthView
+              student={activeStudent}
+              clinicNumber={clinicNumber!}
+              onBack={() => setScreen("dashboard")}
+            />
+          </motion.div>
+        )}
+
+        {screen === "daypicker" && (
+          <motion.div key="daypicker" {...slide}>
+            <DaySessionPicker
+              onConfirm={(day, sess) => {
+                setDayNumber(day);
+                setSessionNumber(sess);
+                setScreen("checkin");
+              }}
+              onBack={() => setScreen("dashboard")}
+            />
+          </motion.div>
+        )}
+
+        {screen === "checkin" && activeStudent && (
+          <motion.div key="checkin" {...slide}>
+            <CheckInScreen
+              student={activeStudent}
+              clinicNumber={clinicNumber!}
+              dayNumber={dayNumber}
+              sessionNumber={sessionNumber}
+              onComplete={handleCheckInComplete}
+              onBack={() => setScreen("daypicker")}
+            />
+          </motion.div>
+        )}
+
+        {screen === "breathing" && (
+          <motion.div key="breathing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
+            <BreathingExercise onComplete={() => setScreen("session")} />
+          </motion.div>
+        )}
+
+        {screen === "session" && activeStudent && activeSession && (
+          <motion.div key="session" {...slide}>
+            <WaveSession
+              student={activeStudent}
+              session={activeSession}
+              onEndSession={() => setScreen("analytics")}
+            />
+          </motion.div>
+        )}
+
+        {screen === "analytics" && activeStudent && (
+          <motion.div
+            key="analytics"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
           >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <ProgressAnalytics
+              student={activeStudent}
+              onBack={() => setScreen("dashboard")}
+            />
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </main>
+  );
+}
+
+function LoadingScreen() {
+  return (
+    <div className="min-h-screen gradient-ocean flex items-center justify-center">
+      <motion.div
+        animate={{ opacity: [0.4, 1, 0.4] }}
+        transition={{ duration: 1.8, repeat: Infinity, ease: "easeInOut" }}
+        className="text-teal text-sm tracking-widest"
+      >
+        🌊 Loading...
+      </motion.div>
     </div>
   );
 }
