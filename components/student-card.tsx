@@ -1,8 +1,7 @@
 "use client";
 
 import { motion } from "motion/react";
-import { useState } from "react";
-import { Play, BookOpen, ChevronRight, Video, TrendingUp } from "lucide-react";
+import { BookOpen, ChevronRight, Video, TrendingUp, Headphones } from "lucide-react";
 import {
   Card,
   CardHeader,
@@ -13,7 +12,8 @@ import {
   CardAction,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Student, KeyPoint } from "@/lib/database.types";
+import type { Student, KeyPoint, MeditationTrack } from "@/lib/database.types";
+import { PersonalMeditation } from "@/components/personal-meditation";
 
 interface StudentCardProps {
   student: Student;
@@ -30,8 +30,6 @@ export function StudentCard({
   onStartSession,
   onViewProgress,
 }: StudentCardProps) {
-  const [activeVideo, setActiveVideo] = useState<"1st" | "3rd" | null>(null);
-
   const initials = student.name
     .split(" ")
     .map((n) => n[0])
@@ -39,7 +37,14 @@ export function StudentCard({
     .slice(0, 2)
     .toUpperCase();
 
-  const keyPoints = (student.key_points ?? []) as KeyPoint[];
+  const keyPoints    = (student.key_points    ?? []) as KeyPoint[];
+  const meditations  = (student.meditations   ?? []) as MeditationTrack[];
+
+  /* ── collect non-null video URLs in order ── */
+  const videos: { label: string; url: string }[] = [
+    student.vision_1st_url && { label: "Vision 1", url: student.vision_1st_url },
+    student.vision_3rd_url && { label: "Vision 2", url: student.vision_3rd_url },
+  ].filter(Boolean) as { label: string; url: string }[];
 
   return (
     <div className="w-full max-w-md mx-auto px-4">
@@ -62,10 +67,7 @@ export function StudentCard({
             </div>
 
             <CardAction>
-              <Badge
-                variant="outline"
-                className="border-primary/30 text-teal text-xs"
-              >
+              <Badge variant="outline" className="border-primary/30 text-teal text-xs">
                 🌊 Active
               </Badge>
             </CardAction>
@@ -88,16 +90,10 @@ export function StudentCard({
                   transition={{ delay: i * 0.1, duration: 0.4 }}
                   className="flex items-start gap-3 rounded-xl bg-accent/60 border border-border/40 px-3.5 py-3.5"
                 >
-                  <span className="text-teal font-bold text-sm mt-0.5 flex-shrink-0 w-4">
-                    {i + 1}
-                  </span>
+                  <span className="text-teal font-bold text-sm mt-0.5 flex-shrink-0 w-4">{i + 1}</span>
                   <div className="space-y-1.5 min-w-0">
-                    <p className="text-sm font-semibold text-foreground/90 leading-snug">
-                      {kp.point}
-                    </p>
-                    <p className="text-xs text-primary/75 italic leading-snug">
-                      ✦ {kp.feel}
-                    </p>
+                    <p className="text-sm font-semibold text-foreground/90 leading-snug">{kp.point}</p>
+                    <p className="text-xs text-primary/75 italic leading-snug">✦ {kp.feel}</p>
                   </div>
                 </motion.div>
               ))}
@@ -105,57 +101,42 @@ export function StudentCard({
           ) : (
             <div className="rounded-xl border border-dashed border-border/50 px-4 py-5 text-center">
               <p className="text-sm text-muted-foreground">No coaching notes yet.</p>
-              <p className="text-xs text-muted-foreground/60 mt-1">
-                Your coach will update these before you surf.
-              </p>
+              <p className="text-xs text-muted-foreground/60 mt-1">Your coach will update these before you surf.</p>
             </div>
           )}
         </CardContent>
 
-        {/* ── Vision Video ── */}
+        {/* ── Your Vision — videos ── */}
         <CardContent className="pt-0">
           <p className="text-xs text-muted-foreground uppercase tracking-widest mb-3 font-medium">
             Your Vision
           </p>
 
-          {student.vision_1st_url || student.vision_3rd_url ? (
-            <>
-              <button
-                onClick={() => setActiveVideo((v) => (v ? null : "1st"))}
-                className={[
-                  "w-full flex items-center gap-3 rounded-xl border px-4 py-3.5 transition-all duration-300",
-                  activeVideo
-                    ? "border-primary/50 bg-primary/10"
-                    : "border-border/60 bg-accent/40 hover:border-primary/40 hover:bg-accent/70",
-                ].join(" ")}
-              >
-                <div className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${activeVideo ? "bg-primary/25" : "bg-primary/15"}`}>
-                  <Play className={`w-3.5 h-3.5 ${activeVideo ? "text-primary" : "text-teal"}`} fill="currentColor" />
-                </div>
-                <div className="text-left">
-                  <p className="text-sm font-medium text-foreground/85">Vision Video</p>
-                  <p className="text-xs text-muted-foreground/60">{activeVideo ? "Tap to close" : "Tap to play"}</p>
-                </div>
-              </button>
-
-              {activeVideo && (
+          {videos.length > 0 ? (
+            <div className="flex flex-col gap-3">
+              {videos.map((v, i) => (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: "auto" }}
-                  exit={{ opacity: 0, height: 0 }}
-                  transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
-                  className="mt-3 overflow-hidden rounded-xl border border-border/50"
+                  key={i}
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: i * 0.08, duration: 0.35 }}
+                  className="rounded-xl overflow-hidden border border-border/40 bg-black"
                 >
+                  <div className="flex items-center gap-2 px-3 py-2 border-b border-border/20">
+                    <Video className="w-3 h-3 text-muted-foreground/50" />
+                    <span className="text-xs text-muted-foreground/70">{v.label}</span>
+                  </div>
                   <video
-                    src={student.vision_1st_url ?? student.vision_3rd_url ?? ""}
+                    src={v.url}
                     controls
-                    autoPlay
                     playsInline
-                    className="w-full aspect-video bg-black rounded-xl"
+                    preload="metadata"
+                    className="w-full"
+                    style={{ height: 200, objectFit: "contain", display: "block", background: "#000" }}
                   />
                 </motion.div>
-              )}
-            </>
+              ))}
+            </div>
           ) : (
             <div className="w-full flex items-center gap-3 rounded-xl border border-dashed border-border/30 px-4 py-3.5 opacity-50">
               <div className="w-9 h-9 rounded-full bg-muted/30 flex items-center justify-center">
@@ -167,6 +148,17 @@ export function StudentCard({
               </div>
             </div>
           )}
+        </CardContent>
+
+        {/* ── Personal Meditation ── */}
+        <CardContent className="pt-0">
+          <div className="flex items-center gap-2 mb-3">
+            <Headphones className="w-3.5 h-3.5 text-muted-foreground/60" />
+            <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium">
+              Personal Meditation
+            </p>
+          </div>
+          <PersonalMeditation tracks={meditations} />
         </CardContent>
 
         {/* ── Footer actions ── */}

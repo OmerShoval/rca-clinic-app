@@ -5,6 +5,12 @@ export interface KeyPoint {
   feel: string;
 }
 
+export interface MeditationTrack {
+  title: string;
+  src: string;
+  cover?: string;
+}
+
 export interface Database {
   rca: {
     Tables: {
@@ -23,6 +29,7 @@ export interface Database {
           key_points: KeyPoint[] | null;
           vision_1st_url: string | null;
           vision_3rd_url: string | null;
+          meditations: MeditationTrack[] | null;
           created_at: string;
         };
         Insert: {
@@ -32,6 +39,7 @@ export interface Database {
           key_points?: KeyPoint[] | null;
           vision_1st_url?: string | null;
           vision_3rd_url?: string | null;
+          meditations?: MeditationTrack[] | null;
         };
         Update: {
           clinic_id?: number;
@@ -40,6 +48,7 @@ export interface Database {
           key_points?: KeyPoint[] | null;
           vision_1st_url?: string | null;
           vision_3rd_url?: string | null;
+          meditations?: MeditationTrack[] | null;
         };
         Relationships: [];
       };
