@@ -1,5 +1,10 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
+export interface KeyPoint {
+  point: string;
+  feel: string;
+}
+
 export interface Database {
   rca: {
     Tables: {
@@ -15,7 +20,7 @@ export interface Database {
           clinic_id: number;
           name: string;
           md_content: string | null;
-          key_points: string[] | null;
+          key_points: KeyPoint[] | null;
           vision_1st_url: string | null;
           vision_3rd_url: string | null;
           created_at: string;
@@ -24,7 +29,7 @@ export interface Database {
           clinic_id: number;
           name: string;
           md_content?: string | null;
-          key_points?: string[] | null;
+          key_points?: KeyPoint[] | null;
           vision_1st_url?: string | null;
           vision_3rd_url?: string | null;
         };
@@ -32,7 +37,7 @@ export interface Database {
           clinic_id?: number;
           name?: string;
           md_content?: string | null;
-          key_points?: string[] | null;
+          key_points?: KeyPoint[] | null;
           vision_1st_url?: string | null;
           vision_3rd_url?: string | null;
         };

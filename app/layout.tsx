@@ -13,8 +13,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "RCA Surf Clinic",
-  description: "Track your progress, emotions, and waves at every RCA clinic.",
+  title: "Ocean Athlete",
+  description: "Track your progress, emotions, and waves. Your personal coaching app.",
   manifest: "/manifest.json",
 };
 

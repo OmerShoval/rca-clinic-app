@@ -1,8 +1,8 @@
 "use client";
 
 import { motion } from "motion/react";
-import { ArrowLeft, Target } from "lucide-react";
-import type { Student } from "@/lib/database.types";
+import { ArrowLeft, Sparkles } from "lucide-react";
+import type { Student, KeyPoint } from "@/lib/database.types";
 
 interface InDepthViewProps {
   student: Student;
@@ -11,7 +11,7 @@ interface InDepthViewProps {
 }
 
 export function InDepthView({ student, clinicNumber, onBack }: InDepthViewProps) {
-  const keyPoints = student.key_points ?? [];
+  const keyPoints = (student.key_points ?? []) as KeyPoint[];
   const sections = parseMdContent(student.md_content ?? "");
 
   return (
@@ -35,32 +35,48 @@ export function InDepthView({ student, clinicNumber, onBack }: InDepthViewProps)
         </span>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-6 pb-10 space-y-6">
+      <div className="flex-1 overflow-y-auto px-6 pb-12 space-y-7">
+        {/* Student name */}
         <div>
           <h1 className="text-2xl font-bold text-foreground">{student.name}</h1>
-          <p className="text-sm text-muted-foreground mt-1">In-Depth Coaching Profile</p>
+          <p className="text-sm text-muted-foreground mt-1">
+            In-Depth Coaching Profile · Ocean Athlete
+          </p>
         </div>
 
+        {/* Focus Points */}
         {keyPoints.length > 0 && (
           <div>
-            <div className="flex items-center gap-2 mb-3">
-              <Target className="w-4 h-4 text-teal" />
+            <div className="flex items-center gap-2 mb-4">
+              <Sparkles className="w-4 h-4 text-teal" />
               <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium">
                 Your 3 Focus Points
               </p>
             </div>
-            <div className="flex flex-col gap-2.5">
-              {keyPoints.map((point, i) => (
+            <div className="flex flex-col gap-3">
+              {keyPoints.map((kp, i) => (
                 <motion.div
                   key={i}
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.1 + i * 0.08 }}
-                  className="rounded-2xl bg-primary/8 border border-primary/20 px-4 py-3.5"
+                  transition={{ delay: 0.08 + i * 0.08 }}
+                  className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4"
                 >
                   <div className="flex items-start gap-3">
-                    <span className="text-teal font-bold text-lg leading-none mt-0.5">{i + 1}</span>
-                    <p className="text-sm font-medium text-foreground leading-snug">{point}</p>
+                    <span className="text-teal font-bold text-xl leading-none mt-0.5 w-5 flex-shrink-0">
+                      {i + 1}
+                    </span>
+                    <div className="space-y-2">
+                      <p className="text-sm font-semibold text-foreground leading-snug">
+                        {kp.point}
+                      </p>
+                      <div className="flex items-start gap-1.5">
+                        <span className="text-primary/60 text-xs mt-0.5">✦</span>
+                        <p className="text-sm text-primary/80 italic leading-snug">
+                          {kp.feel}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </motion.div>
               ))}
@@ -68,15 +84,16 @@ export function InDepthView({ student, clinicNumber, onBack }: InDepthViewProps)
           </div>
         )}
 
+        {/* MD content sections */}
         {sections.map((section, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: 0.2 + i * 0.06 }}
-            className="rounded-2xl bg-card border border-border/40 px-4 py-4"
+            className="rounded-2xl bg-card border border-border/40 px-5 py-5"
           >
-            <h3 className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-2.5">
+            <h3 className="text-xs text-muted-foreground uppercase tracking-widest font-medium mb-3">
               {section.title}
             </h3>
             <p className="text-sm text-foreground/80 leading-relaxed whitespace-pre-line">
@@ -101,6 +118,7 @@ function parseMdContent(md: string): { title: string; body: string }[] {
       .join("\n")
       .trim()
       .replace(/\*\*(.*?)\*\*/g, "$1")
+      .replace(/\*(.*?)\*/g, "$1")
       .replace(/^#{1,3} .*/gm, "")
       .trim();
     if (title && body) sections.push({ title, body });
