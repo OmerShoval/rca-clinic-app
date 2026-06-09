@@ -698,6 +698,91 @@ function MeditationPlayer({ tracks }: { tracks: MeditationTrack[] }) {
   );
 }
 
+/* ── YouTube helpers ── */
+
+function toYouTubeEmbed(src: string): string | null {
+  try {
+    const url = new URL(src);
+    let videoId: string | null = null;
+    if (url.hostname === "youtu.be") {
+      videoId = url.pathname.slice(1).split("?")[0];
+    } else if (url.hostname.includes("youtube.com") && url.pathname === "/watch") {
+      videoId = url.searchParams.get("v");
+    } else if (url.hostname.includes("youtube.com") && url.pathname.startsWith("/embed/")) {
+      return src;
+    }
+    if (videoId) return `https://www.youtube.com/embed/${videoId}`;
+  } catch { /* ignore */ }
+  return null;
+}
+
+function isYouTubeUrl(src: string): boolean {
+  return !!toYouTubeEmbed(src);
+}
+
+/* ── YouTubeMeditation ── */
+
+function YouTubeMeditation({ tracks }: { tracks: MeditationTrack[] }) {
+  const [activeIdx, setActiveIdx] = useState(0);
+  const track = tracks[activeIdx];
+  const embedUrl = toYouTubeEmbed(track.src);
+
+  return (
+    <div className="rounded-2xl border border-primary/15 bg-card overflow-hidden">
+      {/* Embed */}
+      <div className="relative w-full" style={{ aspectRatio: "16/9" }}>
+        {embedUrl ? (
+          <iframe
+            key={activeIdx}
+            src={embedUrl}
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full border-0"
+          />
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-muted-foreground/40 text-xs">
+            Invalid video URL
+          </div>
+        )}
+      </div>
+
+      {/* Track info */}
+      <div className="px-4 py-3 flex items-center gap-3">
+        <div
+          className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
+          style={{ background: "oklch(0.68 0.14 188 / 12%)", border: "1px solid oklch(0.68 0.14 188 / 20%)" }}
+        >
+          <Headphones className="w-3.5 h-3.5 text-teal" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-semibold text-foreground/90 truncate">{track.title}</p>
+          <p className="text-[11px] text-muted-foreground/55 mt-0.5">Coach Omer</p>
+        </div>
+      </div>
+
+      {/* Track list when multiple */}
+      {tracks.length > 1 && (
+        <div className="border-t border-border/25 px-4 py-2 flex flex-col gap-0.5">
+          {tracks.map((t, i) => (
+            <button
+              key={i}
+              onClick={() => setActiveIdx(i)}
+              className={`flex items-center gap-3 px-3 py-2 rounded-xl text-left transition-colors ${
+                i === activeIdx
+                  ? "bg-primary/10 text-primary"
+                  : "text-muted-foreground hover:text-foreground hover:bg-accent/40"
+              }`}
+            >
+              <span className="text-xs font-mono w-4 flex-shrink-0 opacity-50">{i + 1}</span>
+              <span className="text-xs font-medium flex-1 truncate">{t.title}</span>
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 /* ── PersonalMeditation (exported) ── */
 
 export function PersonalMeditation({ tracks }: { tracks: MeditationTrack[] }) {
@@ -715,5 +800,14 @@ export function PersonalMeditation({ tracks }: { tracks: MeditationTrack[] }) {
     );
   }
 
-  return <MeditationPlayer tracks={tracks} />;
+  const allYouTube = tracks.every((t) => isYouTubeUrl(t.src));
+  const youTubeTracks = tracks.filter((t) => isYouTubeUrl(t.src));
+  const audioTracks = tracks.filter((t) => !isYouTubeUrl(t.src));
+
+  return (
+    <div className="flex flex-col gap-3">
+      {youTubeTracks.length > 0 && <YouTubeMeditation tracks={youTubeTracks} />}
+      {audioTracks.length > 0 && !allYouTube && <MeditationPlayer tracks={audioTracks} />}
+    </div>
+  );
 }
