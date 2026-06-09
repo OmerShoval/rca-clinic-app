@@ -88,13 +88,31 @@ export function StudentCard({
                   initial={{ opacity: 0, x: -8 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: i * 0.1, duration: 0.4 }}
-                  className="flex items-start gap-3 rounded-xl bg-accent/60 border border-border/40 px-3.5 py-3.5"
+                  className="rounded-xl bg-accent/60 border border-border/40 overflow-hidden"
                 >
-                  <span className="text-teal font-bold text-sm mt-0.5 flex-shrink-0 w-4">{i + 1}</span>
-                  <div className="space-y-1.5 min-w-0">
-                    <p className="text-sm font-semibold text-foreground/90 leading-snug">{kp.point}</p>
-                    <p className="text-xs text-primary/75 italic leading-snug">✦ {kp.feel}</p>
+                  <div className="flex items-start gap-3 px-3.5 py-3.5">
+                    <span className="text-teal font-bold text-sm mt-0.5 flex-shrink-0 w-4">{i + 1}</span>
+                    <div className="space-y-1.5 min-w-0">
+                      <p className="text-sm font-semibold text-foreground/90 leading-snug">{kp.point}</p>
+                      <p className="text-xs text-primary/75 italic leading-snug">✦ {kp.feel}</p>
+                    </div>
                   </div>
+                  {(kp.video_1st_url || kp.video_3rd_url) && (
+                    <div className="flex gap-2 px-3.5 pb-3.5">
+                      {kp.video_1st_url && (
+                        <div className="flex-1 rounded-lg overflow-hidden border border-border/30 bg-black">
+                          <p className="text-[9px] text-muted-foreground/50 px-2 py-1 border-b border-border/20 uppercase tracking-widest">1st Person</p>
+                          <video src={kp.video_1st_url} controls playsInline preload="metadata" className="w-full" style={{ height: 110, objectFit: "contain", display: "block" }} />
+                        </div>
+                      )}
+                      {kp.video_3rd_url && (
+                        <div className="flex-1 rounded-lg overflow-hidden border border-border/30 bg-black">
+                          <p className="text-[9px] text-muted-foreground/50 px-2 py-1 border-b border-border/20 uppercase tracking-widest">3rd Person</p>
+                          <video src={kp.video_3rd_url} controls playsInline preload="metadata" className="w-full" style={{ height: 110, objectFit: "contain", display: "block" }} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>

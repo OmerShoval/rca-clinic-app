@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "motion/react";
-import { Plus, Check, X, ChevronDown, ChevronUp, BarChart3 } from "lucide-react";
+import { Plus, Check, X, ChevronDown, ChevronUp, BarChart3, ChevronRight } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import type { Student, Session } from "@/lib/database.types";
 
@@ -12,7 +12,6 @@ interface WaveEntry {
   beforeNotes: string;
   duringNotes: string;
   afterNotes: string;
-  socialNotes: string;
   isSuccess: boolean | null;
 }
 
@@ -26,11 +25,20 @@ const emptyDraft = (): Omit<WaveEntry, "id" | "waveNumber"> => ({
   beforeNotes: "",
   duringNotes: "",
   afterNotes: "",
-  socialNotes: "",
   isSuccess: null,
 });
 
 export function WaveSession({ student, session, onEndSession }: WaveSessionProps) {
+  /* ── Phase: journal first, then waves ── */
+  const [phase, setPhase] = useState<"journal" | "waves">("journal");
+
+  /* ── Journal state ── */
+  const [social, setSocial] = useState("");
+  const [changes, setChanges] = useState("");
+  const [gratitude, setGratitude] = useState("");
+  const [savingJournal, setSavingJournal] = useState(false);
+
+  /* ── Wave state ── */
   const [waves, setWaves] = useState<WaveEntry[]>([]);
   const [logOpen, setLogOpen] = useState(false);
   const [expandedWave, setExpandedWave] = useState<number | null>(null);
@@ -40,6 +48,24 @@ export function WaveSession({ student, session, onEndSession }: WaveSessionProps
 
   const successCount = waves.filter((w) => w.isSuccess === true).length;
   const badCount = waves.filter((w) => w.isSuccess === false).length;
+
+  async function submitJournal() {
+    setSavingJournal(true);
+    try {
+      await supabase
+        .from("sessions")
+        .update({
+          social_notes: social || null,
+          changes_noticed: changes || null,
+          gratitude_notes: gratitude || null,
+        })
+        .eq("id", session.id);
+    } catch (err) {
+      console.error("Journal save error:", err);
+    }
+    setSavingJournal(false);
+    setPhase("waves");
+  }
 
   async function saveWave() {
     setSaving(true);
@@ -54,7 +80,6 @@ export function WaveSession({ student, session, onEndSession }: WaveSessionProps
           before_notes: draft.beforeNotes || null,
           during_notes: draft.duringNotes || null,
           after_notes: draft.afterNotes || null,
-          social_notes: draft.socialNotes || null,
           is_success: draft.isSuccess,
         })
         .select()
@@ -89,6 +114,64 @@ export function WaveSession({ student, session, onEndSession }: WaveSessionProps
     onEndSession();
   }
 
+  /* ─────────────── JOURNAL PHASE ─────────────── */
+  if (phase === "journal") {
+    return (
+      <motion.div
+        initial={{ opacity: 0, x: 20 }}
+        animate={{ opacity: 1, x: 0 }}
+        exit={{ opacity: 0, x: -20 }}
+        transition={{ duration: 0.35, ease: [0.22, 1, 0.36, 1] }}
+        className="min-h-screen gradient-ocean flex flex-col"
+      >
+        <div className="px-6 pt-10 pb-4">
+          <h1 className="text-2xl font-bold">Session Journal</h1>
+          <p className="text-sm text-muted-foreground mt-1">
+            Day {session.day_number} · {student.name.split(" ")[0]} — capture the session before logging waves
+          </p>
+        </div>
+
+        <div className="flex-1 px-6 pb-6 space-y-4 overflow-y-auto">
+          <JournalField
+            label="The social energy"
+            placeholder="Who did you surf with? What was the vibe in the water?"
+            value={social}
+            onChange={setSocial}
+            rows={3}
+          />
+          <JournalField
+            label="What changed"
+            placeholder="What did you notice change in how you moved today?"
+            value={changes}
+            onChange={setChanges}
+            rows={3}
+          />
+          <JournalField
+            label="Grateful for"
+            placeholder="What are you grateful for from today's session?"
+            value={gratitude}
+            onChange={setGratitude}
+            rows={3}
+          />
+        </div>
+
+        <div className="px-6 pb-10">
+          <motion.button
+            whileHover={{ scale: 1.02 }}
+            whileTap={{ scale: 0.98 }}
+            onClick={submitJournal}
+            disabled={savingJournal}
+            className="w-full flex items-center justify-center gap-2 rounded-2xl bg-primary py-4 text-primary-foreground font-semibold glow-teal disabled:opacity-60"
+          >
+            {savingJournal ? "Saving..." : "Now let's log the waves"}
+            {!savingJournal && <ChevronRight className="w-5 h-5" />}
+          </motion.button>
+        </div>
+      </motion.div>
+    );
+  }
+
+  /* ─────────────── WAVES PHASE ─────────────── */
   return (
     <motion.div
       initial={{ opacity: 0, x: 20 }}
@@ -168,8 +251,7 @@ export function WaveSession({ student, session, onEndSession }: WaveSessionProps
                       {wave.beforeNotes && <NoteRow label="Before" text={wave.beforeNotes} />}
                       {wave.duringNotes && <NoteRow label="During" text={wave.duringNotes} />}
                       {wave.afterNotes && <NoteRow label="After" text={wave.afterNotes} />}
-                      {wave.socialNotes && <NoteRow label="Vibed with" text={wave.socialNotes} />}
-                      {!wave.beforeNotes && !wave.duringNotes && !wave.afterNotes && !wave.socialNotes && (
+                      {!wave.beforeNotes && !wave.duringNotes && !wave.afterNotes && (
                         <p className="text-xs text-muted-foreground/50">No notes added.</p>
                       )}
                     </div>
@@ -256,12 +338,6 @@ export function WaveSession({ student, session, onEndSession }: WaveSessionProps
                   placeholder="What did you take away?"
                   value={draft.afterNotes}
                   onChange={(v) => setDraft((d) => ({ ...d, afterNotes: v }))}
-                />
-                <NoteInput
-                  label="Vibed with..."
-                  placeholder="Who did you share energy with?"
-                  value={draft.socialNotes}
-                  onChange={(v) => setDraft((d) => ({ ...d, socialNotes: v }))}
                 />
 
                 <div>
@@ -373,6 +449,33 @@ function NoteInput({
         placeholder={placeholder}
         rows={2}
         className="w-full rounded-xl bg-accent/50 border border-border/40 px-3 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 resize-none focus:outline-none focus:border-primary/40 transition-colors"
+      />
+    </div>
+  );
+}
+
+function JournalField({
+  label,
+  placeholder,
+  value,
+  onChange,
+  rows,
+}: {
+  label: string;
+  placeholder: string;
+  value: string;
+  onChange: (v: string) => void;
+  rows: number;
+}) {
+  return (
+    <div className="rounded-2xl bg-card border border-border/40 px-5 py-4 space-y-3">
+      <p className="text-xs text-muted-foreground uppercase tracking-widest font-medium">{label}</p>
+      <textarea
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className="w-full bg-transparent text-sm text-foreground placeholder:text-muted-foreground/35 resize-none focus:outline-none leading-relaxed"
       />
     </div>
   );

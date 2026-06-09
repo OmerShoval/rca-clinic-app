@@ -60,9 +60,9 @@ export function InDepthView({ student, clinicNumber, onBack }: InDepthViewProps)
                   initial={{ opacity: 0, x: -10 }}
                   animate={{ opacity: 1, x: 0 }}
                   transition={{ delay: 0.08 + i * 0.08 }}
-                  className="rounded-2xl border border-primary/20 bg-primary/5 px-5 py-4"
+                  className="rounded-2xl border border-primary/20 bg-primary/5 overflow-hidden"
                 >
-                  <div className="flex items-start gap-3">
+                  <div className="flex items-start gap-3 px-5 py-4">
                     <span className="text-teal font-bold text-xl leading-none mt-0.5 w-5 flex-shrink-0">
                       {i + 1}
                     </span>
@@ -78,6 +78,22 @@ export function InDepthView({ student, clinicNumber, onBack }: InDepthViewProps)
                       </div>
                     </div>
                   </div>
+                  {(kp.video_1st_url || kp.video_3rd_url) && (
+                    <div className="flex gap-2 px-5 pb-4">
+                      {kp.video_1st_url && (
+                        <div className="flex-1 rounded-xl overflow-hidden border border-border/30 bg-black">
+                          <p className="text-[9px] text-muted-foreground/50 px-2.5 py-1.5 border-b border-border/20 uppercase tracking-widest">1st Person</p>
+                          <video src={kp.video_1st_url} controls playsInline preload="metadata" className="w-full" style={{ height: 130, objectFit: "contain", display: "block" }} />
+                        </div>
+                      )}
+                      {kp.video_3rd_url && (
+                        <div className="flex-1 rounded-xl overflow-hidden border border-border/30 bg-black">
+                          <p className="text-[9px] text-muted-foreground/50 px-2.5 py-1.5 border-b border-border/20 uppercase tracking-widest">3rd Person</p>
+                          <video src={kp.video_3rd_url} controls playsInline preload="metadata" className="w-full" style={{ height: 130, objectFit: "contain", display: "block" }} />
+                        </div>
+                      )}
+                    </div>
+                  )}
                 </motion.div>
               ))}
             </div>

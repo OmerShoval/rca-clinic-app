@@ -3,6 +3,8 @@ export type Json = string | number | boolean | null | { [key: string]: Json } | 
 export interface KeyPoint {
   point: string;
   feel: string;
+  video_1st_url?: string;
+  video_3rd_url?: string;
 }
 
 export interface MeditationTrack {
@@ -60,6 +62,9 @@ export interface Database {
           day_number: number;
           session_number: number;
           date: string;
+          social_notes: string | null;
+          changes_noticed: string | null;
+          gratitude_notes: string | null;
           created_at: string;
         };
         Insert: {
@@ -68,11 +73,17 @@ export interface Database {
           day_number: number;
           session_number: number;
           date?: string;
+          social_notes?: string | null;
+          changes_noticed?: string | null;
+          gratitude_notes?: string | null;
         };
         Update: {
           day_number?: number;
           session_number?: number;
           date?: string;
+          social_notes?: string | null;
+          changes_noticed?: string | null;
+          gratitude_notes?: string | null;
         };
         Relationships: [];
       };
