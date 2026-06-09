@@ -276,8 +276,9 @@ export function WaveSession({ student, session, onEndSession }: WaveSessionProps
         </motion.button>
 
         <AnimatePresence>
-          {waves.length > 0 && (
+          {waves.length > 0 ? (
             <motion.button
+              key="end"
               initial={{ opacity: 0, y: 6 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0 }}
@@ -288,6 +289,18 @@ export function WaveSession({ student, session, onEndSession }: WaveSessionProps
             >
               <BarChart3 className="w-4 h-4" />
               {ending ? "Saving..." : "End Session & See Progress"}
+            </motion.button>
+          ) : (
+            <motion.button
+              key="skip"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={handleEndSession}
+              disabled={ending}
+              className="w-full text-center text-xs text-muted-foreground/50 hover:text-muted-foreground py-1 transition-colors disabled:opacity-30"
+            >
+              {ending ? "Saving..." : "Skip — I don't remember the waves"}
             </motion.button>
           )}
         </AnimatePresence>

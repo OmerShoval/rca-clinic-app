@@ -11,6 +11,7 @@ import { CheckInScreen } from "@/components/check-in-screen";
 import { BreathingExercise } from "@/components/breathing-exercise";
 import { WaveSession } from "@/components/wave-session";
 import { ProgressAnalytics } from "@/components/progress-analytics";
+import { ThemeToggle } from "@/components/theme-toggle";
 import { supabase } from "@/lib/supabase";
 import type { Student, Session, CheckIn } from "@/lib/database.types";
 
@@ -159,9 +160,12 @@ export default function Home() {
               >
                 ← Back
               </button>
-              <span className="text-xs text-muted-foreground tracking-widest uppercase">
-                Clinic {clinicNumber}
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-muted-foreground tracking-widest uppercase">
+                  Clinic {clinicNumber}
+                </span>
+                <ThemeToggle />
+              </div>
             </div>
             <StudentCard
               student={activeStudent}

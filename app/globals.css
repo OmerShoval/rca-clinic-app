@@ -48,32 +48,75 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-/* ── RCA Surf Clinic — always dark, ocean palette ── */
+/* ── Light mode (default) — clean ocean-foam ── */
 :root {
-  /* deep ocean dark */
+  --background: oklch(0.96 0.008 210);
+  --foreground: oklch(0.14 0.025 210);
+
+  --card: oklch(0.99 0.004 205);
+  --card-foreground: oklch(0.14 0.025 210);
+
+  --popover: oklch(0.99 0.004 205);
+  --popover-foreground: oklch(0.14 0.025 210);
+
+  --primary: oklch(0.50 0.16 188);
+  --primary-foreground: oklch(0.99 0.004 205);
+
+  --secondary: oklch(0.91 0.012 210);
+  --secondary-foreground: oklch(0.14 0.025 210);
+
+  --muted: oklch(0.93 0.009 210);
+  --muted-foreground: oklch(0.46 0.032 200);
+
+  --accent: oklch(0.92 0.018 195);
+  --accent-foreground: oklch(0.14 0.025 210);
+
+  --destructive: oklch(0.58 0.22 25);
+
+  --border: oklch(0 0 0 / 10%);
+  --input: oklch(0 0 0 / 8%);
+  --ring: oklch(0.50 0.16 188);
+
+  --chart-1: oklch(0.50 0.16 188);
+  --chart-2: oklch(0.52 0.14 210);
+  --chart-3: oklch(0.46 0.12 165);
+  --chart-4: oklch(0.60 0.12 60);
+  --chart-5: oklch(0.50 0.16 30);
+
+  --radius: 0.75rem;
+
+  --sidebar: oklch(0.95 0.007 210);
+  --sidebar-foreground: oklch(0.14 0.025 210);
+  --sidebar-primary: oklch(0.50 0.16 188);
+  --sidebar-primary-foreground: oklch(0.99 0.004 205);
+  --sidebar-accent: oklch(0.91 0.012 210);
+  --sidebar-accent-foreground: oklch(0.14 0.025 210);
+  --sidebar-border: oklch(0 0 0 / 10%);
+  --sidebar-ring: oklch(0.50 0.16 188);
+
+  color-scheme: light;
+}
+
+/* ── Dark mode — deep ocean ── */
+html.dark {
   --background: oklch(0.11 0.018 210);
   --foreground: oklch(0.93 0.01 80);
 
-  /* card: slightly lifted from bg */
   --card: oklch(0.15 0.02 210);
   --card-foreground: oklch(0.93 0.01 80);
 
   --popover: oklch(0.15 0.02 210);
   --popover-foreground: oklch(0.93 0.01 80);
 
-  /* teal ocean primary */
   --primary: oklch(0.68 0.14 188);
   --primary-foreground: oklch(0.10 0.015 210);
 
-  /* warm sand secondary */
   --secondary: oklch(0.22 0.015 210);
   --secondary-foreground: oklch(0.93 0.01 80);
 
-  /* muted dark */
   --muted: oklch(0.19 0.015 210);
   --muted-foreground: oklch(0.58 0.025 200);
 
-  /* teal-ish accent */
   --accent: oklch(0.22 0.025 195);
   --accent-foreground: oklch(0.93 0.01 80);
 
@@ -83,14 +126,11 @@
   --input: oklch(1 0 0 / 10%);
   --ring: oklch(0.68 0.14 188);
 
-  /* chart colors — ocean gradient */
   --chart-1: oklch(0.68 0.14 188);
   --chart-2: oklch(0.72 0.12 210);
   --chart-3: oklch(0.60 0.10 165);
   --chart-4: oklch(0.75 0.10 60);
   --chart-5: oklch(0.55 0.14 30);
-
-  --radius: 0.75rem;
 
   --sidebar: oklch(0.13 0.018 210);
   --sidebar-foreground: oklch(0.93 0.01 80);
@@ -100,10 +140,7 @@
   --sidebar-accent-foreground: oklch(0.93 0.01 80);
   --sidebar-border: oklch(1 0 0 / 8%);
   --sidebar-ring: oklch(0.68 0.14 188);
-}
 
-/* Force dark — this app is always dark */
-html {
   color-scheme: dark;
 }
 
@@ -121,7 +158,7 @@ html {
   }
 }
 
-/* ── Ocean glow utility ── */
+/* ── Ocean utilities ── */
 @layer utilities {
   .glow-teal {
     box-shadow: 0 0 24px oklch(0.68 0.14 188 / 20%);
@@ -132,24 +169,43 @@ html {
   .gradient-ocean {
     background: linear-gradient(
       135deg,
-      oklch(0.13 0.025 210) 0%,
-      oklch(0.11 0.018 210) 100%
+      oklch(0.94 0.014 210) 0%,
+      oklch(0.96 0.008 210) 100%
     );
   }
   .gradient-wave {
     background: linear-gradient(
       180deg,
-      oklch(0.68 0.14 188 / 8%) 0%,
+      oklch(0.50 0.16 188 / 8%) 0%,
       transparent 100%
     );
   }
   .text-teal {
-    color: oklch(0.68 0.14 188);
+    color: var(--primary);
   }
   .text-sand {
-    color: oklch(0.78 0.08 65);
+    color: oklch(0.60 0.08 65);
   }
   .bg-teal {
-    background-color: oklch(0.68 0.14 188);
+    background-color: var(--primary);
   }
+}
+
+/* Dark overrides for utilities that can't use CSS vars */
+html.dark .gradient-ocean {
+  background: linear-gradient(
+    135deg,
+    oklch(0.13 0.025 210) 0%,
+    oklch(0.11 0.018 210) 100%
+  );
+}
+html.dark .gradient-wave {
+  background: linear-gradient(
+    180deg,
+    oklch(0.68 0.14 188 / 8%) 0%,
+    transparent 100%
+  );
+}
+html.dark .text-sand {
+  color: oklch(0.78 0.08 65);
 }
