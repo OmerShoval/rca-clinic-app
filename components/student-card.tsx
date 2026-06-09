@@ -1,6 +1,6 @@
 "use client";
 
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import { BookOpen, ChevronRight, Video, TrendingUp, Headphones } from "lucide-react";
 import {
   Card,
@@ -12,22 +12,26 @@ import {
   CardAction,
 } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import type { Student, KeyPoint, MeditationTrack } from "@/lib/database.types";
+import type { Student, Session, KeyPoint, MeditationTrack } from "@/lib/database.types";
 import { PersonalMeditation } from "@/components/personal-meditation";
 
 interface StudentCardProps {
   student: Student;
   clinicNumber: number;
+  openSessions: Session[];
   onInDepth: () => void;
   onStartSession: () => void;
+  onLogSession: (session: Session) => void;
   onViewProgress: () => void;
 }
 
 export function StudentCard({
   student,
   clinicNumber,
+  openSessions,
   onInDepth,
   onStartSession,
+  onLogSession,
   onViewProgress,
 }: StudentCardProps) {
   const initials = student.name
@@ -181,15 +185,52 @@ export function StudentCard({
 
         {/* ── Footer actions ── */}
         <CardFooter className="flex-col gap-3">
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.97 }}
-            onClick={onStartSession}
-            className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-primary-foreground text-sm font-semibold glow-teal transition-all"
-          >
-            Start Session
-            <ChevronRight className="w-4 h-4" />
-          </motion.button>
+          <AnimatePresence mode="wait">
+            {openSessions.length > 0 ? (
+              <motion.div
+                key="log-sessions"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.3 }}
+                className="w-full flex flex-col gap-2"
+              >
+                {openSessions.map((sess) => (
+                  <motion.button
+                    key={sess.id}
+                    whileHover={{ scale: 1.02 }}
+                    whileTap={{ scale: 0.97 }}
+                    onClick={() => onLogSession(sess)}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-primary-foreground text-sm font-semibold glow-teal transition-all"
+                  >
+                    Log Session {sess.session_number} — Day {sess.day_number}
+                    <ChevronRight className="w-4 h-4" />
+                  </motion.button>
+                ))}
+                <button
+                  onClick={onStartSession}
+                  className="w-full text-center text-xs text-muted-foreground hover:text-teal transition-colors py-1"
+                >
+                  + Start Another Session
+                </button>
+              </motion.div>
+            ) : (
+              <motion.button
+                key="start-session"
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ duration: 0.3 }}
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.97 }}
+                onClick={onStartSession}
+                className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-primary-foreground text-sm font-semibold glow-teal transition-all"
+              >
+                Start Session
+                <ChevronRight className="w-4 h-4" />
+              </motion.button>
+            )}
+          </AnimatePresence>
 
           <div className="w-full flex items-center justify-between">
             <button

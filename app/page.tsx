@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { AnimatePresence, motion } from "motion/react";
 import { ClinicSelector } from "@/components/clinic-selector";
 import { StudentSelector } from "@/components/student-selector";
@@ -35,7 +35,33 @@ export default function Home() {
   const [dayNumber, setDayNumber] = useState(1);
   const [sessionNumber, setSessionNumber] = useState(1);
   const [activeSession, setActiveSession] = useState<Session | null>(null);
-  const [, setCheckIn] = useState<CheckIn | null>(null);
+
+  /* ── Open sessions (pre-done, post-not-yet-logged) ── */
+  const [openSessions, setOpenSessions] = useState<Session[]>([]);
+
+  const loadOpenSessions = useCallback(async (studentId: string) => {
+    const today = new Date().toISOString().slice(0, 10);
+
+    const { data: sessions } = await supabase
+      .from("sessions")
+      .select("*")
+      .eq("student_id", studentId)
+      .eq("date", today)
+      .order("session_number");
+
+    if (!sessions?.length) {
+      setOpenSessions([]);
+      return;
+    }
+
+    const { data: stats } = await supabase
+      .from("daily_stats")
+      .select("session_id")
+      .in("session_id", sessions.map((s) => (s as Session).id));
+
+    const closedIds = new Set((stats ?? []).map((s) => (s as { session_id: string }).session_id));
+    setOpenSessions((sessions as Session[]).filter((s) => !closedIds.has(s.id)));
+  }, []);
 
   async function handleClinicSelect(num: number) {
     setLoading(true);
@@ -62,15 +88,35 @@ export default function Home() {
     setScreen("student");
   }
 
-  function handleStudentSelect(student: Student) {
+  async function handleStudentSelect(student: Student) {
     setActiveStudent(student);
+    await loadOpenSessions(student.id);
     setScreen("dashboard");
   }
 
-  function handleCheckInComplete(sess: Session, ci: CheckIn, needsBreathing: boolean) {
+  /* ── After check-in: go back to dashboard ── */
+  function handleCheckInComplete(sess: Session, _ci: CheckIn, needsBreathing: boolean) {
     setActiveSession(sess);
-    setCheckIn(ci);
-    setScreen(needsBreathing ? "breathing" : "session");
+    setScreen(needsBreathing ? "breathing" : "dashboard");
+    if (!needsBreathing && activeStudent) loadOpenSessions(activeStudent.id);
+  }
+
+  /* ── After breathing: back to dashboard ── */
+  function handleBreathingComplete() {
+    setScreen("dashboard");
+    if (activeStudent) loadOpenSessions(activeStudent.id);
+  }
+
+  /* ── Student taps "Log Session N" ── */
+  function handleLogSession(session: Session) {
+    setActiveSession(session);
+    setScreen("session");
+  }
+
+  /* ── After wave session ends ── */
+  function handleSessionEnd() {
+    if (activeStudent) loadOpenSessions(activeStudent.id);
+    setScreen("analytics");
   }
 
   const slide = {
@@ -120,8 +166,10 @@ export default function Home() {
             <StudentCard
               student={activeStudent}
               clinicNumber={clinicNumber!}
+              openSessions={openSessions}
               onInDepth={() => setScreen("indepth")}
               onStartSession={() => setScreen("daypicker")}
+              onLogSession={handleLogSession}
               onViewProgress={() => setScreen("analytics")}
             />
           </motion.div>
@@ -165,7 +213,7 @@ export default function Home() {
 
         {screen === "breathing" && (
           <motion.div key="breathing" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} transition={{ duration: 0.3 }}>
-            <BreathingExercise onComplete={() => setScreen("session")} />
+            <BreathingExercise onComplete={handleBreathingComplete} />
           </motion.div>
         )}
 
@@ -174,7 +222,7 @@ export default function Home() {
             <WaveSession
               student={activeStudent}
               session={activeSession}
-              onEndSession={() => setScreen("analytics")}
+              onEndSession={handleSessionEnd}
             />
           </motion.div>
         )}
