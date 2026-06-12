@@ -1,6 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { requireCoachAuth } from "@/lib/coach-auth";
 import { createServerClient } from "@/lib/supabase";
+
+function hashPin(pin: string) {
+  return createHash("sha256").update(pin.trim()).digest("hex");
+}
 
 function toSlug(name: string) {
   return name
@@ -30,7 +35,7 @@ export async function POST(req: NextRequest) {
   if (deny) return deny;
 
   const body = await req.json();
-  const { full_name, clinic_id, stage, awareness, execution, focus_skill, whatsapp_number, status } = body;
+  const { full_name, clinic_id, stage, awareness, execution, focus_skill, whatsapp_number, status, pin } = body;
 
   if (!full_name || !clinic_id) {
     return NextResponse.json({ error: "full_name and clinic_id are required" }, { status: 400 });
@@ -67,6 +72,7 @@ export async function POST(req: NextRequest) {
       focus_skill: focus_skill ?? null,
       whatsapp_number: whatsapp_number ?? null,
       status: status ?? "draft",
+      pin_hash: pin ? hashPin(String(pin)) : null,
     })
     .select()
     .single();

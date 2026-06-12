@@ -7,13 +7,20 @@ import type { DebriefBlock, Debrief } from "@/lib/database.types";
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
+interface StudentInfo {
+  slug: string;
+  full_name: string;
+  whatsapp_number: string | null;
+}
+
 interface Props {
   debrief: Debrief;
+  student: StudentInfo;
   onUpdated: (updated: Debrief) => void;
   onDelete: (id: string) => void;
 }
 
-export function DebriefEditor({ debrief, onUpdated, onDelete }: Props) {
+export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) {
   const [blocks, setBlocks] = useState<DebriefBlock[]>([]);
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -141,6 +148,19 @@ export function DebriefEditor({ debrief, onUpdated, onDelete }: Props) {
         >
           {status === "published" ? "Published" : "Draft"}
         </button>
+
+        {/* WhatsApp notify — only when published and student has a number */}
+        {status === "published" && student.whatsapp_number && (
+          <a
+            href={`https://wa.me/${student.whatsapp_number.replace(/\D/g, "")}?text=${encodeURIComponent(`Hey ${student.full_name.split(" ")[0]}! Your new debrief "${waveLabel}" is ready 🌊`)}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex-shrink-0 rounded-xl px-3 py-2.5 font-display text-[11px] tracking-widest transition-all"
+            style={{ background: "rgba(37,211,102,0.12)", color: "#25d366", border: "1px solid rgba(37,211,102,0.3)" }}
+          >
+            WA
+          </a>
+        )}
       </div>
 
       {/* Blocks */}

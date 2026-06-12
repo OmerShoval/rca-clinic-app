@@ -9,6 +9,7 @@ interface StudentResult {
   full_name: string;
   slug: string;
   stage: number;
+  has_pin: boolean;
 }
 
 export default function LoginPage() {
@@ -21,7 +22,13 @@ export default function LoginPage() {
   const [activeIndex, setActiveIndex] = useState(-1);
   const [showWipe, setShowWipe] = useState(false);
   const [checkingSession, setCheckingSession] = useState(true);
+  // PIN flow
+  const [pendingStudent, setPendingStudent] = useState<StudentResult | null>(null);
+  const [pin, setPin] = useState("");
+  const [pinError, setPinError] = useState("");
+  const [pinSubmitting, setPinSubmitting] = useState(false);
   const inputRef = useRef<HTMLInputElement>(null);
+  const pinInputRef = useRef<HTMLInputElement>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // On mount: check if a valid session already exists → skip login
@@ -61,25 +68,67 @@ export default function LoginPage() {
     debounceRef.current = setTimeout(() => fetchResults(val), 180);
   };
 
-  const handleSelect = async (student: StudentResult) => {
+  const handleSelect = (student: StudentResult) => {
     setResults([]);
     setQuery(student.full_name);
 
-    // Create session
-    await fetch("/api/auth/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ slug: student.slug }),
-    });
-
-    if (reduce) {
-      router.push(`/s/${student.slug}`);
+    if (student.has_pin) {
+      setPendingStudent(student);
+      setPin("");
+      setPinError("");
+      setTimeout(() => pinInputRef.current?.focus(), 80);
       return;
     }
 
-    // Trigger wave-wipe then navigate
+    createSession(student.slug);
+  };
+
+  const createSession = async (slug: string, pinValue?: string) => {
+    const body: Record<string, string> = { slug };
+    if (pinValue) body.pin = pinValue;
+
+    await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+
+    if (reduce) {
+      router.push(`/s/${slug}`);
+      return;
+    }
     setShowWipe(true);
-    setTimeout(() => router.push(`/s/${student.slug}`), 1050);
+    setTimeout(() => router.push(`/s/${slug}`), 1050);
+  };
+
+  const handlePinSubmit = async (e: { preventDefault(): void }) => {
+    e.preventDefault();
+    if (!pendingStudent || pin.length !== 4) return;
+    setPinSubmitting(true);
+    setPinError("");
+
+    const res = await fetch("/api/auth/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: pendingStudent.slug, pin }),
+    });
+
+    if (!res.ok) {
+      const json = await res.json();
+      setPinError(json.error === "Incorrect PIN" ? "Wrong PIN — try again" : "Something went wrong");
+      setPinSubmitting(false);
+      setPin("");
+      setTimeout(() => pinInputRef.current?.focus(), 40);
+      return;
+    }
+
+    // Session cookie is now set — navigate
+    if (reduce) {
+      router.push(`/s/${pendingStudent.slug}`);
+      return;
+    }
+    setShowWipe(true);
+    setTimeout(() => router.push(`/s/${pendingStudent.slug}`), 1050);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -140,132 +189,219 @@ export default function LoginPage() {
         <p className="text-ink-dim text-sm">Enter your name to open your coaching space</p>
       </motion.div>
 
-      {/* Search input + dropdown */}
-      <motion.div
-        initial={{ opacity: 0, y: 18 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.6, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
-        className="relative w-full max-w-sm z-10"
-      >
-        <input
-          ref={inputRef}
-          type="text"
-          value={query}
-          onChange={handleInput}
-          onKeyDown={handleKeyDown}
-          placeholder="Your name…"
-          autoComplete="off"
-          autoFocus
-          className="w-full rounded-2xl px-5 py-4 text-base text-ink placeholder:text-ink-faint outline-none transition-colors"
-          style={{
-            background: "var(--glass)",
-            border: "1px solid var(--glass-edge)",
-          }}
-          onFocus={(e) =>
-            (e.currentTarget.style.borderColor = "rgba(47,214,192,0.5)")
-          }
-          onBlur={(e) =>
-            (e.currentTarget.style.borderColor = "var(--glass-edge)")
-          }
-        />
+      <AnimatePresence mode="wait">
+        {pendingStudent ? (
+          /* PIN entry step */
+          <motion.div
+            key="pin"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="w-full max-w-sm z-10"
+          >
+            {/* Who is logging in */}
+            <div className="flex items-center gap-3 mb-5">
+              <div
+                className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 font-display text-teal"
+                style={{ background: "rgba(47,214,192,0.12)" }}
+              >
+                {pendingStudent.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase()}
+              </div>
+              <div>
+                <p className="text-ink text-sm font-medium">{pendingStudent.full_name}</p>
+                <p className="text-ink-faint text-[11px]">Enter your 4-digit PIN</p>
+              </div>
+            </div>
 
-        {/* Autocomplete dropdown */}
-        <AnimatePresence>
-          {results.length > 0 && (
-            <motion.ul
-              initial={{ opacity: 0, y: 6 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: 4 }}
-              transition={{ duration: 0.18 }}
-              className="absolute left-0 right-0 top-[calc(100%+8px)] rounded-2xl overflow-hidden z-50"
-              style={{
-                background: "var(--depth)",
-                border: "1px solid var(--glass-edge)",
-                boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
-              }}
+            <form onSubmit={handlePinSubmit} className="flex flex-col gap-3">
+              <input
+                ref={pinInputRef}
+                type="text"
+                inputMode="numeric"
+                pattern="[0-9]*"
+                maxLength={4}
+                value={pin}
+                onChange={(e) => {
+                  setPin(e.target.value.replace(/\D/g, "").slice(0, 4));
+                  setPinError("");
+                }}
+                placeholder="• • • •"
+                className="w-full rounded-2xl px-5 py-4 text-center text-2xl text-ink placeholder:text-ink-faint outline-none tracking-[0.6em] font-display"
+                style={{
+                  background: "var(--glass)",
+                  border: `1px solid ${pinError ? "rgba(255,107,94,0.6)" : "var(--glass-edge)"}`,
+                  letterSpacing: "0.6em",
+                }}
+                onFocus={(e) => {
+                  if (!pinError) e.currentTarget.style.borderColor = "rgba(47,214,192,0.5)";
+                }}
+                onBlur={(e) => {
+                  if (!pinError) e.currentTarget.style.borderColor = "var(--glass-edge)";
+                }}
+              />
+
+              {pinError && (
+                <motion.p
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-coral text-[12px] text-center"
+                >
+                  {pinError}
+                </motion.p>
+              )}
+
+              <button
+                type="submit"
+                disabled={pin.length !== 4 || pinSubmitting}
+                className="w-full py-3.5 rounded-2xl font-display text-[13px] tracking-widest text-abyss transition-opacity disabled:opacity-40 gold-sheen"
+                style={{ background: "var(--gold)" }}
+              >
+                {pinSubmitting ? "Checking…" : "Enter"}
+              </button>
+            </form>
+
+            <button
+              type="button"
+              onClick={() => { setPendingStudent(null); setPin(""); setPinError(""); setQuery(""); setTimeout(() => inputRef.current?.focus(), 80); }}
+              className="mt-4 w-full text-center text-[11px] text-ink-faint hover:text-ink transition-colors font-display tracking-widest"
             >
-              {results.map((s, i) => (
-                <li key={s.id}>
-                  <button
-                    type="button"
-                    onMouseDown={(e) => {
-                      e.preventDefault();
-                      handleSelect(s);
-                    }}
-                    className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors"
-                    style={{
-                      background:
-                        i === activeIndex ? "rgba(47,214,192,0.08)" : "transparent",
-                      borderBottom:
-                        i < results.length - 1
-                          ? "1px solid var(--glass-edge)"
-                          : "none",
-                    }}
-                  >
-                    {/* Avatar initials */}
-                    <div
-                      className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-display text-teal text-sm"
-                      style={{ background: "rgba(47,214,192,0.12)" }}
-                    >
-                      {s.full_name
-                        .split(" ")
-                        .map((n) => n[0])
-                        .slice(0, 2)
-                        .join("")
-                        .toUpperCase()}
-                    </div>
-
-                    <div className="flex-1 min-w-0">
-                      <p className="text-ink text-sm font-medium">{s.full_name}</p>
-                      {/* Stage bar */}
-                      <div className="flex items-center gap-1.5 mt-1">
-                        <div className="flex gap-0.5">
-                          {Array.from({ length: 5 }).map((_, idx) => (
-                            <div
-                              key={idx}
-                              className="h-1 w-4 rounded-full transition-colors"
-                              style={{
-                                background:
-                                  idx < s.stage
-                                    ? "var(--teal)"
-                                    : "rgba(255,255,255,0.1)",
-                              }}
-                            />
-                          ))}
-                        </div>
-                        <span className="text-[10px] text-ink-faint font-display">
-                          Stage {s.stage}/5
-                        </span>
-                      </div>
-                    </div>
-                  </button>
-                </li>
-              ))}
-            </motion.ul>
-          )}
-        </AnimatePresence>
-
-        {/* Loading indicator */}
-        {loading && query.length >= 2 && results.length === 0 && (
-          <div className="absolute right-4 top-1/2 -translate-y-1/2">
-            <motion.div
-              animate={{ rotate: 360 }}
-              transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
-              className="w-4 h-4 rounded-full border-2 border-teal border-t-transparent"
+              ← Not you?
+            </button>
+          </motion.div>
+        ) : (
+          /* Search input + dropdown */
+          <motion.div
+            key="search"
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            className="relative w-full max-w-sm z-10"
+          >
+            <input
+              ref={inputRef}
+              type="text"
+              value={query}
+              onChange={handleInput}
+              onKeyDown={handleKeyDown}
+              placeholder="Your name…"
+              autoComplete="off"
+              autoFocus
+              className="w-full rounded-2xl px-5 py-4 text-base text-ink placeholder:text-ink-faint outline-none transition-colors"
+              style={{
+                background: "var(--glass)",
+                border: "1px solid var(--glass-edge)",
+              }}
+              onFocus={(e) =>
+                (e.currentTarget.style.borderColor = "rgba(47,214,192,0.5)")
+              }
+              onBlur={(e) =>
+                (e.currentTarget.style.borderColor = "var(--glass-edge)")
+              }
             />
-          </div>
-        )}
-      </motion.div>
 
-      {/* Hint */}
-      <motion.p
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.5, duration: 0.5 }}
-        className="mt-6 text-[12px] text-ink-faint z-10"
-      >
-        Type at least 2 characters
-      </motion.p>
+            {/* Autocomplete dropdown */}
+            <AnimatePresence>
+              {results.length > 0 && (
+                <motion.ul
+                  initial={{ opacity: 0, y: 6 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: 4 }}
+                  transition={{ duration: 0.18 }}
+                  className="absolute left-0 right-0 top-[calc(100%+8px)] rounded-2xl overflow-hidden z-50"
+                  style={{
+                    background: "var(--depth)",
+                    border: "1px solid var(--glass-edge)",
+                    boxShadow: "0 24px 48px rgba(0,0,0,0.5)",
+                  }}
+                >
+                  {results.map((s, i) => (
+                    <li key={s.id}>
+                      <button
+                        type="button"
+                        onMouseDown={(e) => {
+                          e.preventDefault();
+                          handleSelect(s);
+                        }}
+                        className="w-full flex items-center gap-3 px-4 py-3.5 text-left transition-colors"
+                        style={{
+                          background:
+                            i === activeIndex ? "rgba(47,214,192,0.08)" : "transparent",
+                          borderBottom:
+                            i < results.length - 1
+                              ? "1px solid var(--glass-edge)"
+                              : "none",
+                        }}
+                      >
+                        {/* Avatar initials */}
+                        <div
+                          className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 font-display text-teal text-sm"
+                          style={{ background: "rgba(47,214,192,0.12)" }}
+                        >
+                          {s.full_name
+                            .split(" ")
+                            .map((n) => n[0])
+                            .slice(0, 2)
+                            .join("")
+                            .toUpperCase()}
+                        </div>
+
+                        <div className="flex-1 min-w-0">
+                          <p className="text-ink text-sm font-medium">{s.full_name}</p>
+                          {/* Stage bar */}
+                          <div className="flex items-center gap-1.5 mt-1">
+                            <div className="flex gap-0.5">
+                              {Array.from({ length: 5 }).map((_, idx) => (
+                                <div
+                                  key={idx}
+                                  className="h-1 w-4 rounded-full transition-colors"
+                                  style={{
+                                    background:
+                                      idx < s.stage
+                                        ? "var(--teal)"
+                                        : "rgba(255,255,255,0.1)",
+                                  }}
+                                />
+                              ))}
+                            </div>
+                            <span className="text-[10px] text-ink-faint font-display">
+                              Stage {s.stage}/5
+                            </span>
+                          </div>
+                        </div>
+                      </button>
+                    </li>
+                  ))}
+                </motion.ul>
+              )}
+            </AnimatePresence>
+
+            {/* Loading indicator */}
+            {loading && query.length >= 2 && results.length === 0 && (
+              <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ duration: 1, repeat: Infinity, ease: "linear" }}
+                  className="w-4 h-4 rounded-full border-2 border-teal border-t-transparent"
+                />
+              </div>
+            )}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Hint — only shown on search step */}
+      {!pendingStudent && (
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.5, duration: 0.5 }}
+          className="mt-6 text-[12px] text-ink-faint z-10"
+        >
+          Type at least 2 characters
+        </motion.p>
+      )}
 
       {/* Coach link */}
       <motion.div

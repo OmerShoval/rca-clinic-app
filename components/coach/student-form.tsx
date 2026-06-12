@@ -24,10 +24,12 @@ export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
   const [focusSkill, setFocusSkill] = useState(student?.focus_skill ?? "");
   const [whatsapp, setWhatsapp] = useState(student?.whatsapp_number ?? "");
   const [status, setStatus] = useState<"draft" | "live">(student?.status ?? "draft");
+  const [pin, setPin] = useState("");
+  const [hasExistingPin] = useState(!!(student as { pin_hash?: string | null })?.pin_hash);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!fullName.trim()) { setError("Name is required"); return; }
     if (!clinicId) { setError("Select a clinic"); return; }
@@ -45,6 +47,8 @@ export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
         focus_skill: focusSkill.trim() || null,
         whatsapp_number: whatsapp.trim() || null,
         status,
+        // Only send pin when a new value is typed; blank = keep existing
+        ...(pin.trim() ? { pin: pin.trim() } : {}),
       };
 
       const res = isEdit
@@ -190,6 +194,27 @@ export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
             className="w-full rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none"
             style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
           />
+        </div>
+
+        {/* PIN */}
+        <div>
+          <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">
+            4-Digit PIN {hasExistingPin && !pin ? "(set — enter new to change, leave blank to keep)" : "(optional)"}
+          </label>
+          <input
+            type="text"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            maxLength={4}
+            value={pin}
+            onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+            placeholder={hasExistingPin ? "Enter new PIN to change…" : "e.g. 2712"}
+            className="w-full rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none tracking-[0.4em]"
+            style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
+          />
+          {hasExistingPin && !pin && (
+            <p className="text-[10px] text-ink-faint mt-1">Student currently has a PIN set. Leave blank to keep it.</p>
+          )}
         </div>
 
         {/* Status */}

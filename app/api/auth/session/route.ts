@@ -16,10 +16,11 @@ function cookieOptions(token: string) {
   };
 }
 
-// POST { slug } → create session, set cookie, return { studentId, slug }
+// POST { slug, pin? } → create session, set cookie, return { studentId, slug }
 export async function POST(req: NextRequest) {
   const body = await req.json().catch(() => ({}));
   const slug = body?.slug as string | undefined;
+  const pin = body?.pin as string | undefined;
 
   if (!slug) {
     return NextResponse.json({ error: "slug required" }, { status: 400 });
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
 
   const { data: student, error: studentErr } = await db
     .from("students")
-    .select("id, slug")
+    .select("id, slug, pin_hash")
     .eq("slug", slug)
     .eq("status", "live")
     .single();
@@ -38,7 +39,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
-  // Upsert a session row — one device token per student (latest wins)
+  // PIN check
+  if (student.pin_hash) {
+    if (!pin) {
+      return NextResponse.json({ error: "PIN required", pin_required: true }, { status: 401 });
+    }
+    const { createHash } = await import("crypto");
+    const submitted = createHash("sha256").update(pin).digest("hex");
+    if (submitted !== student.pin_hash) {
+      return NextResponse.json({ error: "Incorrect PIN" }, { status: 401 });
+    }
+  }
+
+  // Create session row — one device token per student (latest wins)
   const { data: session, error: sessionErr } = await db
     .from("sessions")
     .insert({ student_id: student.id })

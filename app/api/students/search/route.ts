@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const db = createServerClient();
   const { data, error } = await db
     .from("students")
-    .select("id, full_name, slug, stage, status")
+    .select("id, full_name, slug, stage, status, pin_hash")
     .eq("status", "live")
     .ilike("full_name", `%${q}%`)
     .order("full_name")
@@ -21,5 +21,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 
-  return NextResponse.json(data ?? []);
+  // Strip pin_hash, expose only boolean
+  const safe = (data ?? []).map(({ pin_hash, ...rest }) => ({ ...rest, has_pin: !!pin_hash }));
+  return NextResponse.json(safe);
 }

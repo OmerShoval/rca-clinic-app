@@ -337,7 +337,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics }: Pro
               <div className="flex-1 overflow-y-auto px-5 py-5">
                 {activeTab === "waves" && (
                   <WavesTab
-                    studentId={selectedStudent.id}
+                    student={selectedStudent}
                     debriefs={debriefs}
                     loading={debriefLoading}
                     selectedDebrief={selectedDebrief}
@@ -435,7 +435,7 @@ function RosterRow({
 
 // ── Waves Tab ────────────────────────────────────────────────────────────────
 interface WavesTabProps {
-  studentId: string;
+  student: Student;
   debriefs: Debrief[];
   loading: boolean;
   selectedDebrief: Debrief | null;
@@ -449,6 +449,7 @@ interface WavesTabProps {
 }
 
 function WavesTab({
+  student,
   debriefs,
   loading,
   selectedDebrief,
@@ -543,6 +544,7 @@ function WavesTab({
                       <div className="px-4 pt-4 pb-2 rounded-b-2xl mt-0.5" style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)", borderTop: "none" }}>
                         <DebriefEditor
                           debrief={d}
+                          student={student}
                           onUpdated={onDebriefUpdated}
                           onDelete={onDebriefDeleted}
                         />

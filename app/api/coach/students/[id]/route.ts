@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { createHash } from "crypto";
 import { requireCoachAuth } from "@/lib/coach-auth";
 import { createServerClient } from "@/lib/supabase";
 
@@ -11,7 +12,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { full_name, clinic_id, stage, awareness, execution, focus_skill, whatsapp_number, status } = body;
+  const { full_name, clinic_id, stage, awareness, execution, focus_skill, whatsapp_number, status, pin } = body;
 
   const db = createServerClient();
 
@@ -24,6 +25,7 @@ export async function PATCH(
     focus_skill?: string | null;
     whatsapp_number?: string | null;
     status?: "draft" | "live";
+    pin_hash?: string | null;
   };
 
   const update: StudentUpdate = {};
@@ -35,6 +37,10 @@ export async function PATCH(
   if (focus_skill !== undefined) update.focus_skill = focus_skill;
   if (whatsapp_number !== undefined) update.whatsapp_number = whatsapp_number;
   if (status !== undefined) update.status = status as "draft" | "live";
+  // pin: "" clears the PIN; any 4-digit string sets it
+  if (pin !== undefined) {
+    update.pin_hash = pin ? createHash("sha256").update(String(pin).trim()).digest("hex") : null;
+  }
 
   const { data, error } = await db
     .from("students")

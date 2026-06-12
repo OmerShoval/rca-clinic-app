@@ -34,6 +34,12 @@ export default async function StudentHome({ params }: Props) {
 
   if (!student || student.slug !== slug) redirect("/");
 
+  const { count: debriefCount } = await db
+    .from("debriefs")
+    .select("id", { count: "exact", head: true })
+    .eq("student_id", session.student_id)
+    .not("published_at", "is", null);
+
   return (
     <main className="flex flex-col px-5 pt-12 gap-8">
 
@@ -88,7 +94,9 @@ export default async function StudentHome({ params }: Props) {
                   My Waves
                 </p>
                 <p className="text-ink text-base font-medium leading-snug">
-                  Your debrief sessions from Omer
+                  {debriefCount
+                    ? `${debriefCount} session${debriefCount === 1 ? "" : "s"} from Omer`
+                    : "Your debrief sessions from Omer"}
                 </p>
                 <p className="text-ink-dim text-sm mt-1">
                   Review your waves, corrections, and next steps
