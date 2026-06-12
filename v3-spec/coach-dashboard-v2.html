@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ocean Athlete — Coach Dashboard — Look &amp; Feel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --abyss:#070f15;--depth:#0d1a1f;--panel:#0f2027;
+    --glass:rgba(255,255,255,.055);--glass-edge:rgba(255,255,255,.10);
+    --gold:#e0b64f;--gold-soft:rgba(224,182,79,.16);
+    --teal:#2fd6c0;--teal-soft:rgba(47,214,192,.14);
+    --coral:#ff6b5e;--coral-soft:rgba(255,107,94,.14);
+    --ink:#f1eee6;--ink-dim:rgba(241,238,230,.62);--ink-faint:rgba(241,238,230,.38);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:
+      radial-gradient(1100px 500px at 80% -10%, rgba(47,214,192,.06), transparent 60%),
+      var(--abyss);
+    color:var(--ink);font-family:Inter,system-ui,sans-serif;min-height:100vh;padding:40px 24px 80px;
+  }
+  .wrap{max-width:1320px;margin:0 auto}
+  .eyebrow{font-family:'Bebas Neue',sans-serif;letter-spacing:.35em;font-size:13px;color:var(--gold)}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,5vw,64px);line-height:.95;margin:10px 0 12px}
+  h1 em{font-style:normal;color:var(--coral)}
+  .sub{color:var(--ink-dim);max-width:620px;font-size:15px;line-height:1.6;margin-bottom:36px}
+
+  .app{
+    display:grid;grid-template-columns:250px 1fr 330px;gap:0;
+    background:var(--depth);border:1px solid var(--glass-edge);border-radius:22px;overflow:hidden;
+    box-shadow:0 40px 80px rgba(0,0,0,.55);min-height:860px;
+  }
+  @media(max-width:1100px){.app{grid-template-columns:1fr}.inbox{border-left:none;border-top:1px solid var(--glass-edge)}}
+
+  /* SIDEBAR */
+  .side{background:rgba(0,0,0,.25);border-right:1px solid var(--glass-edge);padding:22px 0}
+  .side .logo{font-family:'Bebas Neue',sans-serif;letter-spacing:.25em;font-size:13px;color:var(--ink-faint);padding:0 20px 18px;border-bottom:1px solid var(--glass-edge)}
+  .side .clinic{font-family:'Bebas Neue',sans-serif;font-size:13px;letter-spacing:.2em;color:var(--gold);padding:18px 20px 10px}
+  .stu{display:flex;align-items:center;gap:11px;padding:11px 20px;cursor:pointer;border-left:2px solid transparent}
+  .stu:hover{background:rgba(255,255,255,.03)}
+  .stu.on{background:rgba(224,182,79,.07);border-left-color:var(--gold)}
+  .stu .av{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#1d4a52,#123038);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;font-size:14px;color:var(--teal);flex:none}
+  .stu .nm{font-size:13.5px;font-weight:600}
+  .stu .pr{font-size:10.5px;color:var(--ink-faint);margin-top:2px}
+  .stu .badge{margin-left:auto;font-size:10px;font-family:'Bebas Neue',sans-serif;letter-spacing:.1em;padding:2px 7px;border-radius:5px}
+  .badge.draft{color:var(--coral);background:var(--coral-soft)}
+  .badge.live{color:var(--teal);background:var(--teal-soft)}
+
+  /* EDITOR */
+  .editor{padding:24px 26px;overflow:hidden}
+  .ed-head{display:flex;align-items:flex-start;justify-content:space-between;gap:14px;margin-bottom:18px}
+  .ed-head h2{font-family:'Bebas Neue',sans-serif;font-size:32px;letter-spacing:.04em;line-height:1}
+  .ed-head small{display:block;font-family:Inter;font-size:12px;color:var(--ink-dim);font-weight:400;margin-top:5px}
+  .pub{display:flex;gap:9px}
+  .btn{font-family:'Bebas Neue',sans-serif;letter-spacing:.12em;font-size:15px;padding:10px 18px;border-radius:11px;border:1px solid var(--glass-edge);background:transparent;color:var(--ink-dim);cursor:pointer}
+  .btn.gold{background:linear-gradient(135deg,var(--gold),#c79a35);color:#11202a;border:none}
+  .btn.ghost-teal{color:var(--teal);border-color:rgba(47,214,192,.4)}
+
+  .ed-tabs{display:flex;gap:8px;margin-bottom:20px}
+  .ed-tabs b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:14px;letter-spacing:.13em;padding:9px 16px;border-radius:10px;color:var(--ink-faint);border:1px solid var(--glass-edge);cursor:pointer}
+  .ed-tabs b.on{color:var(--gold);background:var(--gold-soft);border-color:rgba(224,182,79,.35)}
+
+  .block{background:var(--glass);border:1px solid var(--glass-edge);border-radius:16px;padding:18px;margin-bottom:14px;position:relative}
+  .block::before{content:"";position:absolute;left:-1px;top:16px;bottom:16px;width:2px;border-radius:2px}
+  .block.m::before{background:var(--coral)} .block.f::before{background:var(--teal)} .block.g::before{background:var(--gold)}
+  .tag{display:inline-block;font-family:'Bebas Neue',sans-serif;font-size:12.5px;letter-spacing:.16em;padding:4px 10px;border-radius:6px;margin-bottom:12px}
+  .tag.coral{color:var(--coral);background:var(--coral-soft)} .tag.teal{color:var(--teal);background:var(--teal-soft)} .tag.gold{color:var(--gold);background:var(--gold-soft)}
+
+  .field{margin-bottom:12px}
+  .field label{display:block;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px;font-family:'Bebas Neue',sans-serif}
+  .field input,.field textarea,.field select{
+    width:100%;background:rgba(0,0,0,.3);border:1px solid var(--glass-edge);border-radius:10px;
+    color:var(--ink);font-family:Inter;font-size:13px;padding:10px 12px;line-height:1.5;
+  }
+  .field textarea{min-height:64px;resize:vertical}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+  .grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+  @media(max-width:760px){.grid2,.grid3{grid-template-columns:1fr}}
+
+  .vslot{
+    border:1.5px dashed rgba(255,255,255,.22);border-radius:12px;padding:16px 12px;text-align:center;cursor:pointer;
+    background:rgba(0,0,0,.18);
+  }
+  .vslot:hover{border-color:var(--teal)}
+  .vslot .ic{font-size:20px;margin-bottom:5px}
+  .vslot b{display:block;font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:13px;letter-spacing:.12em}
+  .vslot span{font-size:10.5px;color:var(--ink-faint)}
+  .vslot.filled{border-style:solid;border-color:rgba(47,214,192,.45);background:rgba(47,214,192,.06)}
+  .vslot.filled b{color:var(--teal)}
+
+  .pairlbl{font-size:11px;color:var(--ink-faint);margin:10px 0 8px;letter-spacing:.1em;font-family:'Bebas Neue',sans-serif}
+  .rec{
+    display:flex;align-items:center;gap:12px;background:rgba(0,0,0,.25);border:1px solid var(--glass-edge);
+    border-radius:12px;padding:11px 14px;margin-top:4px;
+  }
+  .rec .dotrec{width:34px;height:34px;border-radius:50%;background:var(--coral);flex:none;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 0 0 4px rgba(255,107,94,.18)}
+  .rec .dotrec::after{content:"";width:12px;height:12px;border-radius:50%;background:#fff}
+  .rec .info{flex:1}
+  .rec .info b{font-size:12.5px;display:block}
+  .rec .info span{font-size:11px;color:var(--ink-faint)}
+  .rec .wave{width:90px;height:20px;background:repeating-linear-gradient(90deg,var(--ink-faint) 0 2px,transparent 2px 6px);opacity:.4;border-radius:2px}
+
+  .stagesel{display:flex;gap:6px}
+  .stagesel i{flex:1;height:8px;border-radius:4px;background:rgba(255,255,255,.1);font-style:normal;cursor:pointer}
+  .stagesel i.on{background:var(--teal)}
+  .meta-line{display:flex;gap:14px;font-size:11px;color:var(--ink-faint);margin-top:6px}
+
+  /* INBOX */
+  .inbox{background:rgba(0,0,0,.22);border-left:1px solid var(--glass-edge);padding:24px 20px;display:flex;flex-direction:column}
+  .inbox h3{font-family:'Bebas Neue',sans-serif;font-size:22px;letter-spacing:.08em;margin-bottom:4px;color:var(--gold)}
+  .inbox .slasum{font-size:11.5px;color:var(--ink-dim);line-height:1.5;margin-bottom:16px}
+  .q{background:var(--glass);border:1px solid var(--glass-edge);border-radius:14px;padding:13px;margin-bottom:11px}
+  .q .row{display:flex;justify-content:space-between;align-items:center;margin-bottom:5px}
+  .q h4{font-size:12.5px;font-weight:600}
+  .q p{font-size:11px;color:var(--ink-dim);line-height:1.45}
+  .st{font-family:'Bebas Neue',sans-serif;font-size:10.5px;letter-spacing:.1em;padding:2px 7px;border-radius:5px}
+  .st.new{color:var(--coral);background:var(--coral-soft)}
+  .st.rev{color:var(--gold);background:var(--gold-soft)}
+  .st.ans{color:var(--teal);background:var(--teal-soft)}
+  .q .acts{display:flex;gap:7px;margin-top:9px}
+  .q .acts b{font-family:'Bebas Neue',sans-serif;font-weight:400;font-size:11px;letter-spacing:.1em;padding:6px 10px;border-radius:8px;cursor:pointer;border:1px solid var(--glass-edge);color:var(--ink-dim)}
+  .q .acts b.wa{color:#5ce087;border-color:rgba(92,224,135,.4)}
+  .q .acts b.mk{color:var(--teal);border-color:rgba(47,214,192,.4)}
+
+  .specnote{margin-top:50px;background:var(--glass);border:1px solid var(--glass-edge);border-radius:18px;padding:28px 30px;max-width:900px}
+  .specnote h2{font-family:'Bebas Neue',sans-serif;font-size:24px;letter-spacing:.06em;margin-bottom:12px;color:var(--gold)}
+  .specnote p{font-size:14px;line-height:1.7;color:var(--ink-dim);margin-bottom:10px}
+  .specnote b{color:var(--ink)}
+
+  /* ===== V2: ANIMATION LAYER ===== */
+  @keyframes riseIn{from{opacity:0;transform:translateY(18px)}to{opacity:1;transform:none}}
+  @keyframes slideIn{from{opacity:0;transform:translateX(-14px)}to{opacity:1;transform:none}}
+  .side .stu{opacity:0;animation:slideIn .45s ease forwards}
+  .side .stu:nth-of-type(2){animation-delay:.05s}.side .stu:nth-of-type(3){animation-delay:.1s}
+  .side .stu:nth-of-type(4){animation-delay:.15s}.side .stu:nth-of-type(5){animation-delay:.2s}
+  .side .stu:nth-of-type(7){animation-delay:.25s}
+  .editor .block,.editor .grid2>.block,.ed-head,.ed-tabs{opacity:0;animation:riseIn .5s ease forwards}
+  .ed-head{animation-delay:.05s}.ed-tabs{animation-delay:.12s}
+  .editor>.block:nth-of-type(1){animation-delay:.2s}
+  .editor>.block:nth-of-type(2){animation-delay:.28s}
+  .editor>.block:nth-of-type(3){animation-delay:.36s}
+  .editor .grid2 .block:nth-child(1){animation-delay:.44s}
+  .editor .grid2 .block:nth-child(2){animation-delay:.5s}
+  .editor>.block:last-of-type{animation-delay:.58s}
+  .inbox .q{opacity:0;animation:riseIn .45s ease forwards}
+  .inbox .q:nth-of-type(2){animation-delay:.1s}.inbox .q:nth-of-type(3){animation-delay:.2s}.inbox .q:nth-of-type(4){animation-delay:.3s}
+  .btn.gold{position:relative;overflow:hidden}
+  .btn.gold::after{content:"";position:absolute;top:0;left:-80%;width:50%;height:100%;background:linear-gradient(100deg,transparent,rgba(255,255,255,.45),transparent);animation:sheen 3.2s ease-in-out infinite}
+  @keyframes sheen{0%,55%{left:-80%}75%,100%{left:130%}}
+  .vslot{transition:transform .25s ease,border-color .25s ease}
+  .vslot:hover{transform:translateY(-3px)}
+  .dotrec{animation:recpulse 2.4s ease-in-out infinite}
+  @keyframes recpulse{0%,100%{box-shadow:0 0 0 4px rgba(255,107,94,.18)}50%{box-shadow:0 0 0 9px rgba(255,107,94,.07)}}
+  .stu,.btn,.ed-tabs b,.q .acts b{transition:transform .2s ease,background .2s ease,color .2s ease,border-color .2s ease}
+  .stu:active,.btn:active,.q .acts b:active{transform:scale(.97)}
+
+  /* ===== V2: MOBILE FIRST ===== */
+  @media(max-width:1100px){
+    body{padding:24px 12px 60px}
+    .app{grid-template-columns:1fr;min-height:0}
+    .side{border-right:none;border-bottom:1px solid var(--glass-edge);padding:16px 0 6px}
+    .side .logo{padding-bottom:12px}
+    .side .clinic{padding:12px 16px 8px}
+    .roster-scroll{display:flex;overflow-x:auto;gap:8px;padding:0 16px 14px;scrollbar-width:none}
+    .roster-scroll::-webkit-scrollbar{display:none}
+    .roster-scroll .stu{flex:none;border-left:none;border:1px solid var(--glass-edge);border-radius:14px;padding:9px 13px;animation:slideIn .4s ease forwards}
+    .roster-scroll .stu.on{border-color:rgba(224,182,79,.45);background:rgba(224,182,79,.08)}
+    .editor{padding:18px 14px}
+    .ed-head{flex-direction:column}
+    .ed-head h2{font-size:26px}
+    .pub{width:100%}
+    .pub .btn{flex:1;text-align:center}
+    .ed-tabs{overflow-x:auto;scrollbar-width:none}
+    .ed-tabs b{white-space:nowrap}
+    .inbox{border-left:none;border-top:1px solid var(--glass-edge)}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important}
+    .side .stu,.editor .block,.ed-head,.ed-tabs,.inbox .q,.editor .grid2>.block{opacity:1;transform:none}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">OCEAN ATHLETE · COACH SIDE</div>
+  <h1>THE <em>DASHBOARD</em></h1>
+  <p class="sub">One rule: the editor mirrors the student view block for block. Whatever you fill here is exactly what they scroll there. Left = roster, middle = debrief editor, right = Ask Omer inbox.</p>
+
+  <div class="app">
+
+    <!-- SIDEBAR -->
+    <div class="side">
+      <div class="logo">OCEAN ATHLETE</div>
+      <div class="clinic">CABO LEDO · CLINIC 3</div>
+      <div class="stu on">
+        <div class="av">N</div>
+        <div><div class="nm">Noy</div><div class="pr">Bottom turn · Stage 2/5</div></div>
+        <span class="badge draft">DRAFT</span>
+      </div>
+      <div class="stu">
+        <div class="av">L</div>
+        <div><div class="nm">Leo</div><div class="pr">Cross-step · Stage 3/5</div></div>
+        <span class="badge live">LIVE</span>
+      </div>
+      <div class="stu">
+        <div class="av">S</div>
+        <div><div class="nm">Sharon</div><div class="pr">Takeoff · Stage 1/5</div></div>
+        <span class="badge live">LIVE</span>
+      </div>
+      <div class="stu">
+        <div class="av">B</div>
+        <div><div class="nm">Berenice</div><div class="pr">Trim · Stage 2/5</div></div>
+        <span class="badge draft">DRAFT</span>
+      </div>
+      <div class="clinic" style="margin-top:14px">SALADITA · CLINIC 2</div>
+      <div class="stu"><div class="av">E</div><div><div class="nm">Elial</div><div class="pr">Noseride · Stage 4/5</div></div><span class="badge live">LIVE</span></div>
+    </div>
+
+    <!-- EDITOR -->
+    <div class="editor">
+      <div class="ed-head">
+        <div>
+          <h2>NOY — WAVE 3<small>Day 5 · Cabo Ledo · last edited 20 min ago</small></h2>
+        </div>
+        <div class="pub">
+          <button class="btn">PREVIEW AS NOY</button>
+          <button class="btn gold">PUBLISH</button>
+        </div>
+      </div>
+
+      <div class="ed-tabs">
+        <b class="on">MY WAVES</b><b>BACK HOME · ISRAEL</b><b>BACK HOME · WAVE POOL</b>
+      </div>
+
+      <!-- MISTAKE -->
+      <div class="block m">
+        <span class="tag coral">THE MISTAKE</span>
+        <div class="field">
+          <label>What happened</label>
+          <input value="Weight stayed on the back foot through the turn">
+        </div>
+        <div class="grid3">
+          <div class="field"><label>When (timestamp)</label><input value="0:04"></div>
+          <div class="field"><label>Where on the wave</label><input value="As the face steepened"></div>
+          <div class="field"><label>Why it happened</label><input value="Braced instead of committing"></div>
+        </div>
+        <div class="grid2">
+          <div class="vslot filled"><div class="ic">🎥</div><b>WAVE CLIP — UPLOADED</b><span>noy_w3_d5.mp4 · marker at 0:04</span></div>
+          <div>
+            <div class="field"><label>Stage (1–5)</label>
+              <div class="stagesel"><i class="on"></i><i class="on"></i><i></i><i></i><i></i></div>
+              <div class="meta-line"><span>Awareness 4/5</span><span>Execution 2/5</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CORRECTION -->
+      <div class="block f">
+        <span class="tag teal">THE CORRECTION</span>
+        <div class="field">
+          <label>The fix, in one line</label>
+          <input value="Lead with the front shoulder, weight rolls forward">
+        </div>
+        <div class="field">
+          <label>"It feels like..." (your felt-sense line — shows as the teal quote)</label>
+          <textarea>It feels like falling slightly downhill before the board catches you. Trust that half-second.</textarea>
+        </div>
+        <div class="pairlbl">CORRECTION VIDEO PAIR — STUDENT GETS A FPV ⟷ 3RD PERSON SLIDER</div>
+        <div class="grid2">
+          <div class="vslot filled"><div class="ic">👁</div><b>FIRST PERSON VIEW</b><span>GoPro mouth-mount demo · 0:22</span></div>
+          <div class="vslot"><div class="ic">🎬</div><b>+ THIRD PERSON VIEW</b><span>Land or water angle of the same move</span></div>
+        </div>
+      </div>
+
+      <!-- IMPROVEMENT -->
+      <div class="block f">
+        <span class="tag teal">THE IMPROVEMENT</span>
+        <div class="pairlbl">BEFORE / AFTER — POWERS THE GOLD SLIDER</div>
+        <div class="grid2">
+          <div class="vslot filled"><div class="ic">📼</div><b>BEFORE — DAY 1</b><span>noy_w1_d1.mp4</span></div>
+          <div class="vslot filled"><div class="ic">📼</div><b>AFTER — DAY 5</b><span>noy_w3_d5.mp4</span></div>
+        </div>
+      </div>
+
+      <!-- GOAL + NEXT, each with video -->
+      <div class="grid2">
+        <div class="block g">
+          <span class="tag gold">THE GOAL</span>
+          <div class="field"><label>Goal in one line</label><input value="Full-rail bottom turn, eyes on the lip"></div>
+          <div class="vslot"><div class="ic">🏆</div><b>+ GOAL VIDEO</b><span>Show what it looks like — you, or a pro doing it</span></div>
+        </div>
+        <div class="block g">
+          <span class="tag gold">NEXT STEP</span>
+          <div class="field"><label>Next step in one line</label><input value="Stage 3: connect the turn to a target on the face"></div>
+          <div class="vslot"><div class="ic">🧭</div><b>+ NEXT STEP VIDEO</b><span>Demo of the drill or movement</span></div>
+        </div>
+      </div>
+
+      <!-- PERSONAL NOTE -->
+      <div class="block g">
+        <span class="tag gold">PERSONAL NOTE FROM OMER</span>
+        <p style="font-size:12px;color:var(--ink-dim);margin-bottom:8px">Record straight from here. Appears at the top of their Back Home tab — voice or video.</p>
+        <div class="rec">
+          <div class="dotrec"></div>
+          <div class="info"><b>Tap to record for Noy</b><span>or upload an existing file</span></div>
+          <div class="wave"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ASK OMER INBOX -->
+    <div class="inbox">
+      <h3>ASK OMER — INBOX</h3>
+      <div class="slasum">Review day: <b style="color:var(--teal)">Sunday</b> · 3 waiting · answers due Monday evening</div>
+
+      <div class="q">
+        <div class="row"><h4>Noy · Takeoff angle</h4><span class="st new">NEW</span></div>
+        <p>"Tried the front shoulder thing at Hilton, felt rushed. Is this right?" · clip 0:18</p>
+        <div class="acts"><b>OPEN CLIP</b><b class="wa">REPLY VIA WHATSAPP</b><b class="mk">MARK ANSWERED</b></div>
+      </div>
+
+      <div class="q">
+        <div class="row"><h4>Sharon · Wave pool left</h4><span class="st rev">IN REVIEW</span></div>
+        <p>"Which wave setting should I book for the knee drill?" · clip 0:31</p>
+        <div class="acts"><b>OPEN CLIP</b><b class="wa">REPLY VIA WHATSAPP</b><b class="mk">MARK ANSWERED</b></div>
+      </div>
+
+      <div class="q">
+        <div class="row"><h4>Leo · Cross-step setup</h4><span class="st ans">ANSWERED</span></div>
+        <p>Replied Sun · video 2:48 · logged to Leo's thread</p>
+        <div class="acts"><b>VIEW REPLY</b></div>
+      </div>
+
+      <div class="q" style="opacity:.6">
+        <div class="row"><h4>Berenice · Trim line</h4><span class="st ans">ANSWERED</span></div>
+        <p>Replied Sun · voice 1:12</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="specnote">
+    <h2>HOW THE PIECES CONNECT</h2>
+    <p><b>Mirror rule.</b> Every block in this editor maps 1:1 to a card in the student app. No separate CMS logic to learn — if you can see it as Noy, you can edit it as Omer.</p>
+    <p><b>Video slots, not a video tool.</b> Each dashed slot accepts an upload or a link. You keep filming and annotating in CoachNow or your phone; this dashboard is where the finished clip gets placed into the story.</p>
+    <p><b>The FPV ⟷ 3rd person pair</b> becomes a slider in the student view, same gold-handle interaction as before/after. Two angles of the same correction is something no coaching app ships natively.</p>
+    <p><b>Draft / Live per student.</b> Fill everything during the clinic evenings, publish when ready. The student never sees half-built pages.</p>
+    <p><b>Inbox = triage, not chat.</b> Open clip, reply however you want, mark answered. The status is what the student sees in their app.</p>
+  </div>
+</div>
+
+<script>
+(function(){
+  function wrapRoster(){
+    if(window.innerWidth>1100||document.querySelector('.roster-scroll'))return;
+    var side=document.querySelector('.side');if(!side)return;
+    var groups=[];var current=null;
+    Array.prototype.slice.call(side.children).forEach(function(el){
+      if(el.classList.contains('clinic')){current=document.createElement('div');current.className='roster-scroll';el.insertAdjacentElement('afterend',current);}
+      else if(el.classList.contains('stu')&&current){current.appendChild(el);}
+    });
+  }
+  wrapRoster();window.addEventListener('resize',wrapRoster);
+})();
+</script>
+</body>
+</html>

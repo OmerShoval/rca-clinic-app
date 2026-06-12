@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ocean Athlete — Sign In Flow — Look &amp; Feel</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --abyss:#070f15;--depth:#0d1a1f;
+    --glass:rgba(255,255,255,.055);--glass-edge:rgba(255,255,255,.10);
+    --gold:#e0b64f;--gold-soft:rgba(224,182,79,.16);
+    --teal:#2fd6c0;--teal-soft:rgba(47,214,192,.14);
+    --coral:#ff6b5e;--coral-soft:rgba(255,107,94,.14);
+    --ink:#f1eee6;--ink-dim:rgba(241,238,230,.62);--ink-faint:rgba(241,238,230,.38);
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    background:radial-gradient(1100px 520px at 75% -10%, rgba(47,214,192,.07), transparent 60%), var(--abyss);
+    color:var(--ink);font-family:Inter,system-ui,sans-serif;min-height:100vh;padding:44px 24px 80px;
+  }
+  .wrap{max-width:1180px;margin:0 auto}
+  .eyebrow{font-family:'Bebas Neue',sans-serif;letter-spacing:.35em;font-size:13px;color:var(--gold)}
+  h1{font-family:'Bebas Neue',sans-serif;font-size:clamp(40px,5.4vw,68px);line-height:.95;margin:10px 0 12px}
+  h1 em{font-style:normal;color:var(--teal)}
+  .sub{color:var(--ink-dim);max-width:600px;font-size:15px;line-height:1.6;margin-bottom:8px}
+  .hint{font-size:12.5px;color:var(--gold);letter-spacing:.04em;margin-bottom:36px}
+
+  .stage{display:flex;justify-content:center}
+  .phone{
+    width:100%;max-width:400px;background:var(--depth);
+    border:1px solid var(--glass-edge);border-radius:36px;
+    padding:14px 12px;box-shadow:0 36px 70px rgba(0,0,0,.6), inset 0 1px 0 rgba(255,255,255,.06);
+    overflow:hidden;position:relative;
+  }
+  .screen{height:720px;border-radius:24px;position:relative;overflow:hidden}
+
+  /* ambient ocean drift */
+  .ocean{position:absolute;inset:0;overflow:hidden;border-radius:24px}
+  .ocean::before,.ocean::after{
+    content:"";position:absolute;width:160%;height:160%;border-radius:45%;
+    left:-30%;opacity:.5;
+  }
+  .ocean::before{top:62%;background:radial-gradient(ellipse at center, rgba(47,214,192,.10), transparent 65%);animation:drift 14s ease-in-out infinite}
+  .ocean::after{top:74%;background:radial-gradient(ellipse at center, rgba(224,182,79,.07), transparent 65%);animation:drift 19s ease-in-out infinite reverse}
+  @keyframes drift{0%,100%{transform:translateX(-4%) rotate(0deg)}50%{transform:translateX(4%) rotate(3deg)}}
+
+  /* PANES */
+  .pane{position:absolute;inset:0;display:flex;flex-direction:column;padding:30px 26px;transition:opacity .5s ease, transform .6s cubic-bezier(.2,.8,.2,1)}
+  .pane.hidden{opacity:0;transform:translateY(24px);pointer-events:none}
+
+  /* PANE 1 — LOGIN */
+  .login-logo{text-align:center;margin-top:34px}
+  .login-logo .mark{
+    width:58px;height:58px;border-radius:50%;margin:0 auto 14px;border:1.5px solid var(--gold);
+    display:flex;align-items:center;justify-content:center;font-size:24px;
+    box-shadow:0 0 30px rgba(224,182,79,.25);animation:pulse 4s ease-in-out infinite;
+  }
+  @keyframes pulse{0%,100%{box-shadow:0 0 24px rgba(224,182,79,.18)}50%{box-shadow:0 0 44px rgba(224,182,79,.4)}}
+  .login-logo .br{font-family:'Bebas Neue',sans-serif;letter-spacing:.32em;font-size:12px;color:var(--ink-faint)}
+  .login-q{font-family:'Bebas Neue',sans-serif;font-size:46px;line-height:.98;text-align:center;margin:46px 0 8px;letter-spacing:.02em}
+  .login-q em{font-style:normal;color:var(--teal)}
+  .login-s{text-align:center;font-size:13px;color:var(--ink-dim);margin-bottom:34px}
+  .namebox{position:relative}
+  .namebox input{
+    width:100%;background:transparent;border:none;border-bottom:2px solid rgba(255,255,255,.18);
+    font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:.06em;color:var(--ink);
+    text-align:center;padding:8px 4px;outline:none;transition:border-color .3s;
+  }
+  .namebox input:focus{border-bottom-color:var(--gold)}
+  .namebox input::placeholder{color:rgba(241,238,230,.22)}
+  .namebox .glow{position:absolute;left:50%;bottom:0;height:2px;width:0;background:var(--gold);transform:translateX(-50%);transition:width .35s ease;box-shadow:0 0 14px rgba(224,182,79,.7)}
+  .namebox input:focus ~ .glow{width:100%}
+  .chips{display:flex;flex-direction:column;gap:8px;margin-top:22px;min-height:150px}
+  .chip{
+    display:flex;align-items:center;gap:12px;padding:12px 16px;border-radius:14px;cursor:pointer;
+    background:var(--glass);border:1px solid var(--glass-edge);
+    opacity:0;transform:translateY(10px);animation:rise .4s ease forwards;
+  }
+  .chip:nth-child(2){animation-delay:.07s}.chip:nth-child(3){animation-delay:.14s}
+  @keyframes rise{to{opacity:1;transform:none}}
+  .chip:hover{border-color:rgba(47,214,192,.45);background:var(--teal-soft)}
+  .chip .av{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1d4a52,#123038);display:flex;align-items:center;justify-content:center;font-family:'Bebas Neue',sans-serif;color:var(--teal)}
+  .chip b{font-size:14px}
+  .chip span{display:block;font-size:11px;color:var(--ink-faint);font-weight:400;margin-top:2px}
+  .login-foot{margin-top:auto;text-align:center;font-size:11px;color:var(--ink-faint);letter-spacing:.06em}
+
+  /* wave wipe */
+  .wipe{
+    position:absolute;left:-10%;right:-10%;height:140%;top:100%;z-index:5;pointer-events:none;
+    background:linear-gradient(to top, var(--abyss) 70%, rgba(47,214,192,.35) 92%, transparent);
+    border-radius:45% 55% 0 0 / 60px 80px 0 0;
+  }
+  .wipe.go{animation:wipeUp 1.1s cubic-bezier(.7,0,.2,1) forwards}
+  @keyframes wipeUp{0%{top:100%}45%{top:-12%}100%{top:-150%}}
+
+  /* PANE 2 — GREETING */
+  .greet{justify-content:center;align-items:center;text-align:center}
+  .greet .hello{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.3em;color:var(--gold);opacity:0}
+  .greet .nm{font-family:'Bebas Neue',sans-serif;font-size:74px;line-height:1;margin:10px 0 6px;color:var(--ink)}
+  .greet .nm span{display:inline-block;opacity:0;transform:translateY(26px) rotate(4deg)}
+  .greet .tag{font-size:13px;color:var(--ink-dim);opacity:0}
+  .greet .stagebar{width:78%;margin-top:34px;opacity:0}
+  .greet .stagebar .lbl{display:flex;justify-content:space-between;font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.18em;color:var(--ink-faint);margin-bottom:8px}
+  .greet .stagebar .lbl b{color:var(--teal);font-weight:400}
+  .greet .bar{height:7px;border-radius:4px;background:rgba(255,255,255,.1);overflow:hidden}
+  .greet .bar i{display:block;height:100%;width:0;border-radius:4px;background:linear-gradient(90deg,var(--teal),var(--gold))}
+  .greet.play .hello{animation:fadeup .5s .15s ease forwards}
+  .greet.play .nm span{animation:pop .5s ease forwards}
+  .greet.play .tag{animation:fadeup .5s .85s ease forwards}
+  .greet.play .stagebar{animation:fadeup .6s 1.05s ease forwards}
+  .greet.play .bar i{animation:fill 1s 1.25s cubic-bezier(.2,.8,.2,1) forwards}
+  @keyframes fadeup{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+  @keyframes pop{to{opacity:1;transform:none}}
+  @keyframes fill{to{width:40%}}
+
+  /* PANE 3 — HOME */
+  .home .hd{margin-bottom:16px}
+  .home .hd .br{font-family:'Bebas Neue',sans-serif;letter-spacing:.28em;font-size:11px;color:var(--ink-faint)}
+  .home .hd h2{font-family:'Bebas Neue',sans-serif;font-size:34px;letter-spacing:.03em;margin-top:4px}
+  .home .hd h2 em{font-style:normal;color:var(--teal)}
+  .home .hd small{display:block;font-size:12px;color:var(--ink-dim);margin-top:4px}
+  .hcard{
+    background:var(--glass);border:1px solid var(--glass-edge);border-radius:16px;padding:15px 16px;margin-bottom:11px;
+    display:flex;align-items:center;gap:14px;cursor:pointer;position:relative;overflow:hidden;
+    opacity:0;transform:translateY(14px);
+  }
+  .home.play .hcard{animation:rise .45s ease forwards}
+  .home.play .hcard:nth-child(2){animation-delay:.08s}
+  .home.play .hcard:nth-child(3){animation-delay:.16s}
+  .home.play .hcard:nth-child(4){animation-delay:.24s}
+  .home.play .hcard:nth-child(5){animation-delay:.32s}
+  .home.play .hcard:nth-child(6){animation-delay:.40s}
+  .hcard .ic{width:42px;height:42px;border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:19px;flex:none}
+  .hcard h4{font-family:'Bebas Neue',sans-serif;font-size:18px;letter-spacing:.08em;font-weight:400}
+  .hcard p{font-size:11.5px;color:var(--ink-dim);margin-top:2px;line-height:1.4}
+  .hcard .arr{margin-left:auto;color:var(--ink-faint)}
+  .hcard.waves .ic{background:var(--coral-soft);border:1px solid rgba(255,107,94,.3)}
+  .hcard.bh .ic{background:var(--teal-soft);border:1px solid rgba(47,214,192,.3)}
+  .hcard.ask .ic{background:var(--gold-soft);border:1px solid rgba(224,182,79,.3)}
+  .hcard.jr .ic{background:rgba(168,140,255,.12);border:1px solid rgba(168,140,255,.3)}
+  .hcard.md .ic{background:rgba(120,190,255,.10);border:1px solid rgba(120,190,255,.28)}
+  .hcard .pill{font-family:'Bebas Neue',sans-serif;font-size:10.5px;letter-spacing:.12em;padding:2px 8px;border-radius:5px;margin-left:8px}
+  .pill.new{color:var(--coral);background:var(--coral-soft)}
+  .pill.daily{color:#a88cff;background:rgba(168,140,255,.12)}
+  .ritual-lbl{font-family:'Bebas Neue',sans-serif;font-size:12px;letter-spacing:.26em;color:var(--ink-faint);margin:14px 2px 10px}
+  .replay{
+    position:absolute;top:18px;right:18px;z-index:9;font-family:'Bebas Neue',sans-serif;font-size:12px;
+    letter-spacing:.14em;color:var(--ink-faint);border:1px solid var(--glass-edge);border-radius:9px;
+    padding:6px 11px;background:rgba(0,0,0,.35);cursor:pointer;
+  }
+  .replay:hover{color:var(--gold);border-color:rgba(224,182,79,.4)}
+  @media (prefers-reduced-motion:reduce){
+    *{animation:none !important;transition:none !important}
+    .pane.hidden{display:none}
+    .chip,.hcard,.greet .hello,.greet .nm span,.greet .tag,.greet .stagebar{opacity:1;transform:none}
+    .greet .bar i{width:40%}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="eyebrow">OCEAN ATHLETE · SIGN IN</div>
+  <h1>YOUR NAME IS <em>THE KEY</em></h1>
+  <p class="sub">No passwords, no friction. The roster you fill in the coach dashboard becomes the door. Type two letters, your card appears, tap it, the ocean carries you in.</p>
+  <p class="hint">▶ INTERACTIVE — type "no" in the field, tap the Noy card, watch the full sequence. Replay button top-right.</p>
+
+  <div class="stage">
+    <div class="phone">
+      <button class="replay" onclick="resetFlow()">↻ REPLAY</button>
+      <div class="screen">
+        <div class="ocean"></div>
+        <div class="wipe" id="wipe"></div>
+
+        <!-- PANE 1: LOGIN -->
+        <div class="pane" id="p1">
+          <div class="login-logo">
+            <div class="mark">🌊</div>
+            <div class="br">OCEAN ATHLETE · BY COACH OMER</div>
+          </div>
+          <div class="login-q">WHO'S <em>SURFING?</em></div>
+          <div class="login-s">Type your full name to open your space</div>
+          <div class="namebox">
+            <input id="nameInput" type="text" placeholder="YOUR NAME" autocomplete="off" oninput="onType(this.value)">
+            <div class="glow"></div>
+          </div>
+          <div class="chips" id="chips"></div>
+          <div class="login-foot">CABO LEDO CLINIC · JUNE 2026</div>
+        </div>
+
+        <!-- PANE 2: GREETING -->
+        <div class="pane greet hidden" id="p2">
+          <div class="hello">WELCOME BACK</div>
+          <div class="nm" id="greetName"></div>
+          <div class="tag">Bottom turn · Cabo Ledo, Day 5</div>
+          <div class="stagebar">
+            <div class="lbl"><span>YOUR JOURNEY</span><b>STAGE 2 OF 5</b></div>
+            <div class="bar"><i></i></div>
+          </div>
+        </div>
+
+        <!-- PANE 3: HOME -->
+        <div class="pane home hidden" id="p3">
+          <div class="hd">
+            <div class="br">OCEAN ATHLETE</div>
+            <h2>HEY, <em>NOY</em></h2>
+            <small>Day 5 · evening · your debrief is ready</small>
+          </div>
+          <div class="hcard waves"><div class="ic">🏄</div><div><h4>MY WAVES<span class="pill new">1 NEW</span></h4><p>Wave 3 debrief — mistake, correction, your improvement</p></div><div class="arr">›</div></div>
+          <div class="hcard bh"><div class="ic">🏠</div><div><h4>BACK HOME</h4><p>Your correction translated for Israel + the wave pool</p></div><div class="arr">›</div></div>
+          <div class="hcard ask"><div class="ic">💬</div><div><h4>ASK OMER</h4><p>1 thread in review · answers Monday</p></div><div class="arr">›</div></div>
+          <div class="ritual-lbl">TODAY'S RITUALS</div>
+          <div class="hcard jr"><div class="ic">📓</div><div><h4>JOURNAL<span class="pill daily">EVENING</span></h4><p>How did the front shoulder feel today? 2 min</p></div><div class="arr">›</div></div>
+          <div class="hcard md"><div class="ic">🧘</div><div><h4>MEDITATION</h4><p>Felt-sense body scan · 6 min · before sleep</p></div><div class="arr">›</div></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+var roster=[
+  {n:"Noy Cohen",d:"Bottom turn · Stage 2/5"},
+  {n:"Noa Levi",d:"Takeoff · Stage 1/5"},
+  {n:"Leo Marchetti",d:"Cross-step · Stage 3/5"}
+];
+function onType(v){
+  var box=document.getElementById('chips');box.innerHTML='';
+  if(v.trim().length<2)return;
+  var q=v.trim().toLowerCase();
+  roster.filter(function(s){return s.n.toLowerCase().indexOf(q)===0||s.n.toLowerCase().split(' ')[1]&&s.n.toLowerCase().split(' ')[1].indexOf(q)===0})
+  .forEach(function(s){
+    var c=document.createElement('div');c.className='chip';
+    c.innerHTML='<div class="av">'+s.n[0]+'</div><div><b>'+s.n+'</b><span>'+s.d+'</span></div>';
+    c.onclick=function(){enter(s.n)};
+    box.appendChild(c);
+  });
+}
+function enter(name){
+  var first=name.split(' ')[0].toUpperCase();
+  var g=document.getElementById('greetName');g.innerHTML='';
+  for(var i=0;i<first.length;i++){
+    var sp=document.createElement('span');sp.textContent=first[i];
+    sp.style.animationDelay=(0.35+i*0.07)+'s';g.appendChild(sp);
+  }
+  document.getElementById('wipe').classList.add('go');
+  setTimeout(function(){
+    document.getElementById('p1').classList.add('hidden');
+    var p2=document.getElementById('p2');p2.classList.remove('hidden');p2.classList.add('play');
+  },480);
+  setTimeout(function(){
+    document.getElementById('p2').classList.add('hidden');
+    var p3=document.getElementById('p3');p3.classList.remove('hidden');p3.classList.add('play');
+  },3600);
+}
+function resetFlow(){
+  document.getElementById('wipe').classList.remove('go');
+  var p2=document.getElementById('p2'),p3=document.getElementById('p3');
+  p2.classList.add('hidden');p2.classList.remove('play');
+  p3.classList.add('hidden');p3.classList.remove('play');
+  document.getElementById('p1').classList.remove('hidden');
+  document.getElementById('nameInput').value='';
+  document.getElementById('chips').innerHTML='';
+}
+</script>
+</body>
+</html>
