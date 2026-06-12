@@ -172,7 +172,11 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
         <div className="flex-1 overflow-y-auto px-3 py-3">
           {byClinic.map(({ clinic, students: gs }) => (
             <div key={clinic.id} className="mb-4">
-              <p className="font-display text-[10px] tracking-[0.25em] text-gold px-1 mb-2">{clinic.name}</p>
+              <p className="font-display text-[10px] tracking-[0.25em] text-gold px-1 mb-2">
+                {clinic.location
+                  ? `${clinic.location.toUpperCase()} · CLINIC ${clinic.number}`
+                  : clinic.name.toUpperCase()}
+              </p>
               <div className="flex flex-col gap-1">
                 {gs.map((s) => (
                   <RosterRow
@@ -407,11 +411,9 @@ function RosterRow({
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-ink text-[13px] font-medium truncate leading-tight">{student.full_name}</p>
-        <div className="flex gap-0.5 mt-0.5">
-          {Array.from({ length: 5 }).map((_, i) => (
-            <div key={i} className="h-0.5 w-3 rounded-full" style={{ background: i < student.stage ? "var(--teal)" : "rgba(255,255,255,0.1)" }} />
-          ))}
-        </div>
+        <p className="font-display text-[9px] tracking-wide text-ink-faint truncate mt-0.5">
+          {student.focus_skill ? `${student.focus_skill} · Stage ${student.stage}/5` : `Stage ${student.stage}/5`}
+        </p>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
         <button

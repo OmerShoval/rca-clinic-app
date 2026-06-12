@@ -21,18 +21,29 @@ export async function POST(req: NextRequest) {
   if (deny) return deny;
 
   const body = await req.json();
-  const { name, number, location } = body;
+  const { name, location } = body;
 
-  if (!name?.trim() || !number) {
-    return NextResponse.json({ error: "name and number are required" }, { status: 400 });
+  if (!name?.trim()) {
+    return NextResponse.json({ error: "name is required" }, { status: 400 });
   }
 
   const db = createServerClient();
+
+  // Auto-assign next number server-side — avoids stale client state / UNIQUE collisions
+  const { data: maxRow } = await db
+    .from("clinics")
+    .select("number")
+    .order("number", { ascending: false })
+    .limit(1)
+    .single();
+
+  const nextNumber = (maxRow?.number ?? 0) + 1;
+
   const { data, error } = await db
     .from("clinics")
     .insert({
       name: name.trim(),
-      number: Number(number),
+      number: nextNumber,
       location: location?.trim() || null,
       status: "active",
     })

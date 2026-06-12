@@ -30,32 +30,36 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Inline clinic creation
-  const [showNewClinic, setShowNewClinic] = useState(clinics.length === 0);
-  const [newClinicName, setNewClinicName] = useState("");
-  const [newClinicNumber, setNewClinicNumber] = useState("");
+  const PRESET_LOCATIONS = [
+    "Angola", "Mentawais", "El Salvador", "Maldives",
+    "Philippines", "Mexico", "Brazil", "Sri Lanka",
+  ];
+
+  // Inline clinic creation — always show existing select, new-clinic is additive
+  const [showNewClinic, setShowNewClinic] = useState(false);
+  const [newClinicLocation, setNewClinicLocation] = useState("");
   const [creatingClinic, setCreatingClinic] = useState(false);
   const [clinicError, setClinicError] = useState<string | null>(null);
 
   async function handleCreateClinic() {
-    if (!newClinicName.trim() || !newClinicNumber) {
-      setClinicError("Clinic name and number are required");
+    if (!newClinicLocation) {
+      setClinicError("Select a location");
       return;
     }
+    // Auto-assign next number — never collides with existing clinic numbers
     setCreatingClinic(true);
     setClinicError(null);
     try {
       const res = await fetch("/api/coach/clinics", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newClinicName.trim(), number: Number(newClinicNumber) }),
+        body: JSON.stringify({ name: newClinicLocation, location: newClinicLocation }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Failed to create clinic");
       onClinicAdded(data);
       setClinicId(data.id);
-      setNewClinicName("");
-      setNewClinicNumber("");
+      setNewClinicLocation("");
       setShowNewClinic(false);
     } catch (err) {
       setClinicError(err instanceof Error ? err.message : "Something went wrong");
@@ -67,7 +71,8 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!fullName.trim()) { setError("Name is required"); return; }
-    if (!clinicId) { setError("Select or create a clinic first"); return; }
+    const effectiveClinicId = clinicId || clinics[0]?.id;
+    if (!effectiveClinicId) { setError("Create a clinic first"); return; }
 
     setSaving(true);
     setError(null);
@@ -75,7 +80,7 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
     try {
       const body = {
         full_name: fullName.trim(),
-        clinic_id: clinicId,
+        clinic_id: effectiveClinicId,
         stage,
         awareness,
         execution,
@@ -149,7 +154,7 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
         {/* Clinic */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint">Clinic *</label>
+            <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint">Clinic</label>
             <button
               type="button"
               onClick={() => { setShowNewClinic((v) => !v); setClinicError(null); }}
@@ -160,26 +165,19 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
             </button>
           </div>
 
-          {clinics.length > 0 && !showNewClinic && (
+          {clinics.length > 0 && (
             <select
-              value={clinicId}
+              value={clinicId || clinics[0]?.id}
               onChange={(e) => setClinicId(Number(e.target.value))}
               className="w-full rounded-xl px-3 py-2.5 text-sm text-ink outline-none"
               style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
             >
               {clinics.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
+                <option key={c.id} value={c.id}>
+                  {c.location ? `${c.location} · Clinic ${c.number}` : c.name}
+                </option>
               ))}
             </select>
-          )}
-
-          {clinics.length === 0 && !showNewClinic && (
-            <div
-              className="rounded-xl px-3 py-3 text-center"
-              style={{ background: "var(--glass)", border: "1px dashed var(--glass-edge)" }}
-            >
-              <p className="text-ink-faint text-xs">No clinics yet — create one above</p>
-            </div>
           )}
 
           {/* Inline clinic creation */}
@@ -196,32 +194,24 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
                   className="rounded-xl p-3 flex flex-col gap-2 mt-1"
                   style={{ background: "var(--depth)", border: "1px solid rgba(224,182,79,0.3)" }}
                 >
-                  <p className="font-display text-[9px] tracking-[0.2em] text-gold">New Clinic</p>
+                  <p className="font-display text-[9px] tracking-[0.2em] text-gold">New Clinic — pick a location</p>
                   <div className="flex gap-2">
-                    <input
-                      type="number"
-                      value={newClinicNumber}
-                      onChange={(e) => setNewClinicNumber(e.target.value)}
-                      placeholder="#"
-                      min={1}
-                      className="w-16 rounded-lg px-2 py-2 text-sm text-ink placeholder:text-ink-faint outline-none text-center"
+                    <select
+                      value={newClinicLocation}
+                      onChange={(e) => setNewClinicLocation(e.target.value)}
+                      className="flex-1 rounded-lg px-3 py-2 text-sm text-ink outline-none"
                       style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
-                    />
-                    <input
-                      type="text"
-                      value={newClinicName}
-                      onChange={(e) => setNewClinicName(e.target.value)}
-                      placeholder="Clinic name…"
-                      className="flex-1 rounded-lg px-3 py-2 text-sm text-ink placeholder:text-ink-faint outline-none"
-                      style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
-                      onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(224,182,79,0.5)")}
-                      onBlur={(e) => (e.currentTarget.style.borderColor = "var(--glass-edge)")}
-                    />
+                    >
+                      <option value="">Select location…</option>
+                      {PRESET_LOCATIONS.map((loc) => (
+                        <option key={loc} value={loc}>{loc}</option>
+                      ))}
+                    </select>
                     <button
                       type="button"
                       onClick={handleCreateClinic}
-                      disabled={creatingClinic || !newClinicName.trim() || !newClinicNumber}
-                      className="px-3 py-2 rounded-lg font-display text-[10px] tracking-widest text-abyss disabled:opacity-40 transition-opacity"
+                      disabled={creatingClinic || !newClinicLocation}
+                      className="px-4 py-2 rounded-lg font-display text-[10px] tracking-widest text-abyss disabled:opacity-40 transition-opacity"
                       style={{ background: "var(--gold)" }}
                     >
                       {creatingClinic ? "…" : "Create"}

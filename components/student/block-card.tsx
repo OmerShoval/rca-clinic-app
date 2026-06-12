@@ -85,12 +85,20 @@ export function BlockCard({ block }: Props) {
 
         {/* Primary video */}
         {block.video_url && (
-          <VideoSlot url={block.video_url} label="Watch clip" className="mt-1" />
+          <VideoSlot
+            url={block.video_url}
+            label={block.type === "improvement" ? "Before" : block.type === "goal" ? "Goal video" : block.type === "next_step" ? "Next step video" : "Watch clip"}
+            className="mt-1"
+          />
         )}
 
         {/* Secondary video */}
         {block.video_url_secondary && (
-          <VideoSlot url={block.video_url_secondary} label="Reference wave" className="mt-1" />
+          <VideoSlot
+            url={block.video_url_secondary}
+            label={block.type === "improvement" ? "After" : "Reference wave"}
+            className="mt-1"
+          />
         )}
       </div>
     </div>

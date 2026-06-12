@@ -25,6 +25,7 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
   const [waveLabel, setWaveLabel] = useState(debrief.wave_label);
+  const [dayNumber, setDayNumber] = useState<string>(debrief.day_number != null ? String(debrief.day_number) : "");
   const [status, setStatus] = useState(debrief.status);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
@@ -92,6 +93,19 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
     }, 1000);
   }
 
+  function handleDayChange(val: string) {
+    const clean = val.replace(/\D/g, "");
+    setDayNumber(clean);
+    if (labelTimer.current) clearTimeout(labelTimer.current);
+    labelTimer.current = setTimeout(async () => {
+      await fetch(`/api/coach/debriefs/${debrief.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ day_number: clean ? Number(clean) : null }),
+      });
+    }, 1000);
+  }
+
   async function togglePublish() {
     const newStatus = status === "published" ? "draft" : "published";
     const res = await fetch(`/api/coach/debriefs/${debrief.id}`, {
@@ -119,8 +133,19 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
       transition={{ duration: 0.25 }}
       className="flex flex-col gap-4"
     >
-      {/* Wave label + status row */}
+      {/* Wave label + day + status row */}
       <div className="flex items-center gap-3">
+        <input
+          type="text"
+          inputMode="numeric"
+          value={dayNumber}
+          onChange={(e) => handleDayChange(e.target.value)}
+          placeholder="Day"
+          className="w-14 flex-shrink-0 rounded-xl px-2 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none text-center font-display tracking-wide"
+          style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
+          onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(224,182,79,0.5)")}
+          onBlur={(e) => (e.currentTarget.style.borderColor = "var(--glass-edge)")}
+        />
         <input
           type="text"
           value={waveLabel}

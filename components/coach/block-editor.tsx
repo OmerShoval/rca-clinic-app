@@ -15,22 +15,31 @@ const META: Record<BlockType, { label: string; color: string; bg: string; border
 };
 
 const BLOCK_FIELDS: Record<BlockType, string[]> = {
-  mistake: ["title", "body", "felt_sense_quote", "where_on_wave", "why_it_happened", "timestamp_marker", "video_url"],
-  correction: ["title", "body", "felt_sense_quote", "video_url", "video_url_secondary"],
-  improvement: ["title", "body", "video_url"],
-  goal: ["title", "body"],
-  next_step: ["title", "body"],
+  mistake:     ["title", "body", "felt_sense_quote", "where_on_wave", "why_it_happened", "timestamp_marker", "video_url"],
+  correction:  ["title", "body", "felt_sense_quote", "video_url", "video_url_secondary"],
+  improvement: ["title", "body", "video_url", "video_url_secondary"],
+  goal:        ["title", "body", "video_url"],
+  next_step:   ["title", "body", "video_url"],
+};
+
+// Per-block label overrides — design copy from the HTML spec
+const BLOCK_FIELD_LABELS: Partial<Record<BlockType, Partial<Record<string, string>>>> = {
+  mistake:     { title: "What Happened", body: "Full Breakdown", video_url: "Wave Clip" },
+  correction:  { title: "The Fix (one line)", felt_sense_quote: "\"It Feels Like…\" (teal quote)", video_url: "First-Person View (FPV)", video_url_secondary: "Third-Person View (land/water angle)" },
+  improvement: { title: "What Improved", video_url: "Before Clip", video_url_secondary: "After Clip" },
+  goal:        { title: "Goal (one line)", video_url: "Goal Video" },
+  next_step:   { title: "Next Step (one line)", video_url: "Next Step Video" },
 };
 
 const FIELD_META: Record<string, { label: string; placeholder: string; multiline: boolean }> = {
-  title: { label: "Headline", placeholder: "Short, punchy summary…", multiline: false },
-  body: { label: "Detail", placeholder: "Explain in depth…", multiline: true },
-  felt_sense_quote: { label: "Felt Sense", placeholder: "\"It felt like…\"", multiline: false },
-  where_on_wave: { label: "Where on Wave", placeholder: "Take-off, bottom turn, lip…", multiline: false },
-  why_it_happened: { label: "Root Cause", placeholder: "Why did this happen?", multiline: false },
-  timestamp_marker: { label: "Timestamp", placeholder: "e.g. 0:42", multiline: false },
-  video_url: { label: "Video URL", placeholder: "YouTube / Vimeo / Drive link…", multiline: false },
-  video_url_secondary: { label: "Reference Clip URL", placeholder: "Example wave to study…", multiline: false },
+  title:               { label: "Headline",       placeholder: "Short, punchy summary…",         multiline: false },
+  body:                { label: "Detail",          placeholder: "Explain in depth…",              multiline: true  },
+  felt_sense_quote:    { label: "Felt Sense",      placeholder: "\"It felt like…\"",             multiline: false },
+  where_on_wave:       { label: "Where on Wave",   placeholder: "Take-off, bottom turn, lip…",   multiline: false },
+  why_it_happened:     { label: "Root Cause",      placeholder: "Why did this happen?",           multiline: false },
+  timestamp_marker:    { label: "Timestamp",       placeholder: "e.g. 0:42",                     multiline: false },
+  video_url:           { label: "Video Clip",      placeholder: "YouTube / Vimeo / Drive link…", multiline: false },
+  video_url_secondary: { label: "Reference Clip",  placeholder: "Second angle or after clip…",   multiline: false },
 };
 
 interface Props {
@@ -96,11 +105,12 @@ export function BlockEditor({ block, onChange }: Props) {
             <div className="px-4 pb-4 pt-2 flex flex-col gap-3" style={{ borderTop: `1px solid ${meta.border}` }}>
               {fields.map((field) => {
                 const fm = FIELD_META[field];
+                const label = BLOCK_FIELD_LABELS[block.type]?.[field] ?? fm.label;
                 const value = ((block as Record<string, unknown>)[field] as string) ?? "";
                 return (
                   <div key={field}>
                     <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1">
-                      {fm.label}
+                      {label}
                     </label>
                     {fm.multiline ? (
                       <textarea
