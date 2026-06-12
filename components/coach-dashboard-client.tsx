@@ -6,10 +6,11 @@ import { motion, AnimatePresence } from "motion/react";
 import { StudentForm } from "@/components/coach/student-form";
 import { DebriefEditor } from "@/components/coach/debrief-editor";
 import { BackHomeEditor } from "@/components/coach/back-home-editor";
+import { InboxView } from "@/components/coach/inbox-view";
 import type { Student, Clinic, Debrief } from "@/lib/database.types";
 
 type Tab = "waves" | "israel" | "wave_pool";
-type View = "student" | "addStudent" | "editStudent";
+type View = "student" | "addStudent" | "editStudent" | "inbox";
 
 interface Props {
   students: Student[];
@@ -35,7 +36,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics }: Pro
 
   const selectedStudent = students.find((s) => s.id === selectedId) ?? null;
   const selectedDebrief = debriefs.find((d) => d.id === selectedDebriefId) ?? null;
-  const isEditorVisible = !!selectedId || view === "addStudent";
+  const isEditorVisible = !!selectedId || view === "addStudent" || view === "inbox";
 
   const fetchDebriefs = useCallback(async (studentId: string) => {
     setDebriefLoading(true);
@@ -136,7 +137,17 @@ export function CoachDashboardClient({ students: initialStudents, clinics }: Pro
               className="flex-1 py-2 rounded-xl font-display text-[11px] tracking-widest text-gold transition-all hover:opacity-80"
               style={{ background: "var(--gold-soft)", border: "1px solid rgba(224,182,79,0.3)" }}
             >
-              + Add Student
+              + Add
+            </button>
+            <button
+              onClick={() => { setView("inbox"); setSelectedId(null); setSelectedDebriefId(null); }}
+              className="flex-1 py-2 rounded-xl font-display text-[11px] tracking-widest transition-all hover:opacity-80"
+              style={view === "inbox"
+                ? { background: "var(--coral-soft)", color: "var(--coral)", border: "1px solid rgba(255,107,94,0.3)" }
+                : { background: "var(--glass)", color: "var(--ink-faint)", border: "1px solid var(--glass-edge)" }
+              }
+            >
+              Inbox
             </button>
             <a
               href="/"
@@ -203,8 +214,19 @@ export function CoachDashboardClient({ students: initialStudents, clinics }: Pro
       <main
         className={`flex flex-col overflow-hidden ${isEditorVisible ? "flex w-full md:flex-1" : "hidden md:flex md:flex-1"}`}
       >
-        {/* Add Student */}
+        {/* ── Panels ── */}
         <AnimatePresence mode="wait">
+          {/* Inbox */}
+          {view === "inbox" && (
+            <motion.div key="inbox" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6">
+              <button onClick={() => setView("student")} className="md:hidden flex items-center gap-2 font-display text-[11px] tracking-widest text-ink-faint mb-5">
+                ← Roster
+              </button>
+              <InboxView />
+            </motion.div>
+          )}
+
+          {/* Add Student */}
           {view === "addStudent" && (
             <motion.div key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6">
               {/* Mobile back */}
