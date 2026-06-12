@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
 
   // Ensure bucket exists (idempotent — ignores "already exists" error)
   await db.storage.createBucket("rca-notes", {
-    public: false,
+    public: true,
     allowedMimeTypes: ["audio/webm", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/wav"],
     fileSizeLimit: 10 * 1024 * 1024,
   });
