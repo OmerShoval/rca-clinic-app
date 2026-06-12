@@ -11,12 +11,12 @@ export default async function CoachDashboard() {
   const db = createServerClient();
   const { data: students } = await db
     .from("students")
-    .select("id, full_name, slug, stage, focus_skill, status, clinic_id")
+    .select("*")
     .order("full_name");
 
   const { data: clinics } = await db
     .from("clinics")
-    .select("id, number, name")
+    .select("*")
     .order("number");
 
   return (
