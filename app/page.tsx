@@ -267,6 +267,21 @@ export default function LoginPage() {
         Type at least 2 characters
       </motion.p>
 
+      {/* Coach link */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.8, duration: 0.5 }}
+        className="absolute bottom-8 right-6 z-10"
+      >
+        <a
+          href="/coach"
+          className="font-display text-[10px] tracking-[0.2em] text-ink-faint hover:text-gold transition-colors"
+        >
+          Coach →
+        </a>
+      </motion.div>
+
       {/* Wave-wipe transition overlay */}
       <AnimatePresence>
         {showWipe && (

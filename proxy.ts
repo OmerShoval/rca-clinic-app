@@ -1,17 +1,27 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
 
-const COOKIE_NAME = "oa_token";
+const STUDENT_COOKIE = "oa_token";
+const COACH_COOKIE   = "oa_coach";
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Only guard /s/* routes
+  // ── Coach routes: guard /coach/dashboard and deeper, allow /coach (login page)
+  if (pathname.startsWith("/coach/") && pathname !== "/coach/") {
+    const coachAuth = req.cookies.get(COACH_COOKIE)?.value;
+    if (coachAuth !== "authenticated") {
+      return NextResponse.redirect(new URL("/coach", req.url));
+    }
+    return NextResponse.next();
+  }
+
+  // ── Student routes: guard /s/*
   if (!pathname.startsWith("/s/")) {
     return NextResponse.next();
   }
 
-  const token = req.cookies.get(COOKIE_NAME)?.value;
+  const token = req.cookies.get(STUDENT_COOKIE)?.value;
 
   if (!token) {
     return NextResponse.redirect(new URL("/", req.url));
@@ -26,7 +36,7 @@ export async function proxy(req: NextRequest) {
 
   if (!session) {
     const res = NextResponse.redirect(new URL("/", req.url));
-    res.cookies.set({ name: COOKIE_NAME, value: "", maxAge: 0, path: "/" });
+    res.cookies.set({ name: STUDENT_COOKIE, value: "", maxAge: 0, path: "/" });
     return res;
   }
 
@@ -36,10 +46,8 @@ export async function proxy(req: NextRequest) {
     return NextResponse.redirect(new URL("/", req.url));
   }
 
-  // Extract the slug from the URL: /s/[slug]/anything
-  const urlSlug = pathname.split("/")[2];
-
   // If a student tries to visit another student's slug, redirect to their own
+  const urlSlug = pathname.split("/")[2];
   if (urlSlug && urlSlug !== ownSlug) {
     const redirectPath = pathname.replace(`/s/${urlSlug}`, `/s/${ownSlug}`);
     return NextResponse.redirect(new URL(redirectPath, req.url));
@@ -49,5 +57,5 @@ export async function proxy(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/s/:path*"],
+  matcher: ["/s/:path*", "/coach/:path*"],
 };
