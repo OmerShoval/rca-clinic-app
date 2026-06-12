@@ -85,7 +85,7 @@ export default async function DebriefDetailPage({ params }: Props) {
       {/* Blocks */}
       {filledBlocks.length > 0 ? (
         <div className="flex flex-col gap-3">
-          {blocks.map((block) => (
+          {filledBlocks.map((block) => (
             <BlockCard key={block.id} block={block} />
           ))}
         </div>

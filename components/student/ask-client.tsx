@@ -24,7 +24,7 @@ export function AskClient({ initialThreads }: Props) {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!question.trim()) return;
     setSubmitting(true);

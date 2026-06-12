@@ -1,19 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { motion } from "motion/react";
+import { motion, AnimatePresence } from "motion/react";
 import type { Student, Clinic } from "@/lib/database.types";
 
 interface Props {
   clinics: Clinic[];
   student?: Student | null;
   onSave: (student: Student) => void;
+  onClinicAdded: (clinic: Clinic) => void;
   onCancel: () => void;
 }
 
 const STAGE_LABELS = ["", "Beginner", "Developing", "Intermediate", "Advanced", "Expert"];
 
-export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
+export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel }: Props) {
   const isEdit = !!student;
 
   const [fullName, setFullName] = useState(student?.full_name ?? "");
@@ -29,10 +30,44 @@ export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Inline clinic creation
+  const [showNewClinic, setShowNewClinic] = useState(clinics.length === 0);
+  const [newClinicName, setNewClinicName] = useState("");
+  const [newClinicNumber, setNewClinicNumber] = useState("");
+  const [creatingClinic, setCreatingClinic] = useState(false);
+  const [clinicError, setClinicError] = useState<string | null>(null);
+
+  async function handleCreateClinic() {
+    if (!newClinicName.trim() || !newClinicNumber) {
+      setClinicError("Clinic name and number are required");
+      return;
+    }
+    setCreatingClinic(true);
+    setClinicError(null);
+    try {
+      const res = await fetch("/api/coach/clinics", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: newClinicName.trim(), number: Number(newClinicNumber) }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Failed to create clinic");
+      onClinicAdded(data);
+      setClinicId(data.id);
+      setNewClinicName("");
+      setNewClinicNumber("");
+      setShowNewClinic(false);
+    } catch (err) {
+      setClinicError(err instanceof Error ? err.message : "Something went wrong");
+    } finally {
+      setCreatingClinic(false);
+    }
+  }
+
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
     if (!fullName.trim()) { setError("Name is required"); return; }
-    if (!clinicId) { setError("Select a clinic"); return; }
+    if (!clinicId) { setError("Select or create a clinic first"); return; }
 
     setSaving(true);
     setError(null);
@@ -47,7 +82,6 @@ export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
         focus_skill: focusSkill.trim() || null,
         whatsapp_number: whatsapp.trim() || null,
         status,
-        // Only send pin when a new value is typed; blank = keep existing
         ...(pin.trim() ? { pin: pin.trim() } : {}),
       };
 
@@ -114,17 +148,92 @@ export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
 
         {/* Clinic */}
         <div>
-          <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">Clinic *</label>
-          <select
-            value={clinicId}
-            onChange={(e) => setClinicId(Number(e.target.value))}
-            className="w-full rounded-xl px-3 py-2.5 text-sm text-ink outline-none"
-            style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
-          >
-            {clinics.map((c) => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+          <div className="flex items-center justify-between mb-1.5">
+            <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint">Clinic *</label>
+            <button
+              type="button"
+              onClick={() => { setShowNewClinic((v) => !v); setClinicError(null); }}
+              className="font-display text-[9px] tracking-widest transition-colors"
+              style={{ color: showNewClinic ? "var(--coral)" : "var(--gold)" }}
+            >
+              {showNewClinic ? "✕ Cancel" : "+ New Clinic"}
+            </button>
+          </div>
+
+          {clinics.length > 0 && !showNewClinic && (
+            <select
+              value={clinicId}
+              onChange={(e) => setClinicId(Number(e.target.value))}
+              className="w-full rounded-xl px-3 py-2.5 text-sm text-ink outline-none"
+              style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
+            >
+              {clinics.map((c) => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+          )}
+
+          {clinics.length === 0 && !showNewClinic && (
+            <div
+              className="rounded-xl px-3 py-3 text-center"
+              style={{ background: "var(--glass)", border: "1px dashed var(--glass-edge)" }}
+            >
+              <p className="text-ink-faint text-xs">No clinics yet — create one above</p>
+            </div>
+          )}
+
+          {/* Inline clinic creation */}
+          <AnimatePresence>
+            {showNewClinic && (
+              <motion.div
+                initial={{ height: 0, opacity: 0 }}
+                animate={{ height: "auto", opacity: 1 }}
+                exit={{ height: 0, opacity: 0 }}
+                transition={{ duration: 0.22 }}
+                style={{ overflow: "hidden" }}
+              >
+                <div
+                  className="rounded-xl p-3 flex flex-col gap-2 mt-1"
+                  style={{ background: "var(--depth)", border: "1px solid rgba(224,182,79,0.3)" }}
+                >
+                  <p className="font-display text-[9px] tracking-[0.2em] text-gold">New Clinic</p>
+                  <div className="flex gap-2">
+                    <input
+                      type="number"
+                      value={newClinicNumber}
+                      onChange={(e) => setNewClinicNumber(e.target.value)}
+                      placeholder="#"
+                      min={1}
+                      className="w-16 rounded-lg px-2 py-2 text-sm text-ink placeholder:text-ink-faint outline-none text-center"
+                      style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
+                    />
+                    <input
+                      type="text"
+                      value={newClinicName}
+                      onChange={(e) => setNewClinicName(e.target.value)}
+                      placeholder="Clinic name…"
+                      className="flex-1 rounded-lg px-3 py-2 text-sm text-ink placeholder:text-ink-faint outline-none"
+                      style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
+                      onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(224,182,79,0.5)")}
+                      onBlur={(e) => (e.currentTarget.style.borderColor = "var(--glass-edge)")}
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCreateClinic}
+                      disabled={creatingClinic || !newClinicName.trim() || !newClinicNumber}
+                      className="px-3 py-2 rounded-lg font-display text-[10px] tracking-widest text-abyss disabled:opacity-40 transition-opacity"
+                      style={{ background: "var(--gold)" }}
+                    >
+                      {creatingClinic ? "…" : "Create"}
+                    </button>
+                  </div>
+                  {clinicError && (
+                    <p className="text-coral text-[11px]">{clinicError}</p>
+                  )}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {/* Stage */}
@@ -246,7 +355,6 @@ export function StudentForm({ clinics, student, onSave, onCancel }: Props) {
           </p>
         )}
 
-        {/* Submit */}
         <button
           type="submit"
           disabled={saving}

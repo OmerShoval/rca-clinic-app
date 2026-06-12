@@ -19,10 +19,11 @@ interface Props {
 
 const STAGE_LABELS = ["", "Beginner", "Developing", "Intermediate", "Advanced", "Expert"];
 
-export function CoachDashboardClient({ students: initialStudents, clinics }: Props) {
+export function CoachDashboardClient({ students: initialStudents, clinics: initialClinics }: Props) {
   const router = useRouter();
 
   const [students, setStudents] = useState<Student[]>(initialStudents);
+  const [clinics, setClinics] = useState<Clinic[]>(initialClinics);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [debriefs, setDebriefs] = useState<Debrief[]>([]);
   const [selectedDebriefId, setSelectedDebriefId] = useState<string | null>(null);
@@ -233,7 +234,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics }: Pro
               <button onClick={() => { setView("student"); }} className="md:hidden flex items-center gap-2 font-display text-[11px] tracking-widest text-ink-faint mb-5">
                 ← Roster
               </button>
-              <StudentForm clinics={clinics} onSave={handleStudentAdded} onCancel={() => setView("student")} />
+              <StudentForm clinics={clinics} onSave={handleStudentAdded} onClinicAdded={(c) => setClinics((prev) => [...prev, c].sort((a, b) => a.number - b.number))} onCancel={() => setView("student")} />
             </motion.div>
           )}
 
@@ -247,6 +248,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics }: Pro
                 clinics={clinics}
                 student={editingStudent}
                 onSave={handleStudentUpdated}
+                onClinicAdded={(c) => setClinics((prev) => [...prev, c].sort((a, b) => a.number - b.number))}
                 onCancel={() => { setView("student"); setEditingStudent(null); }}
               />
             </motion.div>
