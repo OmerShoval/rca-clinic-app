@@ -1,20 +1,23 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Bebas_Neue, Inter } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-sans",
+const bebasNeue = Bebas_Neue({
+  weight: "400",
+  variable: "--font-display",
   subsets: ["latin"],
+  display: "swap",
 });
 
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
+const inter = Inter({
+  variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
 });
 
 export const metadata: Metadata = {
   title: "Ocean Athlete",
-  description: "Track your progress, emotions, and waves. Your personal coaching app.",
+  description: "Your personal coaching space.",
   manifest: "/manifest.json",
 };
 
@@ -22,7 +25,7 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#0d1a1f",
+  themeColor: "#070f15",
 };
 
 export default function RootLayout({
@@ -31,17 +34,11 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
+      className={`${bebasNeue.variable} ${inter.variable} h-full dark`}
     >
-      {/* Apply saved theme before first paint to prevent flash */}
-      <head>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `(function(){var t=localStorage.getItem('theme');if(t!=='light')document.documentElement.classList.add('dark');})();`,
-          }}
-        />
-      </head>
-      <body className="min-h-full flex flex-col bg-background">{children}</body>
+      <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
+        {children}
+      </body>
     </html>
   );
 }

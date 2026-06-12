@@ -1,56 +1,75 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
-export interface KeyPoint {
-  point: string;
-  feel: string;
-  video_1st_url?: string;
-  video_3rd_url?: string;
-}
-
-export interface MeditationTrack {
-  title: string;
-  src: string;
-  cover?: string;
-}
-
 export interface Database {
   rca: {
     Tables: {
       clinics: {
-        Row: { id: number; name: string; number: number; created_at: string };
-        Insert: { number: number; name: string };
-        Update: { number?: number; name?: string };
+        Row: {
+          id: number;
+          number: number;
+          name: string;
+          location: string | null;
+          start_date: string | null;
+          end_date: string | null;
+          status: "upcoming" | "active" | "completed";
+          created_at: string;
+        };
+        Insert: {
+          number: number;
+          name: string;
+          location?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          status?: "upcoming" | "active" | "completed";
+        };
+        Update: {
+          number?: number;
+          name?: string;
+          location?: string | null;
+          start_date?: string | null;
+          end_date?: string | null;
+          status?: "upcoming" | "active" | "completed";
+        };
         Relationships: [];
       };
       students: {
         Row: {
           id: string;
           clinic_id: number;
-          name: string;
-          md_content: string | null;
-          key_points: KeyPoint[] | null;
-          vision_1st_url: string | null;
-          vision_3rd_url: string | null;
-          meditations: MeditationTrack[] | null;
+          full_name: string;
+          slug: string;
+          pin_hash: string | null;
+          stage: number;
+          awareness: number;
+          execution: number;
+          focus_skill: string | null;
+          whatsapp_number: string | null;
+          status: "draft" | "live";
           created_at: string;
         };
         Insert: {
           clinic_id: number;
-          name: string;
-          md_content?: string | null;
-          key_points?: KeyPoint[] | null;
-          vision_1st_url?: string | null;
-          vision_3rd_url?: string | null;
-          meditations?: MeditationTrack[] | null;
+          full_name: string;
+          slug: string;
+          pin_hash?: string | null;
+          stage?: number;
+          awareness?: number;
+          execution?: number;
+          focus_skill?: string | null;
+          whatsapp_number?: string | null;
+          status?: "draft" | "live";
         };
         Update: {
           clinic_id?: number;
-          name?: string;
-          md_content?: string | null;
-          key_points?: KeyPoint[] | null;
-          vision_1st_url?: string | null;
-          vision_3rd_url?: string | null;
-          meditations?: MeditationTrack[] | null;
+          full_name?: string;
+          slug?: string;
+          pin_hash?: string | null;
+          stage?: number;
+          awareness?: number;
+          execution?: number;
+          focus_skill?: string | null;
+          whatsapp_number?: string | null;
+          status?: "draft" | "live";
         };
         Relationships: [];
       };
@@ -58,114 +77,148 @@ export interface Database {
         Row: {
           id: string;
           student_id: string;
-          clinic_id: number;
-          day_number: number;
-          session_number: number;
-          date: string;
-          social_notes: string | null;
-          changes_noticed: string | null;
-          gratitude_notes: string | null;
+          device_token: string;
           created_at: string;
         };
         Insert: {
           student_id: string;
-          clinic_id: number;
-          day_number: number;
-          session_number: number;
-          date?: string;
-          social_notes?: string | null;
-          changes_noticed?: string | null;
-          gratitude_notes?: string | null;
+          device_token?: string;
         };
         Update: {
-          day_number?: number;
-          session_number?: number;
-          date?: string;
-          social_notes?: string | null;
-          changes_noticed?: string | null;
-          gratitude_notes?: string | null;
+          student_id?: string;
+          device_token?: string;
         };
         Relationships: [];
       };
-      check_ins: {
+      debriefs: {
         Row: {
           id: string;
-          session_id: string;
           student_id: string;
-          emotional_state: number;
-          environmental_perception: number;
-          notes: string | null;
+          wave_label: string;
+          day_number: number | null;
+          status: "draft" | "published";
+          published_at: string | null;
           created_at: string;
         };
         Insert: {
-          session_id: string;
           student_id: string;
-          emotional_state: number;
-          environmental_perception: number;
-          notes?: string | null;
+          wave_label: string;
+          day_number?: number | null;
+          status?: "draft" | "published";
+          published_at?: string | null;
         };
         Update: {
-          emotional_state?: number;
-          environmental_perception?: number;
-          notes?: string | null;
+          wave_label?: string;
+          day_number?: number | null;
+          status?: "draft" | "published";
+          published_at?: string | null;
         };
         Relationships: [];
       };
-      wave_logs: {
+      debrief_blocks: {
         Row: {
           id: string;
-          session_id: string;
-          student_id: string;
-          wave_number: number;
-          before_notes: string | null;
-          during_notes: string | null;
-          after_notes: string | null;
-          social_notes: string | null;
-          is_success: boolean | null;
+          debrief_id: string;
+          type: "mistake" | "correction" | "improvement" | "goal" | "next_step";
+          sort: number;
+          title: string | null;
+          body: string | null;
+          felt_sense_quote: string | null;
+          timestamp_marker: string | null;
+          where_on_wave: string | null;
+          why_it_happened: string | null;
+          video_url: string | null;
+          video_url_secondary: string | null;
           created_at: string;
         };
         Insert: {
-          session_id: string;
-          student_id: string;
-          wave_number: number;
-          before_notes?: string | null;
-          during_notes?: string | null;
-          after_notes?: string | null;
-          social_notes?: string | null;
-          is_success?: boolean | null;
+          debrief_id: string;
+          type: "mistake" | "correction" | "improvement" | "goal" | "next_step";
+          sort?: number;
+          title?: string | null;
+          body?: string | null;
+          felt_sense_quote?: string | null;
+          timestamp_marker?: string | null;
+          where_on_wave?: string | null;
+          why_it_happened?: string | null;
+          video_url?: string | null;
+          video_url_secondary?: string | null;
         };
         Update: {
-          before_notes?: string | null;
-          during_notes?: string | null;
-          after_notes?: string | null;
-          social_notes?: string | null;
-          is_success?: boolean | null;
+          type?: "mistake" | "correction" | "improvement" | "goal" | "next_step";
+          sort?: number;
+          title?: string | null;
+          body?: string | null;
+          felt_sense_quote?: string | null;
+          timestamp_marker?: string | null;
+          where_on_wave?: string | null;
+          why_it_happened?: string | null;
+          video_url?: string | null;
+          video_url_secondary?: string | null;
         };
         Relationships: [];
       };
-      daily_stats: {
+      translations: {
         Row: {
           id: string;
           student_id: string;
-          session_id: string;
-          day_number: number;
-          wave_count: number;
-          success_count: number;
-          bad_count: number;
+          environment: "israel_ocean" | "wave_pool";
+          whats_different: string | null;
+          try_first: string | null;
+          on_wave_reminder: string | null;
+          video_url: string | null;
+          personal_note_url: string | null;
           created_at: string;
         };
         Insert: {
           student_id: string;
-          session_id: string;
-          day_number: number;
-          wave_count?: number;
-          success_count?: number;
-          bad_count?: number;
+          environment: "israel_ocean" | "wave_pool";
+          whats_different?: string | null;
+          try_first?: string | null;
+          on_wave_reminder?: string | null;
+          video_url?: string | null;
+          personal_note_url?: string | null;
         };
         Update: {
-          wave_count?: number;
-          success_count?: number;
-          bad_count?: number;
+          whats_different?: string | null;
+          try_first?: string | null;
+          on_wave_reminder?: string | null;
+          video_url?: string | null;
+          personal_note_url?: string | null;
+        };
+        Relationships: [];
+      };
+      threads: {
+        Row: {
+          id: string;
+          student_id: string;
+          title: string | null;
+          question_text: string;
+          clip_url: string | null;
+          status: "new" | "in_review" | "answered";
+          reply_url: string | null;
+          reply_type: "video" | "voice" | "whatsapp" | null;
+          submitted_at: string;
+          answered_at: string | null;
+        };
+        Insert: {
+          student_id: string;
+          title?: string | null;
+          question_text: string;
+          clip_url?: string | null;
+          status?: "new" | "in_review" | "answered";
+          reply_url?: string | null;
+          reply_type?: "video" | "voice" | "whatsapp" | null;
+          answered_at?: string | null;
+        };
+        Update: {
+          title?: string | null;
+          question_text?: string;
+          clip_url?: string | null;
+          status?: "new" | "in_review" | "answered";
+          reply_url?: string | null;
+          reply_type?: "video" | "voice" | "whatsapp" | null;
+          answered_at?: string | null;
         };
         Relationships: [];
       };
@@ -177,9 +230,10 @@ export interface Database {
 }
 
 /* ── Convenience row types ── */
-export type Clinic = Database["rca"]["Tables"]["clinics"]["Row"];
-export type Student = Database["rca"]["Tables"]["students"]["Row"];
-export type Session = Database["rca"]["Tables"]["sessions"]["Row"];
-export type CheckIn = Database["rca"]["Tables"]["check_ins"]["Row"];
-export type WaveLog = Database["rca"]["Tables"]["wave_logs"]["Row"];
-export type DailyStat = Database["rca"]["Tables"]["daily_stats"]["Row"];
+export type Clinic       = Database["rca"]["Tables"]["clinics"]["Row"];
+export type Student      = Database["rca"]["Tables"]["students"]["Row"];
+export type AuthSession  = Database["rca"]["Tables"]["sessions"]["Row"];
+export type Debrief      = Database["rca"]["Tables"]["debriefs"]["Row"];
+export type DebriefBlock = Database["rca"]["Tables"]["debrief_blocks"]["Row"];
+export type Translation  = Database["rca"]["Tables"]["translations"]["Row"];
+export type Thread       = Database["rca"]["Tables"]["threads"]["Row"];
