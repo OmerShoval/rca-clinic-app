@@ -3,12 +3,13 @@
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
-export type VideoProvider = "YouTube" | "Vimeo" | "Drive" | "Direct" | "Link";
+export type VideoProvider = "YouTube" | "Vimeo" | "Drive" | "Direct" | "GIF" | "Link";
 
 export function detectProvider(url: string): VideoProvider {
   if (/youtube\.com\/watch|youtu\.be\//.test(url)) return "YouTube";
   if (/vimeo\.com\/\d+/.test(url)) return "Vimeo";
   if (/drive\.google\.com\/file\/d\//.test(url)) return "Drive";
+  if (/\.gif(\?|$)/i.test(url)) return "GIF";
   if (/\.(mp4|mov|webm|m4v)(\?|$)/i.test(url)) return "Direct";
   return "Link";
 }
@@ -82,6 +83,24 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
     );
   }
 
+  if (provider === "GIF") {
+    return (
+      <div className={cn("rounded-xl overflow-hidden", className)} style={{ background: "var(--depth)" }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={url}
+          alt={label ?? "clip"}
+          className="w-full h-auto block"
+          style={{ maxHeight: "75vh", objectFit: "contain" }}
+          loading="lazy"
+        />
+        {label && (
+          <p className="font-display text-[10px] tracking-widest text-ink-faint px-3 py-2">{label}</p>
+        )}
+      </div>
+    );
+  }
+
   if (provider === "Direct") {
     return (
       <div className={cn("rounded-xl overflow-hidden", className)} style={{ background: "var(--depth)" }}>
@@ -89,8 +108,8 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
           src={url}
           controls
           playsInline
-          className="w-full max-h-64 object-contain"
-          style={{ background: "#000" }}
+          className="w-full h-auto block"
+          style={{ maxHeight: "75vh", background: "#000" }}
         />
         {label && (
           <p className="font-display text-[10px] tracking-widest text-ink-faint px-3 py-2">{label}</p>

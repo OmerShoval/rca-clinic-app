@@ -11,7 +11,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { wave_label, day_number, status } = body;
+  const { wave_label, day_number, status, tag, cover_color_index, cover_image_url } = body;
 
   const db = createServerClient();
 
@@ -20,6 +20,9 @@ export async function PATCH(
     day_number?: number | null;
     status?: "draft" | "published";
     published_at?: string | null;
+    tag?: string | null;
+    cover_color_index?: number | null;
+    cover_image_url?: string | null;
   };
 
   const update: DebriefUpdate = {};
@@ -29,6 +32,9 @@ export async function PATCH(
     update.status = status as "draft" | "published";
     update.published_at = status === "published" ? new Date().toISOString() : null;
   }
+  if (tag !== undefined) update.tag = tag;
+  if (cover_color_index !== undefined) update.cover_color_index = cover_color_index;
+  if (cover_image_url !== undefined) update.cover_image_url = cover_image_url;
 
   const { data, error } = await db
     .from("debriefs")

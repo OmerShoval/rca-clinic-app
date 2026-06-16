@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@/lib/supabase";
-import { BottomNav } from "@/components/bottom-nav";
+import { LogoutButton } from "@/components/student/logout-button";
 
 interface Props {
   children: React.ReactNode;
@@ -28,9 +28,11 @@ export default async function StudentLayout({ children, params }: Props) {
   if (ownSlug !== slug) redirect(`/s/${ownSlug}`);
 
   return (
-    <div className="min-h-screen bg-abyss flex flex-col pb-20">
+    <div className="min-h-screen bg-abyss flex flex-col">
+      <div className="fixed top-4 right-4 z-50">
+        <LogoutButton />
+      </div>
       {children}
-      <BottomNav slug={slug} />
     </div>
   );
 }

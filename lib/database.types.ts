@@ -99,6 +99,9 @@ export interface Database {
           status: "draft" | "published";
           published_at: string | null;
           created_at: string;
+          tag: string | null;
+          cover_color_index: number | null;
+          cover_image_url: string | null;
         };
         Insert: {
           student_id: string;
@@ -106,12 +109,32 @@ export interface Database {
           day_number?: number | null;
           status?: "draft" | "published";
           published_at?: string | null;
+          tag?: string | null;
+          cover_color_index?: number | null;
+          cover_image_url?: string | null;
         };
         Update: {
           wave_label?: string;
           day_number?: number | null;
           status?: "draft" | "published";
           published_at?: string | null;
+          tag?: string | null;
+          cover_color_index?: number | null;
+          cover_image_url?: string | null;
+        };
+        Relationships: [];
+      };
+      tags: {
+        Row: {
+          id: string;
+          name: string;
+          created_at: string;
+        };
+        Insert: {
+          name: string;
+        };
+        Update: {
+          name?: string;
         };
         Relationships: [];
       };
@@ -237,3 +260,4 @@ export type Debrief      = Database["rca"]["Tables"]["debriefs"]["Row"];
 export type DebriefBlock = Database["rca"]["Tables"]["debrief_blocks"]["Row"];
 export type Translation  = Database["rca"]["Tables"]["translations"]["Row"];
 export type Thread       = Database["rca"]["Tables"]["threads"]["Row"];
+export type Tag          = Database["rca"]["Tables"]["tags"]["Row"];

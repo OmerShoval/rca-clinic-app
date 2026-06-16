@@ -33,6 +33,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
   const [debriefLoading, setDebriefLoading] = useState(false);
   const [newWaveLabel, setNewWaveLabel] = useState("");
   const [addingDebrief, setAddingDebrief] = useState(false);
+  const [newWaveError, setNewWaveError] = useState<string | null>(null);
   const [loggingOut, setLoggingOut] = useState(false);
 
   const selectedStudent = students.find((s) => s.id === selectedId) ?? null;
@@ -77,18 +78,29 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
   }
 
   async function handleNewDebrief() {
-    if (!selectedId || !newWaveLabel.trim()) return;
+    if (!selectedId) return;
+    if (!newWaveLabel.trim()) {
+      setNewWaveError("Enter a wave label first");
+      return;
+    }
     setAddingDebrief(true);
+    setNewWaveError(null);
     try {
       const res = await fetch("/api/coach/debriefs", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ student_id: selectedId, wave_label: newWaveLabel.trim() }),
       });
-      const debrief = await res.json();
-      setDebriefs((prev) => [debrief, ...prev]);
-      setSelectedDebriefId(debrief.id);
+      const data = await res.json();
+      if (!res.ok) {
+        setNewWaveError(data.error ?? "Failed to create wave");
+        return;
+      }
+      setDebriefs((prev) => [data, ...prev]);
+      setSelectedDebriefId(data.id);
       setNewWaveLabel("");
+    } catch (e) {
+      setNewWaveError(e instanceof Error ? e.message : "Network error — check your connection");
     } finally {
       setAddingDebrief(false);
     }
@@ -349,8 +361,9 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                     selectedDebrief={selectedDebrief}
                     newWaveLabel={newWaveLabel}
                     addingDebrief={addingDebrief}
+                    newWaveError={newWaveError}
                     onSelectDebrief={(id) => setSelectedDebriefId(id === selectedDebriefId ? null : id)}
-                    onNewLabelChange={setNewWaveLabel}
+                    onNewLabelChange={(v) => { setNewWaveLabel(v); setNewWaveError(null); }}
                     onCreateDebrief={handleNewDebrief}
                     onDebriefUpdated={handleDebriefUpdated}
                     onDebriefDeleted={handleDebriefDeleted}
@@ -445,6 +458,7 @@ interface WavesTabProps {
   selectedDebrief: Debrief | null;
   newWaveLabel: string;
   addingDebrief: boolean;
+  newWaveError: string | null;
   onSelectDebrief: (id: string) => void;
   onNewLabelChange: (v: string) => void;
   onCreateDebrief: () => void;
@@ -459,6 +473,7 @@ function WavesTab({
   selectedDebrief,
   newWaveLabel,
   addingDebrief,
+  newWaveError,
   onSelectDebrief,
   onNewLabelChange,
   onCreateDebrief,
@@ -476,24 +491,29 @@ function WavesTab({
   return (
     <div className="flex flex-col gap-4">
       {/* New debrief form */}
-      <div className="flex gap-2">
-        <input
-          type="text"
-          value={newWaveLabel}
-          onChange={(e) => onNewLabelChange(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "Enter") onCreateDebrief(); }}
-          placeholder="Wave label — e.g. Day 3 Morning"
-          className="flex-1 rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none"
-          style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
-        />
-        <button
-          onClick={onCreateDebrief}
-          disabled={addingDebrief || !newWaveLabel.trim()}
-          className="px-4 py-2.5 rounded-xl font-display text-[11px] tracking-widest text-gold disabled:opacity-40 transition-all"
-          style={{ background: "var(--gold-soft)", border: "1px solid rgba(224,182,79,0.3)" }}
-        >
-          {addingDebrief ? "…" : "+ Wave"}
-        </button>
+      <div className="flex flex-col gap-1.5">
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={newWaveLabel}
+            onChange={(e) => onNewLabelChange(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") onCreateDebrief(); }}
+            placeholder="Wave label — e.g. Day 3 Morning"
+            className="flex-1 rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none"
+            style={{ background: "var(--glass)", border: `1px solid ${newWaveError ? "rgba(255,107,94,0.5)" : "var(--glass-edge)"}` }}
+          />
+          <button
+            onClick={onCreateDebrief}
+            disabled={addingDebrief}
+            className="px-4 py-2.5 rounded-xl font-display text-[11px] tracking-widest text-gold disabled:opacity-40 transition-all"
+            style={{ background: "var(--gold-soft)", border: "1px solid rgba(224,182,79,0.3)" }}
+          >
+            {addingDebrief ? "…" : "+ Wave"}
+          </button>
+        </div>
+        {newWaveError && (
+          <p className="font-display text-[10px] tracking-wide text-coral px-1">{newWaveError}</p>
+        )}
       </div>
 
       {/* Debrief list */}
