@@ -2,6 +2,9 @@ import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { createServerClient } from "@/lib/supabase";
 import { LogoutButton } from "@/components/student/logout-button";
+import { LanguageProvider } from "@/lib/language-context";
+import { LanguageToggle } from "@/components/ui/language-toggle";
+import { BottomNav } from "@/components/bottom-nav";
 
 interface Props {
   children: React.ReactNode;
@@ -28,11 +31,18 @@ export default async function StudentLayout({ children, params }: Props) {
   if (ownSlug !== slug) redirect(`/s/${ownSlug}`);
 
   return (
-    <div className="min-h-screen bg-abyss flex flex-col">
-      <div className="fixed top-4 right-4 z-50">
-        <LogoutButton />
+    <LanguageProvider>
+      <div className="min-h-screen bg-abyss flex flex-col">
+        {/* Top bar — always LTR so button order stays consistent regardless of dir */}
+        <div className="fixed top-4 right-4 z-50 flex items-center gap-2" dir="ltr">
+          <LanguageToggle />
+          <LogoutButton />
+        </div>
+
+        {children}
+
+        <BottomNav slug={slug} />
       </div>
-      {children}
-    </div>
+    </LanguageProvider>
   );
 }

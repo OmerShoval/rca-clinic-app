@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import { VideoSlot } from "@/components/ui/video-slot";
+import { useLanguage } from "@/lib/language-context";
 import type { DebriefBlock } from "@/lib/database.types";
 
-// ─── Palettes — must match library-home.tsx exactly ──────────────────────────
+// ─── Palettes ─────────────────────────────────────────────────────────────────
 
 const PALETTES = [
   { gradient: "linear-gradient(160deg,#0c3028 0%,#071a15 100%)", accent: "#2fd6c0", rgb: "47,214,192" },
@@ -17,17 +18,16 @@ const PALETTES = [
   { gradient: "linear-gradient(160deg,#0a2d10 0%,#061807 100%)", accent: "#4ecb71", rgb: "78,203,113" },
 ];
 
-// ─── Block type semantic config ───────────────────────────────────────────────
-
-const BLOCK_META: Record<
+// Block type visual config (non-translatable parts)
+const BLOCK_VISUAL: Record<
   DebriefBlock["type"],
-  { label: string; color: string; bg: string; icon: string; caption: string }
+  { color: string; bg: string; icon: string; labelKey: string; captionKey: string }
 > = {
-  mistake:     { label: "The Mistake",     color: "#ff6b5e", bg: "rgba(255,107,94,0.09)",  icon: "⚡", caption: "What went wrong" },
-  correction:  { label: "The Correction",  color: "#2fd6c0", bg: "rgba(47,214,192,0.09)",  icon: "✦",  caption: "What to do instead" },
-  improvement: { label: "The Improvement", color: "#2fd6c0", bg: "rgba(47,214,192,0.09)",  icon: "↑",  caption: "How far you've come" },
-  goal:        { label: "The Goal",        color: "#e0b64f", bg: "rgba(224,182,79,0.10)",  icon: "◎",  caption: "Where you're headed" },
-  next_step:   { label: "Next Step",       color: "#e0b64f", bg: "rgba(224,182,79,0.10)",  icon: "→",  caption: "Your next focus" },
+  mistake:     { color: "#ff6b5e", bg: "rgba(255,107,94,0.09)",  icon: "⚡", labelKey: "block_mistake",     captionKey: "cap_mistake" },
+  correction:  { color: "#2fd6c0", bg: "rgba(47,214,192,0.09)",  icon: "✦",  labelKey: "block_correction",  captionKey: "cap_correction" },
+  improvement: { color: "#2fd6c0", bg: "rgba(47,214,192,0.09)",  icon: "↑",  labelKey: "block_improvement", captionKey: "cap_improvement" },
+  goal:        { color: "#e0b64f", bg: "rgba(224,182,79,0.10)",  icon: "◎",  labelKey: "block_goal",        captionKey: "cap_goal" },
+  next_step:   { color: "#e0b64f", bg: "rgba(224,182,79,0.10)",  icon: "→",  labelKey: "block_next_step",   captionKey: "cap_next_step" },
 };
 
 const TYPE_ORDER: DebriefBlock["type"][] = ["mistake", "correction", "improvement", "goal", "next_step"];
@@ -78,24 +78,13 @@ function ChapterDivider({
       >
         {label.toUpperCase()}
       </span>
-      <span
-        style={{ fontSize: 10, color: "rgba(241,238,230,0.32)", letterSpacing: "0.08em" }}
-      >
+      <span style={{ fontSize: 10, color: "rgba(241,238,230,0.32)", letterSpacing: "0.08em" }}>
         {caption}
       </span>
       <div className="flex items-center w-full mt-1.5">
-        <div
-          className="h-px flex-1"
-          style={{ background: `linear-gradient(to right, transparent, ${color}55)` }}
-        />
-        <div
-          className="mx-3 rounded-full"
-          style={{ width: 4, height: 4, background: `${color}88` }}
-        />
-        <div
-          className="h-px flex-1"
-          style={{ background: `linear-gradient(to left, transparent, ${color}55)` }}
-        />
+        <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${color}55)` }} />
+        <div className="mx-3 rounded-full" style={{ width: 4, height: 4, background: `${color}88` }} />
+        <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, ${color}55)` }} />
       </div>
     </motion.div>
   );
@@ -112,8 +101,21 @@ function BlockCard({
   bookAccent: string;
   delay: number;
 }) {
-  const meta = BLOCK_META[block.type];
+  const { t } = useLanguage();
+  const visual = BLOCK_VISUAL[block.type];
   const reduce = useReducedMotion();
+
+  const videoLabel = () => {
+    if (block.type === "improvement") return t("vid_before");
+    if (block.type === "goal")        return t("vid_goal");
+    if (block.type === "next_step")   return t("vid_drill");
+    return t("vid_watch_clip");
+  };
+
+  const videoSecondaryLabel = () => {
+    if (block.type === "improvement") return t("vid_after");
+    return t("vid_ref_wave");
+  };
 
   return (
     <motion.div
@@ -123,40 +125,29 @@ function BlockCard({
       className="rounded-2xl overflow-hidden"
       style={{
         background: "rgba(255,255,255,0.042)",
-        border: `1px solid ${meta.color}1e`,
-        borderLeft: `3px solid ${meta.color}`,
+        border: `1px solid ${visual.color}1e`,
+        borderInlineStart: `3px solid ${visual.color}`,
       }}
     >
       <div className="px-4 pt-4 pb-4 flex flex-col gap-3">
         {/* Type badge */}
         <span
           className="font-display self-start px-2.5 py-1 rounded-lg"
-          style={{
-            fontSize: 8,
-            letterSpacing: "0.22em",
-            color: meta.color,
-            background: meta.bg,
-          }}
+          style={{ fontSize: 8, letterSpacing: "0.22em", color: visual.color, background: visual.bg }}
         >
-          {meta.label.toUpperCase()}
+          {t(visual.labelKey).toUpperCase()}
         </span>
 
         {/* Title */}
         {block.title && (
-          <h3
-            className="text-ink font-semibold leading-snug"
-            style={{ fontSize: 17 }}
-          >
+          <h3 className="text-ink font-semibold leading-snug" style={{ fontSize: 17 }}>
             {block.title}
           </h3>
         )}
 
         {/* Body */}
         {block.body && (
-          <p
-            className="text-ink-dim whitespace-pre-wrap"
-            style={{ fontSize: 14, lineHeight: 1.7 }}
-          >
+          <p className="text-ink-dim whitespace-pre-wrap" style={{ fontSize: 14, lineHeight: 1.7 }}>
             {block.body}
           </p>
         )}
@@ -167,10 +158,10 @@ function BlockCard({
             className="italic"
             style={{
               fontSize: 13,
-              color: meta.color,
+              color: visual.color,
               padding: "10px 14px",
-              background: meta.bg,
-              borderLeft: `2px solid ${meta.color}66`,
+              background: visual.bg,
+              borderInlineStart: `2px solid ${visual.color}66`,
               borderRadius: 10,
               lineHeight: 1.65,
             }}
@@ -211,47 +202,19 @@ function BlockCard({
               </span>
             )}
             {block.why_it_happened && (
-              <p
-                className="w-full"
-                style={{ fontSize: 12, color: "rgba(241,238,230,0.36)", lineHeight: 1.55 }}
-              >
+              <p className="w-full" style={{ fontSize: 12, color: "rgba(241,238,230,0.36)", lineHeight: 1.55 }}>
                 {block.why_it_happened}
               </p>
             )}
           </div>
         )}
 
-        {/* Book-colored accent line before videos */}
-        {(block.video_url || block.video_url_secondary) && (
-          <div
-            className="h-px"
-            style={{
-              background: `linear-gradient(to right, ${bookAccent}2e, transparent)`,
-            }}
-          />
-        )}
-
         {/* Videos */}
-        {block.video_url && (
-          <VideoSlot
-            url={block.video_url}
-            label={
-              block.type === "improvement"
-                ? "Before"
-                : block.type === "goal"
-                ? "Goal video"
-                : block.type === "next_step"
-                ? "Drill video"
-                : "Watch clip"
-            }
-          />
+        {(block.video_url || block.video_url_secondary) && (
+          <div className="h-px" style={{ background: `linear-gradient(to right, ${bookAccent}2e, transparent)` }} />
         )}
-        {block.video_url_secondary && (
-          <VideoSlot
-            url={block.video_url_secondary}
-            label={block.type === "improvement" ? "After" : "Reference wave"}
-          />
-        )}
+        {block.video_url && <VideoSlot url={block.video_url} label={videoLabel()} />}
+        {block.video_url_secondary && <VideoSlot url={block.video_url_secondary} label={videoSecondaryLabel()} />}
       </div>
     </motion.div>
   );
@@ -259,15 +222,8 @@ function BlockCard({
 
 // ─── NotesSection ─────────────────────────────────────────────────────────────
 
-function NotesSection({
-  debriefId,
-  accent,
-  rgb,
-}: {
-  debriefId: string;
-  accent: string;
-  rgb: string;
-}) {
+function NotesSection({ debriefId, accent, rgb }: { debriefId: string; accent: string; rgb: string }) {
+  const { t } = useLanguage();
   const [note, setNote] = useState("");
   const [isEditing, setIsEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -277,10 +233,7 @@ function NotesSection({
 
   useEffect(() => {
     const stored = localStorage.getItem(`oa_notes_${debriefId}`);
-    if (stored) {
-      setNote(stored);
-      setDraft(stored);
-    }
+    if (stored) { setNote(stored); setDraft(stored); }
   }, [debriefId]);
 
   useEffect(() => {
@@ -301,10 +254,7 @@ function NotesSection({
     setTimeout(() => setSaved(false), 2200);
   };
 
-  const cancel = () => {
-    setDraft(note);
-    setIsEditing(false);
-  };
+  const cancel = () => { setDraft(note); setIsEditing(false); };
 
   return (
     <motion.section
@@ -315,30 +265,17 @@ function NotesSection({
     >
       {/* Section header */}
       <div className="flex items-center gap-3 mb-3">
-        <div
-          className="h-px flex-1"
-          style={{ background: `linear-gradient(to right, transparent, ${accent}44)` }}
-        />
-        <span
-          className="font-display"
-          style={{ fontSize: 9, letterSpacing: "0.32em", color: accent }}
-        >
-          YOUR NOTES
+        <div className="h-px flex-1" style={{ background: `linear-gradient(to right, transparent, ${accent}44)` }} />
+        <span className="font-display" style={{ fontSize: 9, letterSpacing: "0.32em", color: accent }}>
+          {t("notes_title")}
         </span>
-        <div
-          className="h-px flex-1"
-          style={{ background: `linear-gradient(to left, transparent, ${accent}44)` }}
-        />
+        <div className="h-px flex-1" style={{ background: `linear-gradient(to left, transparent, ${accent}44)` }} />
       </div>
 
       {/* Sticky note card */}
       <div
         className="rounded-2xl p-4 relative"
-        style={{
-          background: `rgba(${rgb}, 0.07)`,
-          border: `1px solid rgba(${rgb}, 0.22)`,
-          minHeight: 108,
-        }}
+        style={{ background: `rgba(${rgb}, 0.07)`, border: `1px solid rgba(${rgb}, 0.22)`, minHeight: 108 }}
       >
         <AnimatePresence mode="wait">
           {isEditing ? (
@@ -358,7 +295,7 @@ function NotesSection({
                   e.currentTarget.style.height = "auto";
                   e.currentTarget.style.height = `${e.currentTarget.scrollHeight}px`;
                 }}
-                placeholder="Write your thoughts, feelings, or observations from this session…"
+                placeholder={t("notes_write_ph")}
                 className="w-full bg-transparent resize-none outline-none text-ink"
                 style={{ fontSize: 14, minHeight: 80, lineHeight: 1.68 }}
               />
@@ -366,26 +303,16 @@ function NotesSection({
                 <button
                   onClick={cancel}
                   className="font-display px-3 py-1.5 rounded-xl"
-                  style={{
-                    fontSize: 9,
-                    letterSpacing: "0.18em",
-                    color: "rgba(241,238,230,0.45)",
-                    background: "rgba(255,255,255,0.06)",
-                  }}
+                  style={{ fontSize: 9, letterSpacing: "0.18em", color: "rgba(241,238,230,0.45)", background: "rgba(255,255,255,0.06)" }}
                 >
-                  CANCEL
+                  {t("notes_cancel")}
                 </button>
                 <button
                   onClick={save}
                   className="font-display px-4 py-1.5 rounded-xl"
-                  style={{
-                    fontSize: 9,
-                    letterSpacing: "0.18em",
-                    color: "#070f15",
-                    background: accent,
-                  }}
+                  style={{ fontSize: 9, letterSpacing: "0.18em", color: "#070f15", background: accent }}
                 >
-                  SAVE NOTE
+                  {t("notes_save")}
                 </button>
               </div>
             </motion.div>
@@ -400,34 +327,17 @@ function NotesSection({
               className="cursor-text"
             >
               {note ? (
-                <p
-                  className="text-ink whitespace-pre-wrap"
-                  style={{ fontSize: 14, lineHeight: 1.68 }}
-                >
+                <p className="text-ink whitespace-pre-wrap" style={{ fontSize: 14, lineHeight: 1.68 }}>
                   {note}
                 </p>
               ) : (
-                <p
-                  className="italic"
-                  style={{
-                    fontSize: 14,
-                    color: `rgba(${rgb}, 0.42)`,
-                    lineHeight: 1.68,
-                  }}
-                >
-                  Tap to add your personal notes from this session…
+                <p className="italic" style={{ fontSize: 14, color: `rgba(${rgb}, 0.42)`, lineHeight: 1.68 }}>
+                  {t("notes_tap_add")}
                 </p>
               )}
               <div className="flex justify-end mt-3">
-                <span
-                  className="font-display"
-                  style={{
-                    fontSize: 8,
-                    letterSpacing: "0.18em",
-                    color: `rgba(${rgb}, 0.48)`,
-                  }}
-                >
-                  {note ? "TAP TO EDIT ✏" : "+ ADD NOTE"}
+                <span className="font-display" style={{ fontSize: 8, letterSpacing: "0.18em", color: `rgba(${rgb}, 0.48)` }}>
+                  {note ? t("notes_tap_edit") : t("notes_add")}
                 </span>
               </div>
             </motion.div>
@@ -446,7 +356,7 @@ function NotesSection({
             className="font-display text-center mt-2"
             style={{ fontSize: 9, letterSpacing: "0.25em", color: accent }}
           >
-            ✓ NOTE SAVED
+            {t("notes_saved")}
           </motion.p>
         )}
       </AnimatePresence>
@@ -457,9 +367,11 @@ function NotesSection({
 // ─── DebriefDetailClient ──────────────────────────────────────────────────────
 
 export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Props) {
+  const { t, lang, isRTL } = useLanguage();
   const pal = PALETTES[paletteIndex % PALETTES.length];
   const reduce = useReducedMotion();
 
+  const dateLocale = lang === "he" ? "he-IL" : "en-US";
   const filledBlocks = blocks.filter((b) => b.title || b.body);
 
   const grouped = TYPE_ORDER.reduce<Record<string, DebriefBlock[]>>((acc, type) => {
@@ -472,23 +384,16 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
   const totalEntries = filledBlocks.length;
 
   return (
-    <div className="flex flex-col">
+    <div className="flex flex-col pb-20">
 
       {/* ══ BOOK HEADER ══════════════════════════════════════════════════════ */}
       <header className="relative overflow-hidden" style={{ minHeight: 236 }}>
-        {/* Book gradient */}
         <div className="absolute inset-0" style={{ background: pal.gradient }} />
-
-        {/* Top accent stripe */}
+        <div className="absolute top-0 left-0 right-0" style={{ height: 2, background: pal.accent }} />
         <div
-          className="absolute top-0 left-0 right-0"
-          style={{ height: 2, background: pal.accent }}
-        />
-
-        {/* Left spine */}
-        <div
-          className="absolute top-0 left-0 bottom-0"
+          className="absolute top-0 bottom-0"
           style={{
+            [isRTL ? "right" : "left"]: 0,
             width: 3,
             background: `linear-gradient(to bottom, ${pal.accent}, ${pal.accent}44, transparent)`,
           }}
@@ -497,8 +402,8 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
         {/* ← LIBRARY back button */}
         <motion.div
           className="absolute"
-          style={{ top: 48, left: 18 }}
-          initial={reduce ? {} : { opacity: 0, x: -8 }}
+          style={{ top: 48, [isRTL ? "right" : "left"]: 18 }}
+          initial={reduce ? {} : { opacity: 0, x: isRTL ? 8 : -8 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.32 }}
         >
@@ -507,18 +412,18 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
             className="flex items-center gap-1.5 transition-opacity active:opacity-55"
             style={{ color: pal.accent }}
           >
-            <span style={{ fontSize: 19, lineHeight: 1 }}>←</span>
+            <span style={{ fontSize: 19, lineHeight: 1 }}>{isRTL ? "→" : "←"}</span>
             <span className="font-display" style={{ fontSize: 9, letterSpacing: "0.26em" }}>
-              LIBRARY
+              {t("dd_library")}
             </span>
           </Link>
         </motion.div>
 
-        {/* Entry count — top right */}
+        {/* Entry count — top opposite corner */}
         {totalEntries > 0 && (
           <motion.div
             className="absolute"
-            style={{ top: 50, right: 20 }}
+            style={{ top: 50, [isRTL ? "left" : "right"]: 20 }}
             initial={reduce ? {} : { opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.15, duration: 0.3 }}
@@ -527,7 +432,7 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
               className="font-display"
               style={{ fontSize: 9, letterSpacing: "0.2em", color: `rgba(${pal.rgb}, 0.48)` }}
             >
-              {totalEntries} {totalEntries === 1 ? "ENTRY" : "ENTRIES"}
+              {totalEntries} {totalEntries === 1 ? t("dd_entry") : t("dd_entries")}
             </span>
           </motion.div>
         )}
@@ -537,17 +442,12 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
           {debrief.day_number != null && (
             <motion.p
               className="font-display"
-              style={{
-                fontSize: 9,
-                letterSpacing: "0.36em",
-                color: `rgba(${pal.rgb}, 0.6)`,
-                marginBottom: 6,
-              }}
+              style={{ fontSize: 9, letterSpacing: "0.36em", color: `rgba(${pal.rgb}, 0.6)`, marginBottom: 6 }}
               initial={reduce ? {} : { opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.1, duration: 0.32 }}
             >
-              DAY {debrief.day_number}
+              {t("dd_day")} {debrief.day_number}
             </motion.p>
           )}
           <motion.h1
@@ -562,17 +462,12 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
           {debrief.published_at && (
             <motion.p
               className="font-display"
-              style={{
-                fontSize: 9,
-                letterSpacing: "0.22em",
-                color: `rgba(${pal.rgb}, 0.48)`,
-                marginTop: 10,
-              }}
+              style={{ fontSize: 9, letterSpacing: "0.22em", color: `rgba(${pal.rgb}, 0.48)`, marginTop: 10 }}
               initial={reduce ? {} : { opacity: 0 }}
               animate={{ opacity: 1 }}
               transition={{ delay: 0.22, duration: 0.32 }}
             >
-              {new Date(debrief.published_at).toLocaleDateString("en-US", {
+              {new Date(debrief.published_at).toLocaleDateString(dateLocale, {
                 weekday: "long",
                 month: "long",
                 day: "numeric",
@@ -584,10 +479,7 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
         {/* Fade to abyss */}
         <div
           className="absolute bottom-0 left-0 right-0 pointer-events-none"
-          style={{
-            height: 48,
-            background: "linear-gradient(to bottom, transparent, var(--abyss))",
-          }}
+          style={{ height: 48, background: "linear-gradient(to bottom, transparent, var(--abyss))" }}
         />
       </header>
 
@@ -602,7 +494,7 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
         >
           <div className="flex gap-2" style={{ width: "max-content" }}>
             {presentTypes.map((type) => {
-              const meta = BLOCK_META[type];
+              const visual = BLOCK_VISUAL[type];
               return (
                 <a key={type} href={`#section-${type}`} className="flex-shrink-0">
                   <span
@@ -610,13 +502,13 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
                     style={{
                       fontSize: 8,
                       letterSpacing: "0.18em",
-                      color: meta.color,
-                      background: meta.bg,
-                      border: `1px solid ${meta.color}30`,
+                      color: visual.color,
+                      background: visual.bg,
+                      border: `1px solid ${visual.color}30`,
                     }}
                   >
-                    <span style={{ fontSize: 10 }}>{meta.icon}</span>
-                    {meta.label.toUpperCase()}
+                    <span style={{ fontSize: 10 }}>{visual.icon}</span>
+                    {t(visual.labelKey).toUpperCase()}
                   </span>
                 </a>
               );
@@ -629,19 +521,15 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
       {presentTypes.length > 0 ? (
         <div className="flex flex-col pt-1 pb-2">
           {presentTypes.map((type, ti) => {
-            const meta = BLOCK_META[type];
+            const visual = BLOCK_VISUAL[type];
             const typeBlocks = grouped[type];
             return (
-              <section
-                key={type}
-                id={`section-${type}`}
-                className="flex flex-col gap-3 px-5 mb-3"
-              >
+              <section key={type} id={`section-${type}`} className="flex flex-col gap-3 px-5 mb-3">
                 <ChapterDivider
-                  label={meta.label}
-                  caption={meta.caption}
-                  icon={meta.icon}
-                  color={meta.color}
+                  label={t(visual.labelKey)}
+                  caption={t(visual.captionKey)}
+                  icon={visual.icon}
+                  color={visual.color}
                   delay={0.3 + ti * 0.06}
                 />
                 {typeBlocks.map((block, bi) => (
@@ -666,22 +554,15 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
         >
           <p className="text-4xl mb-3">🌊</p>
           <p className="font-display text-ink mb-1" style={{ fontSize: 18 }}>
-            Content coming soon
+            {t("dd_content_soon")}
           </p>
-          <p className="text-ink-dim text-sm">Omer is still writing up your debrief</p>
+          <p className="text-ink-dim text-sm">{t("dd_writing")}</p>
         </motion.div>
       )}
 
       {/* ══ PERSONAL NOTES ═══════════════════════════════════════════════════ */}
-      <div
-        className="mt-4 pt-2 mx-5 mb-3"
-        style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}
-      >
-        <NotesSection
-          debriefId={debrief.id}
-          accent={pal.accent}
-          rgb={pal.rgb}
-        />
+      <div className="mt-4 pt-2 mx-5 mb-3" style={{ borderTop: "1px solid rgba(255,255,255,0.07)" }}>
+        <NotesSection debriefId={debrief.id} accent={pal.accent} rgb={pal.rgb} />
       </div>
     </div>
   );

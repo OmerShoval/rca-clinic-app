@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { motion, AnimatePresence } from "motion/react";
+import { useLanguage } from "@/lib/language-context";
 
 interface Debrief {
   id: string;
@@ -18,13 +19,21 @@ interface Props {
 }
 
 export function WavesList({ slug, debriefs }: Props) {
+  const { t, lang, isRTL } = useLanguage();
   const allTags = Array.from(new Set(debriefs.map((d) => d.tag).filter(Boolean) as string[])).sort();
   const [activeTag, setActiveTag] = useState<string | null>(null);
 
   const visible = activeTag ? debriefs.filter((d) => d.tag === activeTag) : debriefs;
 
+  const dateLocale = lang === "he" ? "he-IL" : "en-US";
+
+  const debriefCountLabel =
+    debriefs.length === 0
+      ? t("waves_first_msg")
+      : `${debriefs.length} ${debriefs.length !== 1 ? t("waves_from_coach") : t("waves_debrief_s")}`;
+
   return (
-    <main className="flex flex-col px-5 pt-10 pb-6 gap-6">
+    <main className="flex flex-col px-5 pt-10 pb-28 gap-6">
       {/* Radial glow */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
@@ -33,15 +42,11 @@ export function WavesList({ slug, debriefs }: Props) {
 
       {/* Header */}
       <section>
-        <p className="font-display text-teal text-[11px] tracking-[0.35em] mb-1">My Waves</p>
+        <p className="font-display text-teal text-[11px] tracking-[0.35em] mb-1">{t("waves_heading")}</p>
         <h1 className="font-display text-ink text-[clamp(32px,8vw,48px)] leading-none">
-          Your Sessions
+          {t("waves_your_sessions")}
         </h1>
-        <p className="text-ink-dim text-sm mt-2">
-          {debriefs.length === 0
-            ? "Omer will publish your first debrief after your next session."
-            : `${debriefs.length} debrief${debriefs.length !== 1 ? "s" : ""} from your coach`}
-        </p>
+        <p className="text-ink-dim text-sm mt-2">{debriefCountLabel}</p>
       </section>
 
       {/* Tag filter pills */}
@@ -61,7 +66,7 @@ export function WavesList({ slug, debriefs }: Props) {
                 : { background: "rgba(255,255,255,0.04)", color: "var(--ink-faint)", border: "1px solid rgba(255,255,255,0.08)" }
             }
           >
-            ALL
+            {t("waves_all_filter")}
           </button>
           {allTags.map((tag) => (
             <button
@@ -99,7 +104,7 @@ export function WavesList({ slug, debriefs }: Props) {
                     style={{
                       background: "var(--glass)",
                       border: "1px solid var(--glass-edge)",
-                      borderLeft: "3px solid var(--teal)",
+                      borderInlineStart: "3px solid var(--teal)",
                     }}
                   >
                     {/* Index number */}
@@ -115,7 +120,7 @@ export function WavesList({ slug, debriefs }: Props) {
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         {d.published_at && (
                           <p className="font-display text-[9px] tracking-widest text-ink-faint">
-                            {new Date(d.published_at).toLocaleDateString("en-US", {
+                            {new Date(d.published_at).toLocaleDateString(dateLocale, {
                               month: "short",
                               day: "numeric",
                               year: "numeric",
@@ -137,7 +142,9 @@ export function WavesList({ slug, debriefs }: Props) {
                       </div>
                     </div>
 
-                    <span className="text-ink-faint text-sm flex-shrink-0">→</span>
+                    <span className="text-ink-faint text-sm flex-shrink-0">
+                      {isRTL ? "←" : "→"}
+                    </span>
                   </div>
                 </Link>
               </motion.div>
@@ -155,17 +162,14 @@ export function WavesList({ slug, debriefs }: Props) {
             {debriefs.length === 0 ? (
               <>
                 <p className="text-4xl mb-3">🏄</p>
-                <p className="font-display text-ink text-xl mb-1">No debriefs yet</p>
-                <p className="text-ink-dim text-sm">Check back after your next session</p>
+                <p className="font-display text-ink text-xl mb-1">{t("waves_none_yet")}</p>
+                <p className="text-ink-dim text-sm">{t("waves_check_back")}</p>
               </>
             ) : (
               <>
-                <p className="font-display text-ink text-xl mb-1">No waves in this clinic</p>
-                <button
-                  onClick={() => setActiveTag(null)}
-                  className="text-teal text-sm mt-2"
-                >
-                  Show all
+                <p className="font-display text-ink text-xl mb-1">{t("waves_none_in_clinic")}</p>
+                <button onClick={() => setActiveTag(null)} className="text-teal text-sm mt-2">
+                  {t("waves_show_all")}
                 </button>
               </>
             )}

@@ -4,6 +4,7 @@ import { motion, useReducedMotion, AnimatePresence } from "motion/react";
 import Link from "next/link";
 import { useRef, useState } from "react";
 import { Book, BOOK_HEIGHTS } from "@/components/student/book";
+import { useLanguage } from "@/lib/language-context";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -29,9 +30,12 @@ interface LibraryHomeProps {
 
 type SortMode = "all" | "by-clinic";
 
-function fmtDate(iso: string | null): string {
+function fmtDate(iso: string | null, lang: string): string {
   if (!iso) return "";
-  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  return new Date(iso).toLocaleDateString(lang === "he" ? "he-IL" : "en-US", {
+    month: "short",
+    day: "numeric",
+  });
 }
 
 // ─── GhostBook ────────────────────────────────────────────────────────────────
@@ -77,9 +81,12 @@ function ShelfSection({
 }) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const reduce = useReducedMotion();
+  const { isRTL } = useLanguage();
 
-  const scroll = (dir: "left" | "right") =>
-    scrollRef.current?.scrollBy({ left: dir === "right" ? 220 : -220, behavior: "smooth" });
+  const scroll = (dir: "left" | "right") => {
+    const delta = dir === "right" ? 220 : -220;
+    scrollRef.current?.scrollBy({ left: isRTL ? -delta : delta, behavior: "smooth" });
+  };
 
   return (
     <motion.section
@@ -92,7 +99,7 @@ function ShelfSection({
         <h2 className="font-display text-ink" style={{ fontSize: 17, letterSpacing: "0.05em" }}>
           {title}
         </h2>
-        <div className="flex items-center gap-1.5">
+        <div className="flex items-center gap-1.5" dir="ltr">
           {count > 0 && (
             <span
               className="font-display"
@@ -202,6 +209,7 @@ export function LibraryHome({
   hasWavePool,
 }: LibraryHomeProps) {
   const reduce = useReducedMotion();
+  const { t, lang } = useLanguage();
   const firstName = studentName.split(" ")[0].toUpperCase();
   const planCount = (hasIsraelOcean ? 1 : 0) + (hasWavePool ? 1 : 0);
   const [sortMode, setSortMode] = useState<SortMode>("all");
@@ -226,7 +234,7 @@ export function LibraryHome({
   const hasTags = debriefs.some((d) => d.tag);
 
   return (
-    <main className="flex flex-col gap-8 pt-10 pb-6">
+    <main className="flex flex-col gap-8 pt-10 pb-28">
       {/* Background glow */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
@@ -245,7 +253,7 @@ export function LibraryHome({
           className="text-ink-faint"
           style={{ fontSize: 11, letterSpacing: "0.38em", textTransform: "uppercase" }}
         >
-          my
+          {t("lib_my")}
         </motion.p>
 
         <motion.h1
@@ -255,7 +263,7 @@ export function LibraryHome({
           className="font-display text-ink leading-none"
           style={{ fontSize: "clamp(52px, 13vw, 76px)" }}
         >
-          LIBRARY
+          {t("lib_library")}
         </motion.h1>
 
         {/* Name + stage bar */}
@@ -283,7 +291,7 @@ export function LibraryHome({
             ))}
           </div>
           <span className="font-display text-ink-faint" style={{ fontSize: 9, letterSpacing: "0.2em" }}>
-            STAGE {stage}/5
+            {t("lib_stage")} {stage}/5
           </span>
         </motion.div>
 
@@ -295,7 +303,7 @@ export function LibraryHome({
             className="text-ink-dim"
             style={{ fontSize: 12, marginTop: 2 }}
           >
-            Focus: <span className="text-ink">{focusSkill}</span>
+            {t("lib_focus")} <span className="text-ink">{focusSkill}</span>
           </motion.p>
         )}
 
@@ -318,7 +326,7 @@ export function LibraryHome({
                     : { background: "rgba(255,255,255,0.04)", color: "var(--ink-faint)", border: "1px solid rgba(255,255,255,0.08)" }
                 }
               >
-                {mode === "all" ? "ALL WAVES" : "BY CLINIC"}
+                {mode === "all" ? t("lib_all_waves") : t("lib_by_clinic")}
               </button>
             ))}
           </motion.div>
@@ -337,7 +345,7 @@ export function LibraryHome({
           >
             {/* ── Shelf: My Waves ── */}
             <ShelfSection
-              title="My Waves"
+              title={t("lib_my_waves")}
               count={debriefs.length}
               shelfBg="linear-gradient(180deg, #1c3a34 0%, #0c2020 55%, #14302a 100%)"
               sectionDelay={0.15}
@@ -348,7 +356,7 @@ export function LibraryHome({
                       key={d.id}
                       href={`/s/${slug}/waves/${d.id}`}
                       title={d.wave_label}
-                      footer={fmtDate(d.published_at)}
+                      footer={fmtDate(d.published_at, lang)}
                       colorIndex={d.cover_color_index ?? i}
                       bookIndex={i}
                       delay={0.2 + i * 0.06}
@@ -363,7 +371,7 @@ export function LibraryHome({
 
             {/* ── Shelf: Personal Plan ── */}
             <ShelfSection
-              title="Personal Plan"
+              title={t("lib_personal")}
               count={planCount}
               shelfBg="linear-gradient(180deg, #382600 0%, #1e1300 55%, #2c1e00 100%)"
               sectionDelay={0.3}
@@ -371,8 +379,8 @@ export function LibraryHome({
               {hasIsraelOcean && (
                 <Book
                   href={`/s/${slug}/home-base`}
-                  title="ISRAEL OCEAN"
-                  footer="HOME PLAN"
+                  title={t("lib_israel")}
+                  footer={t("lib_home_plan")}
                   colorIndex={1}
                   bookIndex={0}
                   delay={0.38}
@@ -381,8 +389,8 @@ export function LibraryHome({
               {hasWavePool && (
                 <Book
                   href={`/s/${slug}/home-base`}
-                  title="WAVE POOL"
-                  footer="HOME PLAN"
+                  title={t("lib_wave_pool")}
+                  footer={t("lib_home_plan")}
                   colorIndex={4}
                   bookIndex={1}
                   delay={0.44}
@@ -398,7 +406,7 @@ export function LibraryHome({
 
             {/* ── Shelf: Coming Soon ── */}
             <ShelfSection
-              title="Coming Soon"
+              title={t("lib_coming_soon")}
               count={0}
               shelfBg="linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 55%, #141414 100%)"
               sectionDelay={0.45}
@@ -431,7 +439,7 @@ export function LibraryHome({
                     key={d.id}
                     href={`/s/${slug}/waves/${d.id}`}
                     title={d.wave_label}
-                    footer={fmtDate(d.published_at)}
+                    footer={fmtDate(d.published_at, lang)}
                     colorIndex={d.cover_color_index ?? i}
                     bookIndex={i}
                     delay={0.1 + i * 0.06}
@@ -445,7 +453,7 @@ export function LibraryHome({
             {/* Untagged waves — shown under "Other" if any */}
             {untagged.length > 0 && (
               <ShelfSection
-                title="Other Waves"
+                title={t("lib_other_waves")}
                 count={untagged.length}
                 shelfBg="linear-gradient(180deg, #1a1a1a 0%, #0d0d0d 55%, #141414 100%)"
                 sectionDelay={0.08 * tagGroups.length}
@@ -455,7 +463,7 @@ export function LibraryHome({
                     key={d.id}
                     href={`/s/${slug}/waves/${d.id}`}
                     title={d.wave_label}
-                    footer={fmtDate(d.published_at)}
+                    footer={fmtDate(d.published_at, lang)}
                     colorIndex={d.cover_color_index ?? i}
                     bookIndex={i}
                     delay={0.1 + i * 0.06}
@@ -468,13 +476,13 @@ export function LibraryHome({
 
             {tagGroups.length === 0 && untagged.length === 0 && (
               <div className="px-5">
-                <p className="text-ink-faint text-sm">No waves yet.</p>
+                <p className="text-ink-faint text-sm">{t("lib_no_waves")}</p>
               </div>
             )}
 
             {/* Personal Plan always visible below clinic shelves */}
             <ShelfSection
-              title="Personal Plan"
+              title={t("lib_personal")}
               count={planCount}
               shelfBg="linear-gradient(180deg, #382600 0%, #1e1300 55%, #2c1e00 100%)"
               sectionDelay={0.08 * (tagGroups.length + 1)}
@@ -482,8 +490,8 @@ export function LibraryHome({
               {hasIsraelOcean && (
                 <Book
                   href={`/s/${slug}/home-base`}
-                  title="ISRAEL OCEAN"
-                  footer="HOME PLAN"
+                  title={t("lib_israel")}
+                  footer={t("lib_home_plan")}
                   colorIndex={1}
                   bookIndex={0}
                   delay={0.15}
@@ -492,8 +500,8 @@ export function LibraryHome({
               {hasWavePool && (
                 <Book
                   href={`/s/${slug}/home-base`}
-                  title="WAVE POOL"
-                  footer="HOME PLAN"
+                  title={t("lib_wave_pool")}
+                  footer={t("lib_home_plan")}
                   colorIndex={4}
                   bookIndex={1}
                   delay={0.22}

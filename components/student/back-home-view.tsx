@@ -2,22 +2,37 @@
 
 import { useState } from "react";
 import { VideoSlot } from "@/components/ui/video-slot";
+import { useLanguage } from "@/lib/language-context";
 import type { Translation } from "@/lib/database.types";
 
 type Environment = "israel_ocean" | "wave_pool";
 
-const ENV_META: Record<Environment, { label: string; color: string; bg: string; border: string; emoji: string }> = {
-  israel_ocean: { label: "Israel Ocean", color: "var(--teal)", bg: "var(--teal-soft)", border: "rgba(47,214,192,0.3)", emoji: "🌊" },
-  wave_pool: { label: "Wave Pool", color: "var(--gold)", bg: "var(--gold-soft)", border: "rgba(224,182,79,0.3)", emoji: "⚡" },
-};
-
-interface Props {
+export function BackHomeView({
+  israelTranslation,
+  wavePoolTranslation,
+}: {
   israelTranslation: Translation | null;
   wavePoolTranslation: Translation | null;
-}
-
-export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) {
+}) {
+  const { t } = useLanguage();
   const [activeTab, setActiveTab] = useState<Environment>("israel_ocean");
+
+  const envMeta = {
+    israel_ocean: {
+      labelKey: "bh_israel",
+      color: "var(--teal)",
+      bg: "var(--teal-soft)",
+      border: "rgba(47,214,192,0.3)",
+      emoji: "🌊",
+    },
+    wave_pool: {
+      labelKey: "bh_pool",
+      color: "var(--gold)",
+      bg: "var(--gold-soft)",
+      border: "rgba(224,182,79,0.3)",
+      emoji: "⚡",
+    },
+  };
 
   const translations: Record<Environment, Translation | null> = {
     israel_ocean: israelTranslation,
@@ -25,8 +40,14 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
   };
 
   const current = translations[activeTab];
-  const meta = ENV_META[activeTab];
-  const hasContent = current && (current.whats_different || current.try_first || current.on_wave_reminder || current.video_url || current.personal_note_url);
+  const meta = envMeta[activeTab];
+  const hasContent = current && (
+    current.whats_different ||
+    current.try_first ||
+    current.on_wave_reminder ||
+    current.video_url ||
+    current.personal_note_url
+  );
 
   return (
     <div className="flex flex-col gap-5">
@@ -36,19 +57,20 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
         style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
       >
         {(["israel_ocean", "wave_pool"] as Environment[]).map((env) => {
-          const m = ENV_META[env];
+          const m = envMeta[env];
           const active = activeTab === env;
           return (
             <button
               key={env}
               onClick={() => setActiveTab(env)}
               className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl font-display text-[11px] tracking-widest transition-all"
-              style={active
-                ? { background: m.bg, color: m.color, border: `1px solid ${m.border}` }
-                : { background: "transparent", color: "var(--ink-faint)", border: "1px solid transparent" }
+              style={
+                active
+                  ? { background: m.bg, color: m.color, border: `1px solid ${m.border}` }
+                  : { background: "transparent", color: "var(--ink-faint)", border: "1px solid transparent" }
               }
             >
-              {m.emoji} {m.label}
+              {m.emoji} {t(m.labelKey)}
             </button>
           );
         })}
@@ -61,8 +83,8 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
           style={{ border: "1.5px dashed var(--glass-edge)" }}
         >
           <p className="text-4xl mb-3">{meta.emoji}</p>
-          <p className="font-display text-ink text-xl mb-1">{meta.label}</p>
-          <p className="text-ink-dim text-sm">Content for this environment coming after your next session</p>
+          <p className="font-display text-ink text-xl mb-1">{t(meta.labelKey)}</p>
+          <p className="text-ink-dim text-sm">{t("bh_coming")}</p>
         </div>
       ) : (
         <div className="flex flex-col gap-4">
@@ -70,10 +92,14 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
           {current?.whats_different && (
             <div
               className="rounded-2xl px-4 pt-4 pb-4"
-              style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)", borderLeft: `3px solid ${meta.color}` }}
+              style={{
+                background: "var(--glass)",
+                border: "1px solid var(--glass-edge)",
+                borderInlineStart: `3px solid ${meta.color}`,
+              }}
             >
               <p className="font-display text-[10px] tracking-[0.2em] mb-2" style={{ color: meta.color }}>
-                What&apos;s Different Here
+                {t("bh_whats_diff")}
               </p>
               <p className="text-ink-dim text-sm leading-relaxed whitespace-pre-wrap">{current.whats_different}</p>
             </div>
@@ -83,10 +109,14 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
           {current?.try_first && (
             <div
               className="rounded-2xl px-4 pt-4 pb-4"
-              style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)", borderLeft: `3px solid ${meta.color}` }}
+              style={{
+                background: "var(--glass)",
+                border: "1px solid var(--glass-edge)",
+                borderInlineStart: `3px solid ${meta.color}`,
+              }}
             >
               <p className="font-display text-[10px] tracking-[0.2em] mb-2" style={{ color: meta.color }}>
-                Try First
+                {t("bh_try_first")}
               </p>
               <p className="text-ink-dim text-sm leading-relaxed whitespace-pre-wrap">{current.try_first}</p>
             </div>
@@ -99,7 +129,7 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
               style={{ background: meta.bg, border: `1px solid ${meta.border}` }}
             >
               <p className="font-display text-[10px] tracking-[0.2em] mb-2" style={{ color: meta.color }}>
-                On-Wave Reminder
+                {t("bh_on_wave")}
               </p>
               <p className="text-ink text-base font-medium leading-snug">{current.on_wave_reminder}</p>
             </div>
@@ -107,7 +137,7 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
 
           {/* Reference video */}
           {current?.video_url && (
-            <VideoSlot url={current.video_url} label="Watch Reference" />
+            <VideoSlot url={current.video_url} label={t("bh_watch_ref")} />
           )}
 
           {/* Voice note */}
@@ -117,7 +147,7 @@ export function BackHomeView({ israelTranslation, wavePoolTranslation }: Props) 
               style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
             >
               <p className="font-display text-[10px] tracking-[0.2em] text-ink-faint mb-3">
-                Coach&apos;s Voice Note
+                {t("bh_voice_note")}
               </p>
               <audio
                 src={current.personal_note_url}

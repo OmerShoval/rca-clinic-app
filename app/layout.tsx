@@ -1,5 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Bebas_Neue, Inter } from "next/font/google";
+import { Bebas_Neue, Inter, Heebo } from "next/font/google";
 import "./globals.css";
 
 const bebasNeue = Bebas_Neue({
@@ -12,6 +12,13 @@ const bebasNeue = Bebas_Neue({
 const inter = Inter({
   variable: "--font-sans",
   subsets: ["latin"],
+  display: "swap",
+});
+
+const heebo = Heebo({
+  weight: ["300", "400", "500", "700", "800"],
+  variable: "--font-hebrew",
+  subsets: ["hebrew", "latin"],
   display: "swap",
 });
 
@@ -34,7 +41,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebasNeue.variable} ${inter.variable} h-full dark`}
+      className={`${bebasNeue.variable} ${inter.variable} ${heebo.variable} h-full dark`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
         {children}

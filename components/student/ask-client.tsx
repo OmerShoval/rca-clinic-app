@@ -3,19 +3,15 @@
 import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoSlot } from "@/components/ui/video-slot";
+import { useLanguage } from "@/lib/language-context";
 import type { Thread } from "@/lib/database.types";
 
 interface Props {
   initialThreads: Thread[];
 }
 
-const STATUS_META = {
-  new:       { label: "Waiting for review",       color: "var(--coral)",    bg: "var(--coral-soft)"  },
-  in_review: { label: "Omer's reviewing this",    color: "var(--gold)",     bg: "var(--gold-soft)"   },
-  answered:  { label: "Answered",                 color: "var(--teal)",     bg: "var(--teal-soft)"   },
-};
-
 export function AskClient({ initialThreads }: Props) {
+  const { t } = useLanguage();
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
   const [question, setQuestion] = useState("");
   const [clipUrl, setClipUrl] = useState("");
@@ -23,6 +19,12 @@ export function AskClient({ initialThreads }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
+
+  const statusMeta = {
+    new:       { labelKey: "ask_status_new",    color: "var(--coral)", bg: "var(--coral-soft)" },
+    in_review: { labelKey: "ask_status_review", color: "var(--gold)",  bg: "var(--gold-soft)"  },
+    answered:  { labelKey: "ask_status_done",   color: "var(--teal)",  bg: "var(--teal-soft)"  },
+  } as const;
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -56,13 +58,13 @@ export function AskClient({ initialThreads }: Props) {
         style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
       >
         <label className="font-display text-[10px] tracking-[0.25em] text-coral">
-          Your Question
+          {t("ask_form_label")}
         </label>
         <textarea
           ref={textRef}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
-          placeholder="What do you want Omer to look at? Be specific — mention the wave, the moment, what you felt…"
+          placeholder={t("ask_placeholder")}
           rows={4}
           required
           className="w-full rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none resize-none"
@@ -74,26 +76,24 @@ export function AskClient({ initialThreads }: Props) {
         {/* Clip URL */}
         <div>
           <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">
-            Clip URL (optional)
+            {t("ask_clip_label")}
           </label>
           <input
             type="url"
             value={clipUrl}
             onChange={(e) => setClipUrl(e.target.value)}
-            placeholder="YouTube / Vimeo / Google Drive link to your wave…"
+            placeholder={t("ask_clip_ph")}
             className="w-full rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none"
             style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}
           />
           {clipUrl && (
             <div className="mt-2">
-              <VideoSlot url={clipUrl} label="Your clip" />
+              <VideoSlot url={clipUrl} label={t("ask_your_clip")} />
             </div>
           )}
         </div>
 
-        {error && (
-          <p className="text-coral text-sm">{error}</p>
-        )}
+        {error && <p className="text-coral text-sm">{error}</p>}
 
         <button
           type="submit"
@@ -101,7 +101,7 @@ export function AskClient({ initialThreads }: Props) {
           className="w-full py-3 rounded-2xl font-display text-[13px] tracking-widest text-white transition-opacity disabled:opacity-40"
           style={{ background: "var(--coral)" }}
         >
-          {submitting ? "Sending…" : "Ask Omer →"}
+          {submitting ? t("ask_sending") : t("ask_btn")}
         </button>
       </form>
 
@@ -109,10 +109,10 @@ export function AskClient({ initialThreads }: Props) {
       {threads.length > 0 && (
         <div className="flex flex-col gap-2">
           <p className="font-display text-[10px] tracking-[0.25em] text-ink-faint px-1">
-            Your Questions
+            {t("ask_your_qs")}
           </p>
           {threads.map((thread) => {
-            const sm = STATUS_META[thread.status];
+            const sm = statusMeta[thread.status];
             const isOpen = expandedId === thread.id;
             return (
               <div key={thread.id}>
@@ -123,7 +123,7 @@ export function AskClient({ initialThreads }: Props) {
                   style={{
                     background: "var(--glass)",
                     border: "1px solid var(--glass-edge)",
-                    borderLeft: `3px solid ${sm.color}`,
+                    borderInlineStart: `3px solid ${sm.color}`,
                   }}
                 >
                   <div className="flex-1 min-w-0">
@@ -133,7 +133,7 @@ export function AskClient({ initialThreads }: Props) {
                         className="font-display text-[9px] tracking-widest px-2 py-0.5 rounded"
                         style={{ color: sm.color, background: sm.bg }}
                       >
-                        {sm.label.toUpperCase()}
+                        {t(sm.labelKey).toUpperCase()}
                       </span>
                       <span className="font-display text-[9px] tracking-widest text-ink-faint">
                         {new Date(thread.submitted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -165,7 +165,7 @@ export function AskClient({ initialThreads }: Props) {
                         <p className="text-ink-dim text-sm leading-relaxed">{thread.question_text}</p>
 
                         {thread.clip_url && (
-                          <VideoSlot url={thread.clip_url} label="Your clip" />
+                          <VideoSlot url={thread.clip_url} label={t("ask_your_clip")} />
                         )}
 
                         {/* Reply */}
@@ -175,16 +175,14 @@ export function AskClient({ initialThreads }: Props) {
                             style={{ background: "var(--teal-soft)", border: "1px solid rgba(47,214,192,0.3)" }}
                           >
                             <p className="font-display text-[10px] tracking-[0.2em] text-teal mb-2">
-                              Omer&apos;s Reply
+                              {t("ask_omers_reply")}
                             </p>
                             {thread.reply_type === "whatsapp" ? (
-                              <p className="text-ink-dim text-sm">
-                                Reply sent via WhatsApp — check your messages.
-                              </p>
+                              <p className="text-ink-dim text-sm">{t("ask_reply_wa")}</p>
                             ) : thread.reply_url ? (
-                              <VideoSlot url={thread.reply_url} label="Watch reply" />
+                              <VideoSlot url={thread.reply_url} label={t("ask_watch_reply")} />
                             ) : (
-                              <p className="text-ink-dim text-sm">Reply coming soon.</p>
+                              <p className="text-ink-dim text-sm">{t("ask_reply_soon")}</p>
                             )}
                           </div>
                         )}
@@ -203,7 +201,7 @@ export function AskClient({ initialThreads }: Props) {
           className="rounded-2xl p-8 text-center"
           style={{ border: "1.5px dashed var(--glass-edge)" }}
         >
-          <p className="text-ink-faint text-sm">Your questions will appear here after you submit one.</p>
+          <p className="text-ink-faint text-sm">{t("ask_empty")}</p>
         </div>
       )}
     </div>

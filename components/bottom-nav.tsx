@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { cn } from "@/lib/utils";
+import { useLanguage } from "@/lib/language-context";
 
 interface BottomNavProps {
   slug: string;
@@ -11,12 +12,13 @@ interface BottomNavProps {
 export function BottomNav({ slug }: BottomNavProps) {
   const pathname = usePathname();
   const base = `/s/${slug}`;
+  const { t } = useLanguage();
 
   const tabs = [
-    { href: `${base}/waves`,     label: "My Waves",  icon: "🌊" },
-    { href: base,                label: "Home",      icon: "◎"  },
-    { href: `${base}/home-base`, label: "Back Home", icon: "🏠" },
-    { href: `${base}/ask`,       label: "Ask Omer",  icon: "💬" },
+    { href: `${base}/waves`,     labelKey: "nav_my_waves",  icon: "🌊" },
+    { href: base,                labelKey: "nav_home",      icon: "◎"  },
+    { href: `${base}/home-base`, labelKey: "nav_back_home", icon: "🏠" },
+    { href: `${base}/ask`,       labelKey: "nav_ask_omer",  icon: "💬" },
   ];
 
   return (
@@ -44,7 +46,7 @@ export function BottomNav({ slug }: BottomNavProps) {
             )}
           >
             <span className="text-xl leading-none">{tab.icon}</span>
-            <span className="font-display text-[9px] tracking-[0.15em]">{tab.label}</span>
+            <span className="font-display text-[9px] tracking-[0.12em]">{t(tab.labelKey)}</span>
           </Link>
         );
       })}

@@ -137,10 +137,10 @@
     border-radius: 16px;
   }
 
-  /* Debrief arc spine colors */
-  .spine-coral { border-left: 2px solid var(--coral); }
-  .spine-teal  { border-left: 2px solid var(--teal); }
-  .spine-gold  { border-left: 2px solid var(--gold); }
+  /* Debrief arc spine colors — use logical property so they flip in RTL */
+  .spine-coral { border-inline-start: 2px solid var(--coral); }
+  .spine-teal  { border-inline-start: 2px solid var(--teal); }
+  .spine-gold  { border-inline-start: 2px solid var(--gold); }
 
   /* 3-D book shadow and bottom-section gradient */
   .shadow-book {
@@ -184,4 +184,33 @@
       animation: none;
     }
   }
+
+  /* Language-selector dropdown fade */
+  .animate-fade-in {
+    animation: fade-in 0.18s ease both;
+  }
+
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(-3px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+}
+
+/* ── Hebrew / RTL overrides ─────────────────────────────────────────────────── */
+
+/* Switch body font to Heebo when in RTL mode */
+[dir="rtl"] body {
+  font-family: var(--font-hebrew), var(--font-sans), system-ui, sans-serif;
+}
+
+/*
+ * Bebas Neue has no Hebrew glyphs.
+ * Swap font-display to Heebo in RTL and drop uppercase transform
+ * (Hebrew has no case distinction — uppercasing is a no-op but letter-spacing
+ * looks wrong on Hebrew at 0.08em).
+ */
+[dir="rtl"] .font-display {
+  font-family: var(--font-hebrew), system-ui, sans-serif;
+  letter-spacing: 0.03em;
+  text-transform: none;
 }
