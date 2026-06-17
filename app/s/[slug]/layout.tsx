@@ -33,9 +33,13 @@ export default async function StudentLayout({ children, params }: Props) {
   return (
     <LanguageProvider>
       <div className="min-h-screen bg-abyss flex flex-col">
-        {/* Top bar — always LTR so button order stays consistent regardless of dir */}
-        <div className="fixed top-4 right-4 z-50 flex items-center gap-2" dir="ltr">
+        {/* Language toggle — top-LEFT, own corner, always visible */}
+        <div className="fixed top-4 left-4 z-50" dir="ltr">
           <LanguageToggle />
+        </div>
+
+        {/* Logout — top-RIGHT, own corner */}
+        <div className="fixed top-4 right-4 z-50">
           <LogoutButton />
         </div>
 
