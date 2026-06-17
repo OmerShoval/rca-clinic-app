@@ -12,16 +12,13 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { full_name, clinic_id, stage, awareness, execution, focus_skill, whatsapp_number, status, pin } = body;
+  const { full_name, clinic_id, focus_skill, whatsapp_number, status, pin } = body;
 
   const db = createServerClient();
 
   type StudentUpdate = {
     full_name?: string;
     clinic_id?: number;
-    stage?: number;
-    awareness?: number;
-    execution?: number;
     focus_skill?: string | null;
     whatsapp_number?: string | null;
     status?: "draft" | "live";
@@ -31,9 +28,6 @@ export async function PATCH(
   const update: StudentUpdate = {};
   if (full_name !== undefined) update.full_name = full_name;
   if (clinic_id !== undefined) update.clinic_id = Number(clinic_id);
-  if (stage !== undefined) update.stage = Number(stage);
-  if (awareness !== undefined) update.awareness = Number(awareness);
-  if (execution !== undefined) update.execution = Number(execution);
   if (focus_skill !== undefined) update.focus_skill = focus_skill;
   if (whatsapp_number !== undefined) update.whatsapp_number = whatsapp_number;
   if (status !== undefined) update.status = status as "draft" | "live";

@@ -11,7 +11,7 @@ export async function GET(req: NextRequest) {
   const db = createServerClient();
   const { data, error } = await db
     .from("students")
-    .select("id, full_name, slug, stage, status, pin_hash")
+    .select("id, full_name, slug, status, pin_hash")
     .eq("status", "live")
     .ilike("full_name", `%${q}%`)
     .order("full_name")

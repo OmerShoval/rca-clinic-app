@@ -109,6 +109,17 @@ const dict: Record<string, { en: string; he: string }> = {
   notes_save:        { en: "SAVE NOTE",       he: "שמור הערה" },
   notes_saved:       { en: "✓ NOTE SAVED",    he: "✓ הערה נשמרה" },
 
+  // ── Strategy ─────────────────────────────────────────────────────────────────
+  nav_strategy:      { en: "Strategy",        he: "אסטרטגיה" },
+  strat_heading:     { en: "Build Strategy",  he: "אסטרטגיית בנייה" },
+  strat_subtitle:    { en: "Your personal roadmap, built by your coach.", he: "מפת הדרכים האישית שלך, שנבנתה על ידי המאמן שלך." },
+  strat_empty:       { en: "Your coach hasn't built your strategy yet.", he: "המאמן שלך עדיין לא בנה את האסטרטגיה שלך." },
+  strat_goal:        { en: "GOAL",            he: "מטרה" },
+  strat_factor:      { en: "FACTOR",          he: "גורם" },
+  strat_step:        { en: "STEP",            he: "צעד" },
+  strat_context:     { en: "CONTEXT",         he: "הקשר" },
+  strat_connects_to: { en: "Connects to",     he: "מתחבר ל" },
+
   // ── Auth ─────────────────────────────────────────────────────────────────────
   logout:            { en: "LOG OUT",         he: "התנתק" },
 };

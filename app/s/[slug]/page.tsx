@@ -24,7 +24,7 @@ export default async function StudentHome({ params }: Props) {
 
   const { data: student } = await db
     .from("students")
-    .select("full_name, slug, stage, focus_skill")
+    .select("full_name, slug, focus_skill")
     .eq("id", session.student_id)
     .single();
   if (!student || student.slug !== slug) redirect("/");
@@ -48,7 +48,6 @@ export default async function StudentHome({ params }: Props) {
     <LibraryHome
       slug={slug}
       studentName={student.full_name}
-      stage={student.stage}
       focusSkill={student.focus_skill}
       debriefs={debriefs ?? []}
       hasIsraelOcean={hasIsraelOcean}

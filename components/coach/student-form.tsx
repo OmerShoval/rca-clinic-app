@@ -12,16 +12,11 @@ interface Props {
   onCancel: () => void;
 }
 
-const STAGE_LABELS = ["", "Beginner", "Developing", "Intermediate", "Advanced", "Expert"];
-
 export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel }: Props) {
   const isEdit = !!student;
 
   const [fullName, setFullName] = useState(student?.full_name ?? "");
   const [clinicId, setClinicId] = useState<number>(student?.clinic_id ?? clinics[0]?.id ?? 0);
-  const [stage, setStage] = useState(student?.stage ?? 1);
-  const [awareness, setAwareness] = useState(student?.awareness ?? 1);
-  const [execution, setExecution] = useState(student?.execution ?? 1);
   const [focusSkill, setFocusSkill] = useState(student?.focus_skill ?? "");
   const [whatsapp, setWhatsapp] = useState(student?.whatsapp_number ?? "");
   const [status, setStatus] = useState<"draft" | "live">(student?.status ?? "draft");
@@ -81,9 +76,6 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
       const body = {
         full_name: fullName.trim(),
         clinic_id: effectiveClinicId,
-        stage,
-        awareness,
-        execution,
         focus_skill: focusSkill.trim() || null,
         whatsapp_number: whatsapp.trim() || null,
         status,
@@ -224,49 +216,6 @@ export function StudentForm({ clinics, student, onSave, onClinicAdded, onCancel 
               </motion.div>
             )}
           </AnimatePresence>
-        </div>
-
-        {/* Stage */}
-        <div>
-          <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">
-            Stage — {STAGE_LABELS[stage]}
-          </label>
-          <div className="flex gap-2">
-            {[1, 2, 3, 4, 5].map((s) => (
-              <button
-                key={s}
-                type="button"
-                onClick={() => setStage(s)}
-                className="flex-1 py-2 rounded-lg font-display text-xs transition-all"
-                style={stage === s
-                  ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.4)" }
-                  : { background: "var(--glass)", color: "var(--ink-faint)", border: "1px solid var(--glass-edge)" }
-                }
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-        </div>
-
-        {/* Awareness + Execution */}
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">Awareness ({awareness}/5)</label>
-            <input
-              type="range" min={1} max={5} value={awareness}
-              onChange={(e) => setAwareness(Number(e.target.value))}
-              className="w-full accent-teal"
-            />
-          </div>
-          <div>
-            <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">Execution ({execution}/5)</label>
-            <input
-              type="range" min={1} max={5} value={execution}
-              onChange={(e) => setExecution(Number(e.target.value))}
-              className="w-full accent-teal"
-            />
-          </div>
         </div>
 
         {/* Focus Skill */}

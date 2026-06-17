@@ -7,17 +7,16 @@ import { StudentForm } from "@/components/coach/student-form";
 import { DebriefEditor } from "@/components/coach/debrief-editor";
 import { BackHomeEditor } from "@/components/coach/back-home-editor";
 import { InboxView } from "@/components/coach/inbox-view";
+import { StrategyBuilder } from "@/components/coach/strategy-builder";
 import type { Student, Clinic, Debrief } from "@/lib/database.types";
 
-type Tab = "waves" | "israel" | "wave_pool";
+type Tab = "waves" | "israel" | "wave_pool" | "strategy";
 type View = "student" | "addStudent" | "editStudent" | "inbox";
 
 interface Props {
   students: Student[];
   clinics: Clinic[];
 }
-
-const STAGE_LABELS = ["", "Beginner", "Developing", "Intermediate", "Advanced", "Expert"];
 
 export function CoachDashboardClient({ students: initialStudents, clinics: initialClinics }: Props) {
   const router = useRouter();
@@ -287,17 +286,9 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                   </div>
                   <div className="flex-1 min-w-0">
                     <h2 className="font-display text-xl text-ink leading-none">{selectedStudent.full_name}</h2>
-                    <div className="flex items-center gap-2 mt-1">
-                      <div className="flex gap-0.5">
-                        {Array.from({ length: 5 }).map((_, i) => (
-                          <div key={i} className="h-1 w-4 rounded-full" style={{ background: i < selectedStudent.stage ? "var(--teal)" : "rgba(255,255,255,0.1)" }} />
-                        ))}
-                      </div>
-                      <span className="font-display text-[10px] text-ink-faint">{STAGE_LABELS[selectedStudent.stage]}</span>
-                      {selectedStudent.focus_skill && (
-                        <span className="font-display text-[10px] text-gold truncate">· {selectedStudent.focus_skill}</span>
-                      )}
-                    </div>
+                    {selectedStudent.focus_skill && (
+                      <span className="font-display text-[10px] text-gold mt-1 block truncate">{selectedStudent.focus_skill}</span>
+                    )}
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     {selectedStudent.whatsapp_number && (
@@ -331,20 +322,26 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                 </div>
 
                 {/* Tabs */}
-                <div className="flex gap-1 mt-4">
-                  {(["waves", "israel", "wave_pool"] as Tab[]).map((tab) => {
-                    const labels: Record<Tab, string> = { waves: "My Waves", israel: "Israel Ocean", wave_pool: "Wave Pool" };
+                <div className="flex gap-1 mt-4 flex-wrap">
+                  {(["waves", "israel", "wave_pool", "strategy"] as Tab[]).map((tab) => {
+                    const labels: Record<Tab, string> = { waves: "My Waves", israel: "Israel Ocean", wave_pool: "Wave Pool", strategy: "Strategy" };
+                    const isStrategy = tab === "strategy";
+                    const isActive = activeTab === tab;
                     return (
                       <button
                         key={tab}
                         onClick={() => { setActiveTab(tab); setSelectedDebriefId(null); }}
                         className="px-3 py-1.5 rounded-lg font-display text-[10px] tracking-widest transition-all"
-                        style={activeTab === tab
-                          ? { background: tab === "waves" ? "var(--teal-soft)" : "var(--gold-soft)", color: tab === "waves" ? "var(--teal)" : "var(--gold)", border: `1px solid ${tab === "waves" ? "rgba(47,214,192,0.3)" : "rgba(224,182,79,0.3)"}` }
+                        style={isActive
+                          ? isStrategy
+                            ? { background: "rgba(139,92,246,0.15)", color: "rgb(167,139,250)", border: "1px solid rgba(139,92,246,0.3)" }
+                            : tab === "waves"
+                              ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.3)" }
+                              : { background: "var(--gold-soft)", color: "var(--gold)", border: "1px solid rgba(224,182,79,0.3)" }
                           : { background: "transparent", color: "var(--ink-faint)", border: "1px solid transparent" }
                         }
                       >
-                        {labels[tab]}
+                        {labels[tab]}{isStrategy && selectedStudent.build_strategy ? " ●" : ""}
                       </button>
                     );
                   })}
@@ -374,6 +371,9 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                 )}
                 {activeTab === "wave_pool" && (
                   <BackHomeEditor studentId={selectedStudent.id} studentSlug={selectedStudent.slug} environment="wave_pool" />
+                )}
+                {activeTab === "strategy" && (
+                  <StrategyBuilder studentId={selectedStudent.id} />
                 )}
               </div>
             </motion.div>
@@ -425,7 +425,7 @@ function RosterRow({
       <div className="flex-1 min-w-0">
         <p className="text-ink text-[13px] font-medium truncate leading-tight">{student.full_name}</p>
         <p className="font-display text-[9px] tracking-wide text-ink-faint truncate mt-0.5">
-          {student.focus_skill ? `${student.focus_skill} · Stage ${student.stage}/5` : `Stage ${student.stage}/5`}
+          {student.focus_skill ?? "—"}
         </p>
       </div>
       <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">

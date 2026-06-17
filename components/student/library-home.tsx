@@ -21,7 +21,6 @@ interface Debrief {
 interface LibraryHomeProps {
   slug: string;
   studentName: string;
-  stage: number;
   focusSkill: string | null;
   debriefs: Debrief[];
   hasIsraelOcean: boolean;
@@ -202,7 +201,6 @@ const TAG_SHELF_BGRDS = [
 export function LibraryHome({
   slug,
   studentName,
-  stage,
   focusSkill,
   debriefs,
   hasIsraelOcean,
@@ -266,7 +264,7 @@ export function LibraryHome({
           {t("lib_library")}
         </motion.h1>
 
-        {/* Name + stage bar */}
+        {/* Name */}
         <motion.div
           initial={reduce ? {} : { opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -275,23 +273,6 @@ export function LibraryHome({
         >
           <span className="font-display text-teal" style={{ fontSize: 11, letterSpacing: "0.25em" }}>
             {firstName}
-          </span>
-          <span className="text-ink-faint" style={{ fontSize: 10 }}>·</span>
-          <div className="flex gap-1">
-            {Array.from({ length: 5 }).map((_, i) => (
-              <div
-                key={i}
-                className="rounded-full"
-                style={{
-                  width: 16,
-                  height: 4,
-                  background: i < stage ? "var(--teal)" : "rgba(255,255,255,0.08)",
-                }}
-              />
-            ))}
-          </div>
-          <span className="font-display text-ink-faint" style={{ fontSize: 9, letterSpacing: "0.2em" }}>
-            {t("lib_stage")} {stage}/5
           </span>
         </motion.div>
 

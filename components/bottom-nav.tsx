@@ -15,10 +15,11 @@ export function BottomNav({ slug }: BottomNavProps) {
   const { t } = useLanguage();
 
   const tabs = [
-    { href: `${base}/waves`,     labelKey: "nav_my_waves",  icon: "🌊" },
-    { href: base,                labelKey: "nav_home",      icon: "◎"  },
-    { href: `${base}/home-base`, labelKey: "nav_back_home", icon: "🏠" },
-    { href: `${base}/ask`,       labelKey: "nav_ask_omer",  icon: "💬" },
+    { href: `${base}/waves`,    labelKey: "nav_my_waves",  icon: "🌊" },
+    { href: base,               labelKey: "nav_home",      icon: "◎"  },
+    { href: `${base}/strategy`, labelKey: "nav_strategy",  icon: "🗺" },
+    { href: `${base}/home-base`,labelKey: "nav_back_home", icon: "🏠" },
+    { href: `${base}/ask`,      labelKey: "nav_ask_omer",  icon: "💬" },
   ];
 
   return (
