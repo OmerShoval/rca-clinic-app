@@ -8,6 +8,8 @@ interface Props {
   file: File;
   onConfirm: (trimmed: File) => void;
   onCancel: () => void;
+  /** Skip FFmpeg entirely and upload the original file straight away. */
+  onSkipTrim?: (original: File) => void;
 }
 
 type Phase = "idle" | "loading_engine" | "trimming" | "done";
@@ -18,7 +20,7 @@ function formatTime(s: number) {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-export function VideoTrimModal({ file, onConfirm, onCancel }: Props) {
+export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const [objectUrl] = useState(() => URL.createObjectURL(file));
@@ -285,6 +287,16 @@ export function VideoTrimModal({ file, onConfirm, onCancel }: Props) {
           >
             {busy ? "Processing…" : "Trim & Compress"}
           </button>
+          {onSkipTrim && !busy && (
+            <button
+              onClick={() => { cancelRef.current = true; onSkipTrim(file); }}
+              className="rounded-xl px-3 py-2.5 font-display text-[10px] tracking-widest text-teal"
+              style={{ border: "1px solid rgba(47,214,192,0.3)", background: "rgba(47,214,192,0.07)" }}
+              title="Upload the original file without trimming or compressing"
+            >
+              Skip
+            </button>
+          )}
           <button
             onClick={cancel}
             className="rounded-xl px-4 py-2.5 font-display text-[11px] tracking-widest text-ink-faint"

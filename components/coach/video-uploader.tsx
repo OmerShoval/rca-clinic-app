@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
+import { uploadFileDirect } from "@/lib/upload-client";
 
 interface Props {
   label: string;
@@ -97,51 +98,34 @@ export function VideoUploader({
     setUploadProgress(0);
     setError(null);
 
-    const fd = new FormData();
-    fd.append("file", previewFile, previewFile.name);
-    fd.append("studentSlug", studentSlug);
-    fd.append("kind", "video");
-
-    const xhr = new XMLHttpRequest();
-    uploadXhrRef.current = xhr;
-
-    xhr.upload.addEventListener("progress", (e) => {
-      if (e.lengthComputable) setUploadProgress(Math.round((e.loaded / e.total) * 100));
-    });
-
-    xhr.addEventListener("load", () => {
-      uploadXhrRef.current = null;
-      try {
-        const json = JSON.parse(xhr.responseText);
-        if (xhr.status >= 400 || json.error) {
-          setError(json.error ?? "Upload failed");
-          setUploadState("preview");
-          return;
-        }
+    uploadFileDirect({
+      file: previewFile,
+      studentSlug,
+      kind: "video",
+      onProgress: setUploadProgress,
+      xhrRef: uploadXhrRef,
+    })
+      .then((url) => {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
         setPreviewFile(null);
         setUploadState("done");
-        onChange(json.url);
-      } catch {
-        setError("Unexpected server response");
+        onChange(url);
+      })
+      .catch((err: Error) => {
+        if (err.message === "cancelled") {
+          setUploadState("preview");
+          setUploadProgress(0);
+          return;
+        }
+        setError(err.message);
         setUploadState("preview");
-      }
-    });
-
-    xhr.addEventListener("error", () => {
-      uploadXhrRef.current = null;
-      setError("Network error — check your connection");
-      setUploadState("preview");
-    });
-
-    xhr.open("POST", "/api/coach/upload");
-    xhr.send(fd);
+      });
   }
 
   function cancelUpload() {
     uploadXhrRef.current?.abort();
-    uploadXhrRef.current = null;
+    // xhrRef is cleared inside uploadFileDirect on abort
     setUploadState("preview");
     setUploadProgress(0);
   }
@@ -178,7 +162,12 @@ export function VideoUploader({
       {/* Portal-rendered trim modal — escapes any transformed/overflow:hidden ancestors */}
       {uploadState === "trimming" && trimmingFile && typeof document !== "undefined" &&
         createPortal(
-          <VideoTrimModal file={trimmingFile} onConfirm={onTrimConfirm} onCancel={onTrimCancel} />,
+          <VideoTrimModal
+            file={trimmingFile}
+            onConfirm={onTrimConfirm}
+            onCancel={onTrimCancel}
+            onSkipTrim={onTrimConfirm}
+          />,
           document.body
         )
       }

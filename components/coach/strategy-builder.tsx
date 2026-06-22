@@ -28,6 +28,7 @@ import { MediaNode } from "./strategy-nodes/media-node";
 import { SectionNode } from "./strategy-nodes/section-node";
 import { StrategyToolbar, NodeType } from "./strategy-toolbar";
 import { StrategyContextMenu } from "./strategy-context-menu";
+import { uploadFileDirect } from "@/lib/upload-client";
 
 const nodeTypes = {
   context: ContextNode,
@@ -175,16 +176,9 @@ function StrategyCanvas({ studentId, studentSlug }: StrategyCanvasProps) {
     });
   }, [edges, scheduleSave]);
 
-  // Upload a file to Supabase storage and return the public URL
+  // Upload a file directly to Supabase (presigned URL — bypasses Vercel payload limit)
   const uploadNodeMedia = useCallback(async (file: File): Promise<string> => {
-    const form = new FormData();
-    form.set("file", file);
-    form.set("studentSlug", studentSlug);
-    form.set("kind", "node");
-    const res = await fetch("/api/coach/upload", { method: "POST", body: form });
-    if (!res.ok) throw new Error("Upload failed");
-    const data = await res.json();
-    return data.url as string;
+    return uploadFileDirect({ file, studentSlug, kind: "node" });
   }, [studentSlug]);
 
   // Get the viewport center in flow coordinates

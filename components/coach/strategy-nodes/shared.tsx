@@ -208,6 +208,7 @@ export function MediaAttach({
   const [urlDraft, setUrlDraft] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [trimmingFile, setTrimmingFile] = useState<File | null>(null);
   const urlInputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -218,6 +219,7 @@ export function MediaAttach({
 
   async function handleFile(file: File) {
     if (!onUpload) return;
+    setUploadError(null);
     // Video files go through the trim modal first
     if (isVideoFile(file)) {
       setIsDragging(false);
@@ -230,8 +232,8 @@ export function MediaAttach({
       const uploaded = await onUpload(file);
       onUrlChange?.(uploaded);
       setOpen(false);
-    } catch {
-      // upload failed — stay open so user can retry
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : "Upload failed — try again");
     } finally {
       setUploading(false);
     }
@@ -240,13 +242,15 @@ export function MediaAttach({
   async function handleTrimmedFile(file: File) {
     if (!onUpload) return;
     setTrimmingFile(null);
+    setUploadError(null);
     setUploading(true);
     setOpen(false);
     try {
       const uploaded = await onUpload(file);
       onUrlChange?.(uploaded);
-    } catch {
+    } catch (err) {
       setOpen(true);
+      setUploadError(err instanceof Error ? err.message : "Upload failed — try again");
     } finally {
       setUploading(false);
     }
@@ -257,9 +261,16 @@ export function MediaAttach({
     e.preventDefault();
   }
 
+  function closePanel() {
+    setOpen(false);
+    setUrlDraft("");
+    setIsDragging(false);
+    setUploadError(null);
+  }
+
   function confirmUrl() {
     const trimmed = urlDraft.trim();
-    if (trimmed) { onUrlChange?.(trimmed); setOpen(false); setUrlDraft(""); }
+    if (trimmed) { onUrlChange?.(trimmed); closePanel(); }
   }
 
   // Portal for trim modal — escapes React Flow's transform context so position:fixed works
@@ -268,7 +279,8 @@ export function MediaAttach({
         <VideoTrimModal
           file={trimmingFile}
           onConfirm={handleTrimmedFile}
-          onCancel={() => setTrimmingFile(null)}
+          onCancel={() => { setTrimmingFile(null); setUploadError(null); }}
+          onSkipTrim={handleTrimmedFile}
         />,
         document.body
       )
@@ -373,7 +385,7 @@ export function MediaAttach({
               onKeyDown={(e) => {
                 e.stopPropagation();
                 if (e.key === "Enter") confirmUrl();
-                if (e.key === "Escape") { setOpen(false); setUrlDraft(""); }
+                if (e.key === "Escape") closePanel();
               }}
               placeholder="YouTube / image link…"
               className="flex-1 bg-transparent outline-none text-ink placeholder:text-ink-faint"
@@ -381,12 +393,19 @@ export function MediaAttach({
             />
             <button onClick={confirmUrl} className="font-display text-[9px] text-gold flex-shrink-0 px-1">✓</button>
             <button
-              onClick={(e) => { e.stopPropagation(); setOpen(false); setUrlDraft(""); setIsDragging(false); }}
+              onClick={(e) => { e.stopPropagation(); closePanel(); }}
               className="font-display text-[9px] text-ink-faint flex-shrink-0 px-1"
             >
               ✕
             </button>
           </div>
+
+          {/* Error message */}
+          {uploadError && (
+            <p className="font-display text-[8px] tracking-wide" style={{ color: "var(--coral, #ff6b6b)" }}>
+              ✕ {uploadError}
+            </p>
+          )}
         </div>
       </>
     );
@@ -416,6 +435,16 @@ export function MediaAttach({
           </div>
         ) : isDragging ? (
           <span className="font-display text-[8px] text-gold tracking-wide">drop to upload</span>
+        ) : uploadError ? (
+          <div className="flex items-center gap-1 py-0.5">
+            <span className="font-display text-[8px]" style={{ color: "var(--coral, #ff6b6b)" }}>✕ {uploadError}</span>
+            <button
+              onClick={(e) => { e.stopPropagation(); setUploadError(null); setOpen(true); }}
+              className="font-display text-[8px] text-gold underline ml-1"
+            >
+              retry
+            </button>
+          </div>
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); setOpen(true); }}
