@@ -12,6 +12,10 @@ export interface StrategyNode {
     number?: number;
     url?: string;
     caption?: string;
+    why?: string;
+    whyVisible?: boolean;
+    done?: boolean;
+    doneAt?: string;
   };
   style?: { width?: number; height?: number };
 }
@@ -38,6 +42,42 @@ function getYoutubeThumbnail(url: string): string | null {
 
 function isImageUrl(url: string) {
   return /\.(gif|jpe?g|png|webp|svg)(\?|$)/i.test(url);
+}
+
+function isVideoUrl(url: string) {
+  return /\.(mp4|webm|mov|avi)(\?|$)/i.test(url);
+}
+
+function NodeMedia({ url, caption }: { url: string; caption?: string }) {
+  const thumb = getYoutubeThumbnail(url) ?? (isImageUrl(url) ? url : null);
+  if (thumb) {
+    return (
+      <a href={url} target="_blank" rel="noopener noreferrer" className="block mt-2">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={thumb}
+          alt={caption ?? "media"}
+          className="w-full rounded-lg object-cover"
+          style={{ maxHeight: 140 }}
+        />
+        {caption && (
+          <p className="font-display text-[8px] text-ink-faint mt-0.5 text-center">{caption}</p>
+        )}
+      </a>
+    );
+  }
+  if (isVideoUrl(url)) {
+    return (
+      <div className="mt-2">
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+        <video src={url} controls className="w-full rounded-lg" style={{ maxHeight: 180 }} />
+        {caption && (
+          <p className="font-display text-[8px] text-ink-faint mt-0.5 text-center">{caption}</p>
+        )}
+      </div>
+    );
+  }
+  return null;
 }
 
 export function StrategyView({ strategy }: Props) {
@@ -115,6 +155,11 @@ export function StrategyView({ strategy }: Props) {
     const medias = getConnected(goal.id, "media");
     const linkedGoals = getGoalLinks(goal.id);
 
+    const doneCount = steps.filter((s) => s.data.done).length;
+    const totalSteps = steps.length;
+    const allDone = totalSteps > 0 && doneCount === totalSteps;
+    const progressPct = totalSteps > 0 ? Math.round((doneCount / totalSteps) * 100) : 0;
+
     return (
       <motion.div
         key={goal.id}
@@ -122,11 +167,22 @@ export function StrategyView({ strategy }: Props) {
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.3, delay: i * 0.06 }}
         className="rounded-2xl p-4 flex flex-col gap-3"
-        style={{ background: "rgba(20,50,100,0.4)", border: "1.5px solid rgba(60,120,200,0.3)", borderInlineStart: "4px solid rgba(80,140,220,0.8)" }}
+        style={{
+          background: allDone ? "rgba(20,60,30,0.45)" : "rgba(20,50,100,0.4)",
+          border: `1.5px solid ${allDone ? "rgba(80,200,100,0.45)" : "rgba(60,120,200,0.3)"}`,
+          borderInlineStart: `4px solid ${allDone ? "rgba(80,200,100,0.85)" : "rgba(80,140,220,0.8)"}`,
+          boxShadow: allDone ? "0 0 16px rgba(80,200,100,0.08)" : "none",
+        }}
       >
         <div>
           <p className="font-display text-[8px] tracking-[0.25em] text-blue-400 opacity-60 mb-1">{t("strat_goal")}</p>
           <p className="font-display text-[17px] tracking-wide text-ink font-bold leading-snug">{goal.data.label}</p>
+          {goal.data.why && goal.data.whyVisible && (
+            <p className="font-display text-[10px] tracking-wide mt-1" style={{ color: "rgba(224,182,79,0.7)", fontStyle: "italic" }}>
+              Why: {goal.data.why}
+            </p>
+          )}
+          {goal.data.url && <NodeMedia url={goal.data.url} caption={goal.data.caption} />}
         </div>
 
         {factors.length > 0 && (
@@ -138,41 +194,95 @@ export function StrategyView({ strategy }: Props) {
                 style={{ background: "rgba(47,214,192,0.12)", border: "1px solid rgba(47,214,192,0.25)" }}
               >
                 {f.data.label}
+                {f.data.why && f.data.whyVisible && (
+                  <span className="ml-1 opacity-60" style={{ fontStyle: "italic" }}>· {f.data.why}</span>
+                )}
               </span>
             ))}
           </div>
         )}
 
         {steps.length > 0 && (
-          <div className="flex flex-col gap-1.5">
-            {steps.map((s) => (
-              <div key={s.id} className="flex items-start gap-2.5">
-                <div
-                  className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center font-display text-[9px] text-abyss font-bold"
-                  style={{ background: "var(--gold)" }}
-                >
-                  {s.data.number ?? "·"}
-                </div>
-                <p className="font-display text-[12px] tracking-wide text-ink leading-snug pt-0.5">{s.data.label}</p>
+          <div className="flex flex-col gap-2">
+            {/* Progress bar */}
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-1.5 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+                <motion.div
+                  className="h-full rounded-full"
+                  style={{ background: allDone ? "rgba(80,200,100,0.7)" : "var(--gold)" }}
+                  initial={{ width: 0 }}
+                  animate={{ width: `${progressPct}%` }}
+                  transition={{ duration: 0.5, ease: "easeOut" }}
+                />
               </div>
-            ))}
+              <span className="font-display text-[8px] tracking-wide flex-shrink-0" style={{ color: allDone ? "rgba(80,200,100,0.8)" : "var(--gold)", opacity: 0.8 }}>
+                {doneCount}/{totalSteps}
+              </span>
+            </div>
+
+            {steps.map((s) => {
+              const isDone = s.data.done ?? false;
+              return (
+                <div key={s.id} className="flex flex-col gap-1">
+                  <div className="flex items-start gap-2.5">
+                    <div
+                      className="flex-shrink-0 w-5 h-5 rounded-full flex items-center justify-center font-display text-[9px] text-abyss font-bold"
+                      style={{ background: isDone ? "rgba(80,200,100,0.85)" : "var(--gold)" }}
+                    >
+                      {isDone ? "✓" : (s.data.number ?? "·")}
+                    </div>
+                    <div className="flex-1">
+                      <p
+                        className="font-display text-[12px] tracking-wide text-ink leading-snug pt-0.5"
+                        style={isDone ? { textDecoration: "line-through", opacity: 0.6 } : undefined}
+                      >
+                        {s.data.label}
+                      </p>
+                      {isDone && s.data.doneAt && (
+                        <p className="font-display text-[8px] tracking-wide" style={{ color: "rgba(80,200,100,0.7)" }}>
+                          Done {new Date(s.data.doneAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                        </p>
+                      )}
+                      {s.data.why && s.data.whyVisible && (
+                        <p className="font-display text-[9px] tracking-wide mt-0.5" style={{ color: "rgba(224,182,79,0.65)", fontStyle: "italic" }}>
+                          Why: {s.data.why}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                  {s.data.url && <NodeMedia url={s.data.url} caption={s.data.caption} />}
+                </div>
+              );
+            })}
           </div>
         )}
 
         {medias.length > 0 && (
           <div className="flex gap-2 flex-wrap">
             {medias.map((m) => {
+              if (!m.data.url) return null;
               const thumb = m.data.url
                 ? (getYoutubeThumbnail(m.data.url) ?? (isImageUrl(m.data.url) ? m.data.url : null))
                 : null;
-              if (!thumb) return null;
-              return (
-                <a key={m.id} href={m.data.url} target="_blank" rel="noopener noreferrer" className="flex flex-col gap-1">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={thumb} alt={m.data.caption ?? "media"} className="w-24 h-16 object-cover rounded-lg" />
-                  {m.data.caption && <p className="font-display text-[8px] text-ink-faint text-center">{m.data.caption}</p>}
-                </a>
-              );
+              if (thumb) {
+                return (
+                  <a key={m.id} href={m.data.url} target="_blank" rel="noopener noreferrer" className="flex flex-col gap-1">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumb} alt={m.data.caption ?? "media"} className="w-24 h-16 object-cover rounded-lg" />
+                    {m.data.caption && <p className="font-display text-[8px] text-ink-faint text-center">{m.data.caption}</p>}
+                  </a>
+                );
+              }
+              if (isVideoUrl(m.data.url)) {
+                return (
+                  <div key={m.id} className="flex flex-col gap-1">
+                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                    <video src={m.data.url} controls className="w-40 rounded-lg" style={{ maxHeight: 90 }} />
+                    {m.data.caption && <p className="font-display text-[8px] text-ink-faint text-center">{m.data.caption}</p>}
+                  </div>
+                );
+              }
+              return null;
             })}
           </div>
         )}

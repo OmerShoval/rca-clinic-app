@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position, NodeProps } from "@xyflow/react";
-import { EditableLabel, NodeData, handleStyle } from "./shared";
+import { EditableLabel, NodeData, handleStyle, MediaAttach, WhyField } from "./shared";
 
 export function FactorNode({ data, selected }: NodeProps) {
   const d = data as unknown as NodeData;
@@ -26,6 +26,13 @@ export function FactorNode({ data, selected }: NodeProps) {
         placeholder="What it includes…"
         className="font-display text-[12px] tracking-wide text-ink leading-snug"
         multiline
+      />
+      <MediaAttach url={d.url} onUrlChange={(v) => d.onUrlChange?.(v)} onUpload={d.onMediaUpload} />
+      <WhyField
+        why={d.why}
+        whyVisible={d.whyVisible}
+        onWhyChange={d.onWhyChange}
+        onWhyVisibleChange={d.onWhyVisibleChange}
       />
     </div>
   );

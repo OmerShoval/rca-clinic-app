@@ -43,32 +43,72 @@ function uid() {
 }
 
 function makeNode(type: NodeType, position: { x: number; y: number }, extraData?: Record<string, unknown>): Node {
-  const stepNumber = type === "step" ? (extraData?.stepCount as number ?? 1) : undefined;
   return {
     id: `${type}-${uid()}`,
     type,
     position,
     data: {
       label: "",
-      ...(stepNumber !== undefined ? { number: stepNumber } : {}),
       ...(extraData ?? {}),
     },
     ...(type === "section" ? { style: { width: 300, height: 180 } } : {}),
   };
 }
 
-interface StrategyCanvasProps {
-  studentId: string;
+interface Snapshot {
+  nodes: Node[];
+  edges: Edge[];
 }
 
-function StrategyCanvas({ studentId }: StrategyCanvasProps) {
+interface StrategyCanvasProps {
+  studentId: string;
+  studentSlug: string;
+}
+
+function StrategyCanvas({ studentId, studentSlug }: StrategyCanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
+  const containerRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [saving, setSaving] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; edgeId?: string } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Undo/redo stacks — snapshots before each change
+  const historyRef = useRef<Snapshot[]>([]);
+  const futureRef = useRef<Snapshot[]>([]);
+  const [canUndo, setCanUndo] = useState(false);
+  const [canRedo, setCanRedo] = useState(false);
+
+  function pushHistory(currentNodes: Node[], currentEdges: Edge[]) {
+    historyRef.current = [...historyRef.current.slice(-49), { nodes: currentNodes, edges: currentEdges }];
+    futureRef.current = [];
+    setCanUndo(true);
+    setCanRedo(false);
+  }
+
+  function undo() {
+    const snap = historyRef.current.pop();
+    if (!snap) return;
+    futureRef.current = [{ nodes, edges }, ...futureRef.current.slice(0, 49)];
+    setNodes(snap.nodes);
+    setEdges(snap.edges);
+    scheduleSave(snap.nodes, snap.edges);
+    setCanUndo(historyRef.current.length > 0);
+    setCanRedo(true);
+  }
+
+  function redo() {
+    const snap = futureRef.current.shift();
+    if (!snap) return;
+    historyRef.current = [...historyRef.current.slice(-49), { nodes, edges }];
+    setNodes(snap.nodes);
+    setEdges(snap.edges);
+    scheduleSave(snap.nodes, snap.edges);
+    setCanUndo(true);
+    setCanRedo(futureRef.current.length > 0);
+  }
 
   // Load strategy on mount
   useEffect(() => {
@@ -97,29 +137,34 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
 
   const onNodesChange = useCallback((changes: NodeChange[]) => {
     setNodes((nds) => {
+      // Only push to history for meaningful changes (position/remove), not selection
+      const meaningful = changes.some((c) => c.type === "position" || c.type === "remove" || c.type === "dimensions");
+      if (meaningful) pushHistory(nds, edges);
       const updated = applyNodeChanges(changes, nds);
       scheduleSave(updated, edges);
       return updated;
     });
-  }, [edges, scheduleSave]);
+  }, [edges, scheduleSave]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onEdgesChange = useCallback((changes: EdgeChange[]) => {
     setEdges((eds) => {
+      pushHistory(nodes, eds);
       const updated = applyEdgeChanges(changes, eds);
       scheduleSave(nodes, updated);
       return updated;
     });
-  }, [nodes, scheduleSave]);
+  }, [nodes, scheduleSave]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onConnect = useCallback((connection: Connection) => {
     setEdges((eds) => {
+      pushHistory(nodes, eds);
       const updated = addEdge({ ...connection, animated: true, style: { stroke: "rgba(224,182,79,0.6)", strokeWidth: 1.5, strokeDasharray: "5,3" } }, eds);
       scheduleSave(nodes, updated);
       return updated;
     });
-  }, [nodes, scheduleSave]);
+  }, [nodes, scheduleSave]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Update node data (label, url, caption, etc.)
+  // Update node data (label, url, caption, done, why, etc.)
   const updateNodeData = useCallback((nodeId: string, patch: Record<string, unknown>) => {
     setNodes((nds) => {
       const updated = nds.map((n) =>
@@ -130,14 +175,83 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
     });
   }, [edges, scheduleSave]);
 
+  // Upload a file to Supabase storage and return the public URL
+  const uploadNodeMedia = useCallback(async (file: File): Promise<string> => {
+    const form = new FormData();
+    form.set("file", file);
+    form.set("studentSlug", studentSlug);
+    form.set("kind", "node");
+    const res = await fetch("/api/coach/upload", { method: "POST", body: form });
+    if (!res.ok) throw new Error("Upload failed");
+    const data = await res.json();
+    return data.url as string;
+  }, [studentSlug]);
+
+  // Get the viewport center in flow coordinates
+  function getViewportCenter() {
+    const rect = containerRef.current?.getBoundingClientRect();
+    const cx = rect ? rect.left + rect.width / 2 : window.innerWidth / 2;
+    const cy = rect ? rect.top + rect.height / 2 : window.innerHeight / 2;
+    return screenToFlowPosition({ x: cx, y: cy });
+  }
+
+  // Compute per-goal step numbers (stepId → number under its goal)
+  const stepNumbers: Record<string, number> = {};
+  for (const goalNode of nodes.filter((n) => n.type === "goal")) {
+    const connectedSteps = edges
+      .filter((e) => e.source === goalNode.id)
+      .map((e) => nodes.find((n) => n.id === e.target))
+      .filter((n) => n?.type === "step");
+    connectedSteps.forEach((s, i) => { if (s) stepNumbers[s.id] = i + 1; });
+  }
+  // Steps not connected to any goal get their stored number or position in all steps
+  const unconnectedStepIdx = nodes.filter((n) => n.type === "step" && stepNumbers[n.id] === undefined);
+  unconnectedStepIdx.forEach((s, i) => { stepNumbers[s.id] = i + 1; });
+
   // Inject callbacks into each node's data
   const nodesWithCallbacks = nodes.map((n) => ({
     ...n,
     data: {
       ...n.data,
+      // Override step number with per-goal computed number
+      ...(n.type === "step" ? { number: stepNumbers[n.id] ?? (n.data.number as number ?? 1) } : {}),
       onLabelChange: (label: string) => updateNodeData(n.id, { label }),
       onUrlChange: (url: string) => updateNodeData(n.id, { url }),
       onCaptionChange: (caption: string) => updateNodeData(n.id, { caption }),
+      onMediaUpload: uploadNodeMedia,
+      onWhyChange: (why: string) => updateNodeData(n.id, { why }),
+      onWhyVisibleChange: (whyVisible: boolean) => updateNodeData(n.id, { whyVisible }),
+      onDoneChange: (done: boolean) => updateNodeData(n.id, { done, doneAt: done ? new Date().toISOString() : undefined }),
+      // Add Step from Goal
+      ...(n.type === "goal" ? {
+        onAddStep: () => {
+          const connectedStepCount = edges.filter(
+            (e) => e.source === n.id && nodes.find((nd) => nd.id === e.target)?.type === "step"
+          ).length;
+          const stepNode = makeNode("step", {
+            x: n.position.x + 280,
+            y: n.position.y + connectedStepCount * 80,
+          });
+          const edge: Edge = {
+            id: `e-${n.id}-${stepNode.id}`,
+            source: n.id,
+            target: stepNode.id,
+            animated: true,
+            style: { stroke: "rgba(224,182,79,0.6)", strokeWidth: 1.5, strokeDasharray: "5,3" },
+          };
+          setNodes((nds) => {
+            pushHistory(nds, edges);
+            const updated = [...nds, stepNode];
+            scheduleSave(updated, edges);
+            return updated;
+          });
+          setEdges((eds) => {
+            const updated = [...eds, edge];
+            scheduleSave(nodes, updated);
+            return updated;
+          });
+        },
+      } : {}),
     },
   }));
 
@@ -151,9 +265,9 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
 
   function addNodeAtPicker(type: NodeType) {
     if (!pickerPos) return;
-    const stepCount = nodes.filter((n) => n.type === "step").length + 1;
-    const node = makeNode(type, pickerPos.flowPos, type === "step" ? { stepCount } : undefined);
+    const node = makeNode(type, pickerPos.flowPos);
     setNodes((nds) => {
+      pushHistory(nds, edges);
       const updated = [...nds, node];
       scheduleSave(updated, edges);
       return updated;
@@ -161,17 +275,30 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
     setPickerPos(null);
   }
 
-  // Keyboard shortcuts (G/F/S/M/C)
+  // Keyboard shortcuts (G/F/S/M/C) + Cmd+Z / Cmd+Shift+Z
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
+      // Undo/Redo
+      if ((e.metaKey || e.ctrlKey) && e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        undo();
+        return;
+      }
+      if ((e.metaKey || e.ctrlKey) && (e.key === "y" || (e.key === "z" && e.shiftKey))) {
+        e.preventDefault();
+        redo();
+        return;
+      }
+
       if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
       const map: Record<string, NodeType> = { g: "goal", f: "factor", s: "step", m: "media", c: "context", n: "section" };
       const type = map[e.key.toLowerCase()];
       if (!type) return;
       e.preventDefault();
-      const stepCount = nodes.filter((nd) => nd.type === "step").length + 1;
-      const node = makeNode(type, { x: 80 + Math.random() * 200, y: 80 + Math.random() * 200 }, type === "step" ? { stepCount } : undefined);
+      const position = getViewportCenter();
+      const node = makeNode(type, { x: position.x + (Math.random() - 0.5) * 60, y: position.y + (Math.random() - 0.5) * 60 });
       setNodes((nds) => {
+        pushHistory(nds, edges);
         const updated = [...nds, node];
         scheduleSave(updated, edges);
         return updated;
@@ -179,7 +306,7 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
     }
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [nodes, edges, scheduleSave]);
+  }, [nodes, edges, scheduleSave]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Right-click context menu
   function onNodeContextMenu(e: React.MouseEvent, node: Node) {
@@ -199,6 +326,7 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
 
   function deleteNode(id: string) {
     setNodes((nds) => {
+      pushHistory(nds, edges);
       const updated = nds.filter((n) => n.id !== id);
       scheduleSave(updated, edges);
       return updated;
@@ -213,6 +341,7 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
 
   function deleteEdge(id: string) {
     setEdges((eds) => {
+      pushHistory(nodes, eds);
       const updated = eds.filter((e) => e.id !== id);
       scheduleSave(nodes, updated);
       return updated;
@@ -225,6 +354,7 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
     if (!original) return;
     const copy = { ...original, id: `${original.type}-${uid()}`, position: { x: original.position.x + 40, y: original.position.y + 40 }, selected: false };
     setNodes((nds) => {
+      pushHistory(nds, edges);
       const updated = [...nds, copy];
       scheduleSave(updated, edges);
       return updated;
@@ -241,7 +371,7 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
   }
 
   return (
-    <div className="relative w-full h-full" style={{ minHeight: 500 }}>
+    <div ref={containerRef} className="relative w-full h-full" style={{ minHeight: 500 }}>
       <ReactFlow
         nodes={nodesWithCallbacks}
         edges={edges}
@@ -277,15 +407,20 @@ function StrategyCanvas({ studentId }: StrategyCanvasProps) {
       {/* Toolbar */}
       <StrategyToolbar
         onAdd={(type) => {
-          const stepCount = nodes.filter((n) => n.type === "step").length + 1;
-          const node = makeNode(type, { x: 120 + Math.random() * 200, y: 120 + Math.random() * 200 }, type === "step" ? { stepCount } : undefined);
+          const position = getViewportCenter();
+          const node = makeNode(type, { x: position.x + (Math.random() - 0.5) * 60, y: position.y + (Math.random() - 0.5) * 60 });
           setNodes((nds) => {
+            pushHistory(nds, edges);
             const updated = [...nds, node];
             scheduleSave(updated, edges);
             return updated;
           });
         }}
         saving={saving}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={undo}
+        onRedo={redo}
       />
 
       {/* Double-click node type picker */}
@@ -352,11 +487,11 @@ function NodeTypePicker({ x, y, onPick, onClose }: { x: number; y: number; onPic
   );
 }
 
-export function StrategyBuilder({ studentId }: { studentId: string }) {
+export function StrategyBuilder({ studentId, studentSlug }: { studentId: string; studentSlug: string }) {
   return (
     <ReactFlowProvider>
       <div style={{ height: "calc(100vh - 200px)", minHeight: 480 }}>
-        <StrategyCanvas studentId={studentId} />
+        <StrategyCanvas studentId={studentId} studentSlug={studentSlug} />
       </div>
     </ReactFlowProvider>
   );

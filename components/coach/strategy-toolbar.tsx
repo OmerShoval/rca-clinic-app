@@ -17,14 +17,50 @@ const NODE_OPTIONS: { type: NodeType; label: string; shortcut: string; color: st
 interface Props {
   onAdd: (type: NodeType) => void;
   saving: boolean;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 }
 
-export function StrategyToolbar({ onAdd, saving }: Props) {
+export function StrategyToolbar({ onAdd, saving, canUndo, canRedo, onUndo, onRedo }: Props) {
   const [open, setOpen] = useState(false);
   const { fitView } = useReactFlow();
 
   return (
     <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex items-center gap-2 z-10">
+      {/* Undo */}
+      <button
+        onClick={onUndo}
+        disabled={!canUndo}
+        className="px-3 py-2 rounded-full font-display text-[13px] tracking-widest transition-all"
+        style={{
+          background: "var(--depth)",
+          border: "1px solid var(--glass-edge)",
+          color: canUndo ? "var(--ink)" : "var(--ink-faint)",
+          opacity: canUndo ? 1 : 0.4,
+        }}
+        title="Undo (⌘Z)"
+      >
+        ↩
+      </button>
+
+      {/* Redo */}
+      <button
+        onClick={onRedo}
+        disabled={!canRedo}
+        className="px-3 py-2 rounded-full font-display text-[13px] tracking-widest transition-all"
+        style={{
+          background: "var(--depth)",
+          border: "1px solid var(--glass-edge)",
+          color: canRedo ? "var(--ink)" : "var(--ink-faint)",
+          opacity: canRedo ? 1 : 0.4,
+        }}
+        title="Redo (⌘⇧Z)"
+      >
+        ↪
+      </button>
+
       {/* Add node */}
       <div className="relative">
         <button

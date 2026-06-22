@@ -1,7 +1,7 @@
 "use client";
 
 import { Handle, Position, NodeProps } from "@xyflow/react";
-import { EditableLabel, NodeData, handleStyle } from "./shared";
+import { EditableLabel, NodeData, handleStyle, MediaAttach, WhyField } from "./shared";
 
 export function GoalNode({ data, selected }: NodeProps) {
   const d = data as unknown as NodeData;
@@ -27,6 +27,23 @@ export function GoalNode({ data, selected }: NodeProps) {
         className="font-display text-[13px] tracking-wide text-ink font-bold leading-tight"
         multiline
       />
+      <MediaAttach url={d.url} onUrlChange={(v) => d.onUrlChange?.(v)} onUpload={d.onMediaUpload} />
+      <WhyField
+        why={d.why}
+        whyVisible={d.whyVisible}
+        onWhyChange={d.onWhyChange}
+        onWhyVisibleChange={d.onWhyVisibleChange}
+      />
+      {d.onAddStep && (
+        <button
+          onClick={(e) => { e.stopPropagation(); d.onAddStep?.(); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="mt-2 flex items-center gap-1 font-display text-[8px] tracking-widest transition-opacity hover:opacity-80"
+          style={{ color: "var(--gold)", opacity: 0.7 }}
+        >
+          + step
+        </button>
+      )}
     </div>
   );
 }
