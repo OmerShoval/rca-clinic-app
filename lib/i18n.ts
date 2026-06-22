@@ -22,6 +22,8 @@ const dict: Record<string, { en: string; he: string }> = {
   lib_israel:       { en: "ISRAEL OCEAN", he: "האוקיינוס הישראלי" },
   lib_wave_pool:    { en: "WAVE POOL",    he: "בריכת גלים" },
   lib_home_plan:    { en: "HOME PLAN",    he: "תוכנית הבית" },
+  lib_roadmap:      { en: "Build Strategy", he: "אסטרטגיית בנייה" },
+  lib_roadmap_sub:  { en: "Your personal roadmap", he: "מפת הדרכים האישית שלך" },
 
   // ── Waves List ──────────────────────────────────────────────────────────────
   waves_heading:        { en: "My Waves",    he: "הגלים שלי" },
@@ -119,6 +121,13 @@ const dict: Record<string, { en: string; he: string }> = {
   strat_step:        { en: "STEP",            he: "צעד" },
   strat_context:     { en: "CONTEXT",         he: "הקשר" },
   strat_connects_to: { en: "Connects to",     he: "מתחבר ל" },
+
+  // ── Training ──────────────────────────────────────────────────────────────────
+  nav_training:          { en: "Training",        he: "אימון" },
+  train_my:              { en: "my",              he: "שלי" },
+  train_heading:         { en: "TRAINING",        he: "אימון" },
+  train_consistency:     { en: "Habit Consistency", he: "עקביות הרגלים" },
+  train_consistency_sub: { en: "Your training habit over the last 10 weeks.", he: "הרגל האימון שלך ב-10 השבועות האחרונים." },
 
   // ── Auth ─────────────────────────────────────────────────────────────────────
   logout:            { en: "LOG OUT",         he: "התנתק" },

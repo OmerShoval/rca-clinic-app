@@ -44,6 +44,7 @@ export interface Database {
           status: "draft" | "live";
           created_at: string;
           build_strategy: Record<string, unknown> | null;
+          training_program: Record<string, unknown> | null;
         };
         Insert: {
           clinic_id: number;
@@ -54,6 +55,7 @@ export interface Database {
           whatsapp_number?: string | null;
           status?: "draft" | "live";
           build_strategy?: Record<string, unknown> | null;
+          training_program?: Record<string, unknown> | null;
         };
         Update: {
           clinic_id?: number;
@@ -64,6 +66,7 @@ export interface Database {
           whatsapp_number?: string | null;
           status?: "draft" | "live";
           build_strategy?: Record<string, unknown> | null;
+          training_program?: Record<string, unknown> | null;
         };
         Relationships: [];
       };
@@ -205,6 +208,27 @@ export interface Database {
         };
         Relationships: [];
       };
+      habit_logs: {
+        Row: {
+          id: string;
+          student_id: string;
+          log_date: string;
+          completed_habits: string[];
+          notes: string | null;
+          created_at: string;
+        };
+        Insert: {
+          student_id: string;
+          log_date: string;
+          completed_habits?: string[];
+          notes?: string | null;
+        };
+        Update: {
+          completed_habits?: string[];
+          notes?: string | null;
+        };
+        Relationships: [];
+      };
       threads: {
         Row: {
           id: string;
@@ -255,3 +279,4 @@ export type DebriefBlock = Database["rca"]["Tables"]["debrief_blocks"]["Row"];
 export type Translation  = Database["rca"]["Tables"]["translations"]["Row"];
 export type Thread       = Database["rca"]["Tables"]["threads"]["Row"];
 export type Tag          = Database["rca"]["Tables"]["tags"]["Row"];
+export type HabitLogRow  = Database["rca"]["Tables"]["habit_logs"]["Row"];

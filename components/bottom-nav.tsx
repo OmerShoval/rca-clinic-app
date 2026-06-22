@@ -18,6 +18,7 @@ export function BottomNav({ slug }: BottomNavProps) {
     { href: `${base}/waves`,    labelKey: "nav_my_waves",  icon: "🌊" },
     { href: base,               labelKey: "nav_home",      icon: "◎"  },
     { href: `${base}/strategy`, labelKey: "nav_strategy",  icon: "🗺" },
+    { href: `${base}/training`, labelKey: "nav_training",  icon: "🎯" },
     { href: `${base}/home-base`,labelKey: "nav_back_home", icon: "🏠" },
     { href: `${base}/ask`,      labelKey: "nav_ask_omer",  icon: "💬" },
   ];

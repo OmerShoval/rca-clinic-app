@@ -498,6 +498,56 @@ export function LibraryHome({
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Build Strategy card ── */}
+      <motion.div
+        initial={reduce ? {} : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.6, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="px-5"
+      >
+        <Link
+          href={`/s/${slug}/strategy`}
+          className="flex items-center gap-4 rounded-2xl px-5 py-4 transition-opacity active:opacity-70"
+          style={{
+            background: "rgba(139,92,246,0.08)",
+            border: "1.5px solid rgba(139,92,246,0.25)",
+          }}
+        >
+          <span className="text-3xl leading-none flex-shrink-0">🗺</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-[8px] tracking-[0.3em] text-purple-400 mb-0.5">ROADMAP</p>
+            <p className="font-display text-ink leading-none" style={{ fontSize: 16 }}>{t("lib_roadmap")}</p>
+            <p className="text-ink-faint mt-1" style={{ fontSize: 11 }}>{t("lib_roadmap_sub")}</p>
+          </div>
+          <span className="text-ink-faint text-base flex-shrink-0">→</span>
+        </Link>
+      </motion.div>
+
+      {/* ── Training card ── */}
+      <motion.div
+        initial={reduce ? {} : { opacity: 0, y: 14 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7, duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
+        className="px-5"
+      >
+        <Link
+          href={`/s/${slug}/training`}
+          className="flex items-center gap-4 rounded-2xl px-5 py-4 transition-opacity active:opacity-70"
+          style={{
+            background: "rgba(47,214,192,0.06)",
+            border: "1.5px solid rgba(47,214,192,0.2)",
+          }}
+        >
+          <span className="text-3xl leading-none flex-shrink-0">🎯</span>
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-[8px] tracking-[0.3em] text-teal mb-0.5">DAILY PROGRAM</p>
+            <p className="font-display text-ink leading-none" style={{ fontSize: 16 }}>{t("nav_training")}</p>
+            <p className="text-ink-faint mt-1" style={{ fontSize: 11 }}>Your workouts, habits &amp; consistency tracker</p>
+          </div>
+          <span className="text-ink-faint text-base flex-shrink-0">→</span>
+        </Link>
+      </motion.div>
     </main>
   );
 }

@@ -8,9 +8,10 @@ import { DebriefEditor } from "@/components/coach/debrief-editor";
 import { BackHomeEditor } from "@/components/coach/back-home-editor";
 import { InboxView } from "@/components/coach/inbox-view";
 import { StrategyBuilder } from "@/components/coach/strategy-builder";
+import { TrainingEditor } from "@/components/coach/training-editor";
 import type { Student, Clinic, Debrief } from "@/lib/database.types";
 
-type Tab = "waves" | "israel" | "wave_pool" | "strategy";
+type Tab = "waves" | "israel" | "wave_pool" | "strategy" | "training";
 type View = "student" | "addStudent" | "editStudent" | "inbox";
 
 interface Props {
@@ -323,9 +324,10 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
 
                 {/* Tabs */}
                 <div className="flex gap-1 mt-4 flex-wrap">
-                  {(["waves", "israel", "wave_pool", "strategy"] as Tab[]).map((tab) => {
-                    const labels: Record<Tab, string> = { waves: "My Waves", israel: "Israel Ocean", wave_pool: "Wave Pool", strategy: "Strategy" };
+                  {(["waves", "israel", "wave_pool", "strategy", "training"] as Tab[]).map((tab) => {
+                    const labels: Record<Tab, string> = { waves: "My Waves", israel: "Israel Ocean", wave_pool: "Wave Pool", strategy: "Strategy", training: "Training" };
                     const isStrategy = tab === "strategy";
+                    const isTraining = tab === "training";
                     const isActive = activeTab === tab;
                     return (
                       <button
@@ -335,9 +337,11 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                         style={isActive
                           ? isStrategy
                             ? { background: "rgba(139,92,246,0.15)", color: "rgb(167,139,250)", border: "1px solid rgba(139,92,246,0.3)" }
-                            : tab === "waves"
-                              ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.3)" }
-                              : { background: "var(--gold-soft)", color: "var(--gold)", border: "1px solid rgba(224,182,79,0.3)" }
+                            : isTraining
+                              ? { background: "rgba(47,214,192,0.1)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.3)" }
+                              : tab === "waves"
+                                ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.3)" }
+                                : { background: "var(--gold-soft)", color: "var(--gold)", border: "1px solid rgba(224,182,79,0.3)" }
                           : { background: "transparent", color: "var(--ink-faint)", border: "1px solid transparent" }
                         }
                       >
@@ -373,7 +377,10 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                   <BackHomeEditor studentId={selectedStudent.id} studentSlug={selectedStudent.slug} environment="wave_pool" />
                 )}
                 {activeTab === "strategy" && (
-                  <StrategyBuilder studentId={selectedStudent.id} />
+                  <StrategyBuilder studentId={selectedStudent.id} studentSlug={selectedStudent.slug} />
+                )}
+                {activeTab === "training" && (
+                  <TrainingEditor studentId={selectedStudent.id} studentSlug={selectedStudent.slug} />
                 )}
               </div>
             </motion.div>
