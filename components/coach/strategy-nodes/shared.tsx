@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, KeyboardEvent } from "react";
+import { createPortal } from "react-dom";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
 
 export interface NodeData {
@@ -261,159 +262,169 @@ export function MediaAttach({
     if (trimmed) { onUrlChange?.(trimmed); setOpen(false); setUrlDraft(""); }
   }
 
-  // ── Trim modal (video files) — full-screen portal ──
-  if (trimmingFile) {
-    return (
-      <VideoTrimModal
-        file={trimmingFile}
-        onConfirm={handleTrimmedFile}
-        onCancel={() => setTrimmingFile(null)}
-      />
-    );
-  }
+  // Portal for trim modal — escapes React Flow's transform context so position:fixed works
+  const trimPortal = trimmingFile && typeof document !== "undefined"
+    ? createPortal(
+        <VideoTrimModal
+          file={trimmingFile}
+          onConfirm={handleTrimmedFile}
+          onCancel={() => setTrimmingFile(null)}
+        />,
+        document.body
+      )
+    : null;
 
   // ── Has URL: thumbnail / video / remove ──
   if (url) {
     const thumb = getYtThumb(url) ?? (isImgOrGif(url) ? url : null);
     return (
-      <div
-        className="mt-2 rounded-lg overflow-hidden relative"
-        style={{ border: "1px solid rgba(255,255,255,0.1)" }}
-        onClick={stopAll}
-        onMouseDown={stopAll}
-      >
-        {thumb ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={thumb} alt="media" className="w-full h-20 object-cover block" />
-        ) : isVideoUrl(url) ? (
-          // eslint-disable-next-line jsx-a11y/media-has-caption
-          <video
-            src={url}
-            controls
-            className="w-full block rounded-lg"
-            style={{ maxHeight: 120 }}
-            onMouseDown={(e) => e.stopPropagation()}
-          />
-        ) : (
-          <div
-            className="h-10 flex items-center justify-center font-display text-[9px] text-ink-faint"
-            style={{ background: "rgba(255,255,255,0.04)" }}
-          >
-            🎬 video attached
-          </div>
-        )}
-        <button
-          onClick={(e) => { e.stopPropagation(); onUrlChange?.(""); }}
-          className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center font-bold text-white"
-          style={{ fontSize: 12, lineHeight: 1, background: "rgba(0,0,0,0.7)" }}
-          title="Remove"
+      <>
+        {trimPortal}
+        <div
+          className="mt-2 rounded-lg overflow-hidden relative"
+          style={{ border: "1px solid rgba(255,255,255,0.1)" }}
+          onClick={stopAll}
+          onMouseDown={stopAll}
         >
-          ×
-        </button>
-      </div>
+          {thumb ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={thumb} alt="media" className="w-full h-20 object-cover block" />
+          ) : isVideoUrl(url) ? (
+            // eslint-disable-next-line jsx-a11y/media-has-caption
+            <video
+              src={url}
+              controls
+              className="w-full block rounded-lg"
+              style={{ maxHeight: 120 }}
+              onMouseDown={(e) => e.stopPropagation()}
+            />
+          ) : (
+            <div
+              className="h-10 flex items-center justify-center font-display text-[9px] text-ink-faint"
+              style={{ background: "rgba(255,255,255,0.04)" }}
+            >
+              🎬 video attached
+            </div>
+          )}
+          <button
+            onClick={(e) => { e.stopPropagation(); onUrlChange?.(""); }}
+            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center font-bold text-white"
+            style={{ fontSize: 12, lineHeight: 1, background: "rgba(0,0,0,0.7)" }}
+            title="Remove"
+          >
+            ×
+          </button>
+        </div>
+      </>
     );
   }
 
   // ── Open panel: drop zone + URL input ──
   if (open) {
     return (
-      <div
-        className="mt-2 flex flex-col gap-1.5"
-        onClick={stopAll}
-        onMouseDown={stopAll}
-      >
-        {/* Drag-and-drop / click-to-upload zone */}
+      <>
+        {trimPortal}
         <div
-          onDrop={(e) => { stopAll(e); const f = (e as React.DragEvent).dataTransfer.files[0]; if (f) handleFile(f); }}
-          onDragOver={(e) => { stopAll(e); setIsDragging(true); }}
-          onDragLeave={(e) => { stopAll(e); setIsDragging(false); }}
-          onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
-          className="rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer transition-all select-none"
-          style={{
-            height: 54,
-            border: `1.5px dashed ${isDragging ? "rgba(224,182,79,0.9)" : "rgba(255,255,255,0.2)"}`,
-            background: isDragging ? "rgba(224,182,79,0.07)" : "rgba(255,255,255,0.03)",
-          }}
+          className="mt-2 flex flex-col gap-1.5"
+          onClick={stopAll}
+          onMouseDown={stopAll}
         >
-          {uploading ? (
-            <div className="w-4 h-4 rounded-full border-2 border-gold border-t-transparent animate-spin" />
-          ) : isDragging ? (
-            <span className="font-display text-[9px] text-gold tracking-wide">drop to upload</span>
-          ) : (
-            <>
-              <span style={{ fontSize: 16, lineHeight: 1 }}>📁</span>
-              <span className="font-display text-[8px] text-ink-faint tracking-wide">drag here or click to browse</span>
-            </>
-          )}
-        </div>
-        {/* Hidden file input */}
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/mp4,video/webm,image/gif"
-          className="hidden"
-          onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
-        />
-
-        {/* URL fallback */}
-        <div className="flex items-center gap-1">
-          <span className="font-display text-[7px] text-ink-faint flex-shrink-0 opacity-50">or URL</span>
-          <input
-            ref={urlInputRef}
-            type="url"
-            value={urlDraft}
-            onChange={(e) => setUrlDraft(e.target.value)}
-            onKeyDown={(e) => {
-              e.stopPropagation();
-              if (e.key === "Enter") confirmUrl();
-              if (e.key === "Escape") { setOpen(false); setUrlDraft(""); }
+          {/* Drag-and-drop / click-to-upload zone */}
+          <div
+            onDrop={(e) => { stopAll(e); const f = (e as React.DragEvent).dataTransfer.files[0]; if (f) handleFile(f); }}
+            onDragOver={(e) => { stopAll(e); setIsDragging(true); }}
+            onDragLeave={(e) => { stopAll(e); setIsDragging(false); }}
+            onClick={(e) => { e.stopPropagation(); fileInputRef.current?.click(); }}
+            className="rounded-lg flex flex-col items-center justify-center gap-1 cursor-pointer transition-all select-none"
+            style={{
+              height: 54,
+              border: `1.5px dashed ${isDragging ? "rgba(224,182,79,0.9)" : "rgba(255,255,255,0.2)"}`,
+              background: isDragging ? "rgba(224,182,79,0.07)" : "rgba(255,255,255,0.03)",
             }}
-            placeholder="YouTube / image link…"
-            className="flex-1 bg-transparent outline-none text-ink placeholder:text-ink-faint"
-            style={{ fontSize: 9, borderBottom: "1px solid rgba(255,255,255,0.15)", paddingBottom: 1 }}
-          />
-          <button onClick={confirmUrl} className="font-display text-[9px] text-gold flex-shrink-0 px-1">✓</button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setOpen(false); setUrlDraft(""); setIsDragging(false); }}
-            className="font-display text-[9px] text-ink-faint flex-shrink-0 px-1"
           >
-            ✕
-          </button>
+            {uploading ? (
+              <div className="w-4 h-4 rounded-full border-2 border-gold border-t-transparent animate-spin" />
+            ) : isDragging ? (
+              <span className="font-display text-[9px] text-gold tracking-wide">drop to upload</span>
+            ) : (
+              <>
+                <span style={{ fontSize: 16, lineHeight: 1 }}>📁</span>
+                <span className="font-display text-[8px] text-ink-faint tracking-wide">drag here or click to browse</span>
+              </>
+            )}
+          </div>
+          {/* Hidden file input */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/mp4,video/webm,image/gif"
+            className="hidden"
+            onChange={(e) => { const f = e.target.files?.[0]; if (f) handleFile(f); e.target.value = ""; }}
+          />
+
+          {/* URL fallback */}
+          <div className="flex items-center gap-1">
+            <span className="font-display text-[7px] text-ink-faint flex-shrink-0 opacity-50">or URL</span>
+            <input
+              ref={urlInputRef}
+              type="url"
+              value={urlDraft}
+              onChange={(e) => setUrlDraft(e.target.value)}
+              onKeyDown={(e) => {
+                e.stopPropagation();
+                if (e.key === "Enter") confirmUrl();
+                if (e.key === "Escape") { setOpen(false); setUrlDraft(""); }
+              }}
+              placeholder="YouTube / image link…"
+              className="flex-1 bg-transparent outline-none text-ink placeholder:text-ink-faint"
+              style={{ fontSize: 9, borderBottom: "1px solid rgba(255,255,255,0.15)", paddingBottom: 1 }}
+            />
+            <button onClick={confirmUrl} className="font-display text-[9px] text-gold flex-shrink-0 px-1">✓</button>
+            <button
+              onClick={(e) => { e.stopPropagation(); setOpen(false); setUrlDraft(""); setIsDragging(false); }}
+              className="font-display text-[9px] text-ink-faint flex-shrink-0 px-1"
+            >
+              ✕
+            </button>
+          </div>
         </div>
-      </div>
+      </>
     );
   }
 
   // ── Collapsed: "📎 add media" button — also accepts direct drops ──
   return (
-    <div
-      onDrop={(e) => { stopAll(e); const f = (e as React.DragEvent).dataTransfer.files[0]; if (f) handleFile(f); }}
-      onDragOver={(e) => { stopAll(e); setIsDragging(true); }}
-      onDragLeave={(e) => { stopAll(e); setIsDragging(false); }}
-      onMouseDown={stopAll}
-      className="mt-1 transition-all"
-      style={{
-        borderRadius: 6,
-        border: isDragging ? "1.5px dashed rgba(224,182,79,0.8)" : "1.5px dashed transparent",
-        background: isDragging ? "rgba(224,182,79,0.06)" : "transparent",
-        padding: isDragging ? "3px 6px" : "0",
-      }}
-    >
-      {uploading ? (
-        <div className="flex items-center gap-1.5 py-0.5">
-          <div className="w-3 h-3 rounded-full border border-gold border-t-transparent animate-spin" />
-          <span className="font-display text-[8px] text-gold">uploading…</span>
-        </div>
-      ) : isDragging ? (
-        <span className="font-display text-[8px] text-gold tracking-wide">drop to upload</span>
-      ) : (
-        <button
-          onClick={(e) => { e.stopPropagation(); setOpen(true); }}
-          className="flex items-center gap-1 font-display text-[8px] tracking-wide text-ink-faint opacity-40 hover:opacity-80 transition-opacity"
-        >
-          📎 <span>add media</span>
-        </button>
-      )}
-    </div>
+    <>
+      {trimPortal}
+      <div
+        onDrop={(e) => { stopAll(e); const f = (e as React.DragEvent).dataTransfer.files[0]; if (f) handleFile(f); }}
+        onDragOver={(e) => { stopAll(e); setIsDragging(true); }}
+        onDragLeave={(e) => { stopAll(e); setIsDragging(false); }}
+        onMouseDown={stopAll}
+        className="mt-1 transition-all"
+        style={{
+          borderRadius: 6,
+          border: isDragging ? "1.5px dashed rgba(224,182,79,0.8)" : "1.5px dashed transparent",
+          background: isDragging ? "rgba(224,182,79,0.06)" : "transparent",
+          padding: isDragging ? "3px 6px" : "0",
+        }}
+      >
+        {uploading ? (
+          <div className="flex items-center gap-1.5 py-0.5">
+            <div className="w-3 h-3 rounded-full border border-gold border-t-transparent animate-spin" />
+            <span className="font-display text-[8px] text-gold">uploading…</span>
+          </div>
+        ) : isDragging ? (
+          <span className="font-display text-[8px] text-gold tracking-wide">drop to upload</span>
+        ) : (
+          <button
+            onClick={(e) => { e.stopPropagation(); setOpen(true); }}
+            className="flex items-center gap-1 font-display text-[8px] tracking-wide text-ink-faint opacity-40 hover:opacity-80 transition-opacity"
+          >
+            📎 <span>add media</span>
+          </button>
+        )}
+      </div>
+    </>
   );
 }

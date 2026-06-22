@@ -1,7 +1,8 @@
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 
-const FFMPEG_CORE_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js";
-const FFMPEG_WASM_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm";
+// core-st = single-threaded: no SharedArrayBuffer / COOP+COEP headers required
+const FFMPEG_CORE_URL = "https://unpkg.com/@ffmpeg/core-st@0.12.6/dist/esm/ffmpeg-core.js";
+const FFMPEG_WASM_URL = "https://unpkg.com/@ffmpeg/core-st@0.12.6/dist/esm/ffmpeg-core.wasm";
 
 let instance: FFmpeg | null = null;
 

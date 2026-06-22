@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
+import { createPortal } from "react-dom";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
@@ -36,7 +37,7 @@ export function VideoUploader({
   const [error, setError] = useState<string | null>(null);
   const [pasteValue, setPasteValue] = useState(value && !isDirectFile(value) ? value : "");
 
-  const uploadXhrRef = { current: null as XMLHttpRequest | null };
+  const uploadXhrRef = useRef<XMLHttpRequest | null>(null);
 
   useEffect(() => {
     if (value && isDirectFile(value)) {
@@ -74,10 +75,18 @@ export function VideoUploader({
     setUploadState("idle");
   }
 
-  const onDrop = useCallback(async (accepted: File[]) => {
+  const onDrop = useCallback((accepted: File[]) => {
     const file = accepted[0];
     if (!file) return;
     setError(null);
+    // GIFs don't need trimming — go straight to preview
+    if (file.type === "image/gif") {
+      const url = URL.createObjectURL(file);
+      setPreviewUrl(url);
+      setPreviewFile(file);
+      setUploadState("preview");
+      return;
+    }
     setTrimmingFile(file);
     setUploadState("trimming");
   }, []);
@@ -166,14 +175,13 @@ export function VideoUploader({
 
   return (
     <>
-      {/* Trim modal rendered outside the card so it's full-screen */}
-      {uploadState === "trimming" && trimmingFile && (
-        <VideoTrimModal
-          file={trimmingFile}
-          onConfirm={onTrimConfirm}
-          onCancel={onTrimCancel}
-        />
-      )}
+      {/* Portal-rendered trim modal — escapes any transformed/overflow:hidden ancestors */}
+      {uploadState === "trimming" && trimmingFile && typeof document !== "undefined" &&
+        createPortal(
+          <VideoTrimModal file={trimmingFile} onConfirm={onTrimConfirm} onCancel={onTrimCancel} />,
+          document.body
+        )
+      }
 
       <div className="flex flex-col gap-2">
         <p className="font-display text-[9px] tracking-[0.2em] text-ink-faint">{label}</p>
