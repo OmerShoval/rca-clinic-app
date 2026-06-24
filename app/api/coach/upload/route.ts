@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
   });
 
   const ext = getExtension(file.type);
-  const folder = kind === "cover" ? "cover-photos" : kind === "video" ? "coach-clips" : "coach-notes";
+  const folder = kind === "cover" ? "cover-photos" : kind === "node" ? "node-media" : kind === "video" ? "coach-clips" : "coach-notes";
   const path = `${folder}/${studentSlug}/${Date.now()}.${ext}`;
 
   const arrayBuffer = await file.arrayBuffer();
