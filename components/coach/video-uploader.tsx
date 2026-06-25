@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
-import { uploadFileDirect } from "@/lib/upload-client";
+import { uploadFileDirect, uploadVideoToStream } from "@/lib/upload-client";
 
 interface Props {
   label: string;
@@ -20,6 +20,33 @@ interface Props {
 type Tab = "upload" | "paste";
 type UploadState = "idle" | "trimming" | "preview" | "uploading" | "done";
 
+/** Match `https://iframe.videodelivery.net/<uid>` */
+function isCFStreamUrl(url: string): boolean {
+  return /videodelivery\.net\/[a-f0-9]{32,}/.test(url);
+}
+
+/** Extract the 32-char UID from a CF Stream iframe URL */
+function cfStreamUid(url: string): string | null {
+  const m = url.match(/videodelivery\.net\/([a-f0-9]{32,})/);
+  return m ? m[1] : null;
+}
+
+/** True for files stored directly (Supabase or other CDN) */
+function isDirectFile(url: string): boolean {
+  if (!url) return false;
+  try {
+    const pathname = new URL(url).pathname.toLowerCase();
+    return /\.(mp4|webm|mov|avi|gif)(\?|$)/.test(pathname);
+  } catch {
+    return /\.(mp4|webm|mov|avi|gif)(\?|$)/.test(url.toLowerCase());
+  }
+}
+
+/** True for any "uploaded" file — either CF Stream or a direct Supabase file */
+function isHostedFile(url: string): boolean {
+  return isDirectFile(url) || isCFStreamUrl(url);
+}
+
 export function VideoUploader({
   label,
   studentSlug,
@@ -29,22 +56,22 @@ export function VideoUploader({
   accentBorder = "rgba(47,214,192,0.3)",
   onChange,
 }: Props) {
-  const [tab, setTab] = useState<Tab>(value && !isDirectFile(value) ? "paste" : "upload");
-  const [uploadState, setUploadState] = useState<UploadState>(value && isDirectFile(value) ? "done" : "idle");
+  const [tab, setTab] = useState<Tab>(value && !isHostedFile(value) ? "paste" : "upload");
+  const [uploadState, setUploadState] = useState<UploadState>(value && isHostedFile(value) ? "done" : "idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [trimmingFile, setTrimmingFile] = useState<File | null>(null);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
-  const [pasteValue, setPasteValue] = useState(value && !isDirectFile(value) ? value : "");
+  const [pasteValue, setPasteValue] = useState(value && !isHostedFile(value) ? value : "");
 
-  const uploadXhrRef = useRef<XMLHttpRequest | null>(null);
+  const uploadRef = useRef<{ abort(): void } | null>(null);
 
   useEffect(() => {
-    if (value && isDirectFile(value)) {
+    if (value && isHostedFile(value)) {
       setUploadState("done");
       setTab("upload");
-    } else if (value && !isDirectFile(value)) {
+    } else if (value && !isHostedFile(value)) {
       setPasteValue(value);
       setTab("paste");
       setUploadState("idle");
@@ -62,7 +89,6 @@ export function VideoUploader({
     setError(null);
   }
 
-  // After trim modal confirms → set as preview
   function onTrimConfirm(trimmedFile: File) {
     const url = URL.createObjectURL(trimmedFile);
     setPreviewUrl(url);
@@ -80,8 +106,8 @@ export function VideoUploader({
     const file = accepted[0];
     if (!file) return;
     setError(null);
-    // GIFs don't need trimming — go straight to preview
     if (file.type === "image/gif") {
+      // GIFs skip the trim modal and upload to Supabase directly
       const url = URL.createObjectURL(file);
       setPreviewUrl(url);
       setPreviewFile(file);
@@ -98,13 +124,24 @@ export function VideoUploader({
     setUploadProgress(0);
     setError(null);
 
-    uploadFileDirect({
-      file: previewFile,
-      studentSlug,
-      kind: "video",
-      onProgress: setUploadProgress,
-      xhrRef: uploadXhrRef,
-    })
+    // GIFs → Supabase Storage (they're images, not video — CF Stream doesn't accept them)
+    // Videos (mp4/mov/webm) → Cloudflare Stream (HLS, thumbnails, CDN)
+    const isGif = previewFile.type === "image/gif";
+    const uploadPromise = isGif
+      ? uploadFileDirect({
+          file: previewFile,
+          studentSlug,
+          kind: "video",
+          onProgress: setUploadProgress,
+          uploadRef,
+        })
+      : uploadVideoToStream({
+          file: previewFile,
+          onProgress: setUploadProgress,
+          uploadRef,
+        });
+
+    uploadPromise
       .then((url) => {
         URL.revokeObjectURL(previewUrl);
         setPreviewUrl(null);
@@ -124,13 +161,19 @@ export function VideoUploader({
   }
 
   function cancelUpload() {
-    uploadXhrRef.current?.abort();
-    // xhrRef is cleared inside uploadFileDirect on abort
+    uploadRef.current?.abort();
     setUploadState("preview");
     setUploadProgress(0);
   }
 
   function handleReplace() {
+    if (value) {
+      fetch("/api/coach/files", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ url: value }),
+      }).catch(() => {});
+    }
     onChange("");
     cleanup();
     setPasteValue("");
@@ -157,9 +200,11 @@ export function VideoUploader({
     },
   });
 
+  // Derive the CF Stream UID (if the saved value is a CF URL)
+  const cfUid = value ? cfStreamUid(value) : null;
+
   return (
     <>
-      {/* Portal-rendered trim modal — escapes any transformed/overflow:hidden ancestors */}
       {uploadState === "trimming" && trimmingFile && typeof document !== "undefined" &&
         createPortal(
           <VideoTrimModal
@@ -198,11 +243,42 @@ export function VideoUploader({
           {tab === "upload" && (
             <motion.div key="upload" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
 
-              {/* Saved video */}
+              {/* ── Done: CF Stream video ── */}
+              {uploadState === "done" && cfUid && (
+                <div className="flex flex-col gap-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${accentBorder}` }}>
+                  {/* Thumbnail from CF Stream */}
+                  <div className="relative" style={{ paddingTop: "56.25%", background: "#000" }}>
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={`https://videodelivery.net/${cfUid}/thumbnails/thumbnail.jpg?time=1s&height=400`}
+                      alt="Video thumbnail"
+                      className="absolute inset-0 w-full h-full object-cover"
+                    />
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.25)" }}>
+                      <span
+                        className="w-10 h-10 rounded-full flex items-center justify-center"
+                        style={{ background: "rgba(255,255,255,0.9)", color: "#000", fontSize: 14 }}
+                      >
+                        ▶
+                      </span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-between px-3 pb-2">
+                    <p className="font-display text-[8px] tracking-widest" style={{ color: accentColor }}>
+                      Cloudflare Stream ✓
+                    </p>
+                    <button type="button" onClick={handleReplace} className="font-display text-[9px] tracking-widest text-coral">
+                      Replace
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* ── Done: direct file (GIF / legacy Supabase MP4) ── */}
               {uploadState === "done" && value && isDirectFile(value) && (
                 <div className="flex flex-col gap-2 rounded-xl p-3" style={{ background: "var(--glass)", border: `1px solid ${accentBorder}` }}>
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <video src={value} controls className="w-full rounded-lg object-cover" style={{ maxHeight: 200 }} />
+                  <video src={value} controls preload="metadata" className="w-full rounded-lg object-cover" style={{ maxHeight: 200 }} />
                   <div className="flex items-center justify-between">
                     <p className="font-display text-[8px] tracking-widest text-ink-faint">Video saved ✓</p>
                     <button type="button" onClick={handleReplace} className="font-display text-[9px] tracking-widest text-coral">
@@ -212,7 +288,7 @@ export function VideoUploader({
                 </div>
               )}
 
-              {/* Idle — drop zone */}
+              {/* ── Idle — drop zone ── */}
               {uploadState === "idle" && (
                 <div
                   {...getRootProps()}
@@ -228,12 +304,12 @@ export function VideoUploader({
                     {isDragActive ? "Drop it!" : "Drop clip here\nor click to browse"}
                   </p>
                   <p className="font-display text-[8px] tracking-widest text-ink-faint opacity-60">
-                    MP4 · MOV · WebM · GIF — trim & compress before upload
+                    MP4 · MOV · WebM → Cloudflare Stream &nbsp;·&nbsp; GIF → Supabase
                   </p>
                 </div>
               )}
 
-              {/* Preview MP4 — confirm before uploading */}
+              {/* ── Preview — confirm before uploading ── */}
               {uploadState === "preview" && previewUrl && previewFile && (
                 <motion.div
                   initial={{ opacity: 0, scale: 0.97 }}
@@ -242,9 +318,9 @@ export function VideoUploader({
                   style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
                 >
                   {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                  <video src={previewUrl} controls className="w-full rounded-lg object-cover" style={{ maxHeight: 200 }} />
+                  <video src={previewUrl} controls preload="metadata" className="w-full rounded-lg object-cover" style={{ maxHeight: 200 }} />
                   <p className="font-display text-[8px] tracking-widest text-ink-faint">
-                    MP4 ready · {(previewFile.size / 1024 / 1024).toFixed(1)} MB
+                    {previewFile.type === "image/gif" ? "GIF" : "MP4"} ready · {(previewFile.size / 1024 / 1024).toFixed(1)} MB
                   </p>
                   <div className="flex gap-2">
                     <button
@@ -267,7 +343,7 @@ export function VideoUploader({
                 </motion.div>
               )}
 
-              {/* Uploading to Supabase */}
+              {/* ── Uploading ── */}
               {uploadState === "uploading" && (
                 <motion.div
                   initial={{ opacity: 0 }}
@@ -276,7 +352,9 @@ export function VideoUploader({
                   style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
                 >
                   <div className="flex items-center justify-between">
-                    <p className="font-display text-[10px] tracking-widest text-ink-faint">Uploading…</p>
+                    <p className="font-display text-[10px] tracking-widest text-ink-faint">
+                      {previewFile?.type === "image/gif" ? "Uploading to Supabase…" : "Uploading to Cloudflare Stream…"}
+                    </p>
                     <p className="font-display text-[10px] tracking-widest" style={{ color: accentColor }}>{uploadProgress}%</p>
                   </div>
                   <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "var(--depth)" }}>
@@ -322,14 +400,4 @@ export function VideoUploader({
       </div>
     </>
   );
-}
-
-function isDirectFile(url: string): boolean {
-  if (!url) return false;
-  try {
-    const pathname = new URL(url).pathname.toLowerCase();
-    return /\.(mp4|webm|mov|avi|gif)(\?|$)/.test(pathname);
-  } catch {
-    return /\.(mp4|webm|mov|avi|gif)(\?|$)/.test(url.toLowerCase());
-  }
 }
