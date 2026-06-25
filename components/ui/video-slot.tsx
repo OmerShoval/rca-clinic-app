@@ -2,6 +2,7 @@
 
 import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
+import { HlsPlayer } from "@/components/ui/hls-player";
 
 export type VideoProvider =
   | "YouTube"
@@ -183,69 +184,17 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
     );
   }
 
-  // ── Cloudflare Stream — thumbnail placeholder → iframe ───────────────────────
+  // ── Cloudflare Stream — custom HLS player (hls.js, speed controls, scrubber) ──
   if (provider === "CloudflareStream") {
     const uid = extractCFStreamUid(url);
-    const thumbUrl = uid
-      ? `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=1s&height=400`
-      : null;
-    const embedUrl = extractEmbedUrl(url, provider);
-
-    if (!expanded) {
+    if (!uid) {
       return (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          className={cn("w-full rounded-xl overflow-hidden relative block", className)}
-          style={{ background: "#000" }}
-        >
-          {/* Thumbnail */}
-          <div style={{ paddingTop: "56.25%", position: "relative" }}>
-            {thumbUrl ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={thumbUrl}
-                alt={label ?? "Video thumbnail"}
-                className="absolute inset-0 w-full h-full object-cover"
-              />
-            ) : (
-              <div className="absolute inset-0" style={{ background: "var(--depth)" }} />
-            )}
-            {/* Play overlay */}
-            <div
-              className="absolute inset-0 flex flex-col items-center justify-center gap-2"
-              style={{ background: "rgba(0,0,0,0.32)" }}
-            >
-              <span
-                className="w-12 h-12 rounded-full flex items-center justify-center"
-                style={{ background: "rgba(255,255,255,0.92)", color: "#000", fontSize: 18 }}
-              >
-                ▶
-              </span>
-              {label && (
-                <p className="font-display text-[10px] tracking-widest text-white drop-shadow">
-                  {label}
-                </p>
-              )}
-            </div>
-          </div>
-        </button>
+        <a href={url} target="_blank" rel="noopener noreferrer" className={cn("block text-teal underline text-sm", className)}>
+          {label ?? "Watch video"}
+        </a>
       );
     }
-
-    return (
-      <div className={cn("rounded-xl overflow-hidden", className)} style={{ background: "#000" }}>
-        <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
-          <iframe
-            src={embedUrl}
-            className="absolute inset-0 w-full h-full"
-            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
-            allowFullScreen
-            title={label ?? "Video"}
-          />
-        </div>
-      </div>
-    );
+    return <HlsPlayer uid={uid} label={label} className={className} />;
   }
 
   // ── YouTube / Vimeo / Drive — tap-to-load iframe ─────────────────────────────
