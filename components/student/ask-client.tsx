@@ -4,27 +4,86 @@ import { useState, useRef } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoSlot } from "@/components/ui/video-slot";
 import { useLanguage } from "@/lib/language-context";
+import { uploadStudentClip } from "@/lib/upload-client";
+import type { Abortable } from "@/lib/upload-client";
 import type { Thread } from "@/lib/database.types";
 
 interface Props {
   initialThreads: Thread[];
 }
 
+const ACCEPTED_CLIP_TYPES = "video/mp4,video/webm,video/quicktime,image/gif";
+
 export function AskClient({ initialThreads }: Props) {
   const { t } = useLanguage();
   const [threads, setThreads] = useState<Thread[]>(initialThreads);
   const [question, setQuestion] = useState("");
   const [clipUrl, setClipUrl] = useState("");
+  const [clipTab, setClipTab] = useState<"upload" | "paste">("upload");
+  const [pasteClip, setPasteClip] = useState("");
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadState, setUploadState] = useState<"idle" | "uploading" | "done">("idle");
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const textRef = useRef<HTMLTextAreaElement>(null);
+  const uploadRef = useRef<Abortable | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const statusMeta = {
     new:       { labelKey: "ask_status_new",    color: "var(--coral)", bg: "var(--coral-soft)" },
     in_review: { labelKey: "ask_status_review", color: "var(--gold)",  bg: "var(--gold-soft)"  },
     answered:  { labelKey: "ask_status_done",   color: "var(--teal)",  bg: "var(--teal-soft)"  },
   } as const;
+
+  function handleFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploadError(null);
+    setUploadState("uploading");
+    setUploadProgress(0);
+
+    uploadStudentClip({
+      file,
+      onProgress: setUploadProgress,
+      uploadRef,
+    })
+      .then((url) => {
+        setClipUrl(url);
+        setUploadState("done");
+      })
+      .catch((err: Error) => {
+        if (err.message === "cancelled") {
+          setUploadState("idle");
+          setUploadProgress(0);
+        } else {
+          setUploadError(err.message);
+          setUploadState("idle");
+        }
+      });
+
+    // Reset input so the same file can be re-selected after cancel
+    e.target.value = "";
+  }
+
+  function cancelUpload() {
+    uploadRef.current?.abort();
+    setUploadState("idle");
+    setUploadProgress(0);
+  }
+
+  function clearClip() {
+    setClipUrl("");
+    setUploadState("idle");
+    setUploadProgress(0);
+    setUploadError(null);
+    setPasteClip("");
+  }
+
+  function handlePasteClip(v: string) {
+    setPasteClip(v);
+    setClipUrl(v);
+  }
 
   async function handleSubmit(e: { preventDefault(): void }) {
     e.preventDefault();
@@ -41,7 +100,7 @@ export function AskClient({ initialThreads }: Props) {
       if (!res.ok) throw new Error(data.error ?? "Failed to submit");
       setThreads((prev) => [data, ...prev]);
       setQuestion("");
-      setClipUrl("");
+      clearClip();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong");
     } finally {
@@ -61,7 +120,6 @@ export function AskClient({ initialThreads }: Props) {
           {t("ask_form_label")}
         </label>
         <textarea
-          ref={textRef}
           value={question}
           onChange={(e) => setQuestion(e.target.value)}
           placeholder={t("ask_placeholder")}
@@ -73,31 +131,124 @@ export function AskClient({ initialThreads }: Props) {
           onBlur={(e) => (e.currentTarget.style.borderColor = "var(--glass-edge)")}
         />
 
-        {/* Clip URL */}
-        <div>
-          <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">
+        {/* Clip — Upload or Paste */}
+        <div className="flex flex-col gap-2">
+          <p className="font-display text-[9px] tracking-[0.2em] text-ink-faint">
             {t("ask_clip_label")}
-          </label>
-          <input
-            type="url"
-            value={clipUrl}
-            onChange={(e) => setClipUrl(e.target.value)}
-            placeholder={t("ask_clip_ph")}
-            className="w-full rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none"
-            style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}
-          />
-          {clipUrl && (
-            <div className="mt-2">
-              <VideoSlot url={clipUrl} label={t("ask_your_clip")} />
-            </div>
-          )}
+          </p>
+
+          {/* Tab switcher */}
+          <div className="flex rounded-lg overflow-hidden" style={{ border: "1px solid var(--glass-edge)" }}>
+            {(["upload", "paste"] as const).map((tab) => (
+              <button
+                key={tab}
+                type="button"
+                onClick={() => { setClipTab(tab); clearClip(); }}
+                className="flex-1 py-1.5 font-display text-[9px] tracking-widest transition-colors"
+                style={clipTab === tab
+                  ? { background: "var(--coral-soft)", color: "var(--coral)", borderRight: tab === "upload" ? "1px solid rgba(255,107,94,0.3)" : undefined }
+                  : { background: "transparent", color: "var(--ink-faint)", borderRight: tab === "upload" ? "1px solid var(--glass-edge)" : undefined }
+                }
+              >
+                {tab === "upload" ? "Upload Clip" : "Paste Link"}
+              </button>
+            ))}
+          </div>
+
+          <AnimatePresence mode="wait">
+            {clipTab === "upload" ? (
+              <motion.div key="upload" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
+                {/* Hidden file input */}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept={ACCEPTED_CLIP_TYPES}
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+
+                {uploadState === "idle" && !clipUrl && (
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    className="w-full flex items-center justify-center gap-2 rounded-xl py-4 transition-opacity hover:opacity-80"
+                    style={{ border: "1.5px dashed var(--glass-edge)", background: "var(--depth)" }}
+                  >
+                    <span className="text-xl">🎬</span>
+                    <span className="font-display text-[10px] tracking-widest text-ink-faint">
+                      Tap to pick a clip
+                    </span>
+                  </button>
+                )}
+
+                {uploadState === "uploading" && (
+                  <div className="flex flex-col gap-2 rounded-xl p-3" style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}>
+                    <div className="flex items-center justify-between">
+                      <p className="font-display text-[10px] tracking-widest text-ink-faint">Uploading…</p>
+                      <p className="font-display text-[10px] tracking-widest text-coral">{uploadProgress}%</p>
+                    </div>
+                    <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: "var(--glass)" }}>
+                      <motion.div
+                        className="h-full rounded-full"
+                        style={{ background: "var(--coral)" }}
+                        animate={{ width: `${uploadProgress}%` }}
+                        transition={{ ease: "linear", duration: 0.2 }}
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={cancelUpload}
+                      className="font-display text-[9px] tracking-widest text-coral self-end"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                )}
+
+                {uploadState === "done" && clipUrl && (
+                  <div className="flex flex-col gap-2 rounded-xl p-3" style={{ background: "var(--depth)", border: "1px solid rgba(47,214,192,0.3)" }}>
+                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
+                    <video src={clipUrl} controls preload="metadata" className="w-full rounded-lg" style={{ maxHeight: 160, background: "#000" }} />
+                    <div className="flex items-center justify-between">
+                      <p className="font-display text-[8px] tracking-widest text-teal">Clip ready ✓</p>
+                      <button type="button" onClick={clearClip} className="font-display text-[9px] tracking-widest text-coral">
+                        Remove
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {uploadError && (
+                  <p className="font-display text-[9px] tracking-wide text-coral">{uploadError}</p>
+                )}
+              </motion.div>
+            ) : (
+              <motion.div key="paste" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
+                <input
+                  type="url"
+                  value={pasteClip}
+                  onChange={(e) => handlePasteClip(e.target.value)}
+                  placeholder={t("ask_clip_ph")}
+                  className="w-full rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none"
+                  style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}
+                  onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(255,107,94,0.5)")}
+                  onBlur={(e) => (e.currentTarget.style.borderColor = "var(--glass-edge)")}
+                />
+                {pasteClip && (
+                  <div className="mt-2">
+                    <VideoSlot url={pasteClip} label={t("ask_your_clip")} />
+                  </div>
+                )}
+              </motion.div>
+            )}
+          </AnimatePresence>
         </div>
 
         {error && <p className="text-coral text-sm">{error}</p>}
 
         <button
           type="submit"
-          disabled={submitting || !question.trim()}
+          disabled={submitting || !question.trim() || uploadState === "uploading"}
           className="w-full py-3 rounded-2xl font-display text-[13px] tracking-widest text-white transition-opacity disabled:opacity-40"
           style={{ background: "var(--coral)" }}
         >
@@ -148,7 +299,6 @@ export function AskClient({ initialThreads }: Props) {
                   </span>
                 </button>
 
-                {/* Expanded content */}
                 <AnimatePresence>
                   {isOpen && (
                     <motion.div
@@ -168,7 +318,6 @@ export function AskClient({ initialThreads }: Props) {
                           <VideoSlot url={thread.clip_url} label={t("ask_your_clip")} />
                         )}
 
-                        {/* Reply */}
                         {thread.status === "answered" && (
                           <div
                             className="rounded-xl px-4 py-3"

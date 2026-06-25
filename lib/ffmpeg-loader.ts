@@ -1,9 +1,9 @@
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 
-// @ffmpeg/core = single-threaded: no SharedArrayBuffer / COOP+COEP headers required
-// (core-st was the old name, abandoned after 0.11.x; @ffmpeg/core@0.12.x is the successor)
-const FFMPEG_CORE_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.js";
-const FFMPEG_WASM_URL = "https://unpkg.com/@ffmpeg/core@0.12.6/dist/esm/ffmpeg-core.wasm";
+// Self-hosted from public/ffmpeg/ — no unpkg dependency at runtime.
+// Files are served from Vercel CDN in production.
+const FFMPEG_CORE_URL = "/ffmpeg/ffmpeg-core.js";
+const FFMPEG_WASM_URL = "/ffmpeg/ffmpeg-core.wasm";
 
 let instance: FFmpeg | null = null;
 

@@ -46,27 +46,14 @@ export async function POST(req: NextRequest) {
       : kind === "video"
       ? "coach-clips"
       : "coach-notes";
-  const path = `${folder}/${studentSlug}/${Date.now()}.${ext}`;
+
+  const objectPath = `${folder}/${studentSlug}/${Date.now()}.${ext}`;
 
   const db = createServerClient();
-  const bucket = "rca-notes";
-
-  const { data, error } = await db.storage
-    .from(bucket)
-    .createSignedUploadUrl(path, { upsert: false });
-
-  if (error || !data) {
-    return NextResponse.json(
-      { error: error?.message ?? "Failed to create upload URL" },
-      { status: 500 }
-    );
-  }
-
-  const { data: urlData } = db.storage.from(bucket).getPublicUrl(path);
+  const { data: urlData } = db.storage.from("rca-notes").getPublicUrl(objectPath);
 
   return NextResponse.json({
-    signedUrl: data.signedUrl,
-    path,
+    objectPath,
     publicUrl: urlData.publicUrl,
   });
 }

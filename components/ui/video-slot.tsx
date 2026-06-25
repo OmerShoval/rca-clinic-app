@@ -1,31 +1,54 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 
-export type VideoProvider = "YouTube" | "Vimeo" | "Drive" | "Direct" | "GIF" | "Link";
+export type VideoProvider =
+  | "YouTube"
+  | "Vimeo"
+  | "Drive"
+  | "CloudflareStream"
+  | "Direct"
+  | "GIF"
+  | "Link";
 
 export function detectProvider(url: string): VideoProvider {
   if (/youtube\.com\/watch|youtu\.be\//.test(url)) return "YouTube";
   if (/vimeo\.com\/\d+/.test(url)) return "Vimeo";
   if (/drive\.google\.com\/file\/d\//.test(url)) return "Drive";
+  if (/videodelivery\.net\/[a-f0-9]{32,}/.test(url)) return "CloudflareStream";
   if (/\.gif(\?|$)/i.test(url)) return "GIF";
   if (/\.(mp4|mov|webm|m4v)(\?|$)/i.test(url)) return "Direct";
   return "Link";
 }
 
+function extractCFStreamUid(url: string): string | null {
+  const m = url.match(/videodelivery\.net\/([a-f0-9]{32,})/);
+  return m ? m[1] : null;
+}
+
 export function extractEmbedUrl(url: string, provider: VideoProvider): string {
   if (provider === "YouTube") {
     const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
-    return match ? `https://www.youtube.com/embed/${match[1]}?rel=0&modestbranding=1` : url;
+    return match
+      ? `https://www.youtube.com/embed/${match[1]}?rel=0&modestbranding=1&autoplay=1`
+      : url;
   }
   if (provider === "Vimeo") {
     const match = url.match(/vimeo\.com\/(\d+)/);
-    return match ? `https://player.vimeo.com/video/${match[1]}?color=2fd6c0&byline=0&portrait=0` : url;
+    return match
+      ? `https://player.vimeo.com/video/${match[1]}?color=2fd6c0&byline=0&portrait=0&autoplay=1`
+      : url;
   }
   if (provider === "Drive") {
     const match = url.match(/\/file\/d\/([^/]+)/);
     return match ? `https://drive.google.com/file/d/${match[1]}/preview` : url;
+  }
+  if (provider === "CloudflareStream") {
+    const uid = extractCFStreamUid(url);
+    return uid
+      ? `https://iframe.videodelivery.net/${uid}?autoplay=true&muted=true&defaultTextTrack=off`
+      : url;
   }
   return url;
 }
@@ -36,17 +59,22 @@ interface VideoSlotProps {
   className?: string;
 }
 
+const SPEEDS = [0.25, 0.5, 1, 2] as const;
+
 export function VideoSlot({ url, label, className }: VideoSlotProps) {
   const [expanded, setExpanded] = useState(false);
+  const [playbackRate, setPlaybackRate] = useState<number>(1);
+  const videoRef = useRef<HTMLVideoElement>(null);
+
+  function applySpeed(rate: number) {
+    if (videoRef.current) videoRef.current.playbackRate = rate;
+    setPlaybackRate(rate);
+  }
 
   if (!url) {
     return (
       <div
-        className={cn(
-          "rounded-xl p-4 text-center",
-          "border-[1.5px] border-dashed",
-          className
-        )}
+        className={cn("rounded-xl p-4 text-center", "border-[1.5px] border-dashed", className)}
         style={{ borderColor: "var(--glass-edge)" }}
       >
         <p className="text-xl mb-1">🎥</p>
@@ -60,6 +88,7 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
 
   const provider = detectProvider(url);
 
+  // ── External link ────────────────────────────────────────────────────────────
   if (provider === "Link") {
     return (
       <a
@@ -83,9 +112,13 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
     );
   }
 
+  // ── GIF ──────────────────────────────────────────────────────────────────────
   if (provider === "GIF") {
     return (
-      <div className={cn("rounded-xl overflow-hidden", className)} style={{ background: "var(--depth)" }}>
+      <div
+        className={cn("rounded-xl overflow-hidden", className)}
+        style={{ background: "var(--depth)" }}
+      >
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={url}
@@ -95,30 +128,127 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
           loading="lazy"
         />
         {label && (
-          <p className="font-display text-[10px] tracking-widest text-ink-faint px-3 py-2">{label}</p>
+          <p className="font-display text-[10px] tracking-widest text-ink-faint px-3 py-2">
+            {label}
+          </p>
         )}
       </div>
     );
   }
 
+  // ── Direct MP4 / MOV / WebM — with speed controls ───────────────────────────
   if (provider === "Direct") {
     return (
-      <div className={cn("rounded-xl overflow-hidden", className)} style={{ background: "var(--depth)" }}>
+      <div
+        className={cn("rounded-xl overflow-hidden", className)}
+        style={{ background: "var(--depth)" }}
+      >
+        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
         <video
+          ref={videoRef}
           src={url}
           controls
           playsInline
+          preload="metadata"
           className="w-full h-auto block"
           style={{ maxHeight: "75vh", background: "#000" }}
         />
+        {/* Speed controls */}
+        <div className="flex items-center gap-1.5 px-3 py-2">
+          <span className="font-display text-[8px] tracking-widest text-ink-faint mr-1">
+            SPEED
+          </span>
+          {SPEEDS.map((rate) => (
+            <button
+              key={rate}
+              type="button"
+              onClick={() => applySpeed(rate)}
+              className="font-display text-[9px] tracking-wide px-2 py-0.5 rounded transition-colors"
+              style={
+                playbackRate === rate
+                  ? { background: "var(--teal)", color: "var(--abyss)" }
+                  : { background: "var(--glass)", color: "var(--ink-faint)", border: "1px solid var(--glass-edge)" }
+              }
+            >
+              {rate}×
+            </button>
+          ))}
+        </div>
         {label && (
-          <p className="font-display text-[10px] tracking-widest text-ink-faint px-3 py-2">{label}</p>
+          <p className="font-display text-[10px] tracking-widest text-ink-faint px-3 pb-2">
+            {label}
+          </p>
         )}
       </div>
     );
   }
 
-  // YouTube, Vimeo, Drive — iframe embed
+  // ── Cloudflare Stream — thumbnail placeholder → iframe ───────────────────────
+  if (provider === "CloudflareStream") {
+    const uid = extractCFStreamUid(url);
+    const thumbUrl = uid
+      ? `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=1s&height=400`
+      : null;
+    const embedUrl = extractEmbedUrl(url, provider);
+
+    if (!expanded) {
+      return (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className={cn("w-full rounded-xl overflow-hidden relative block", className)}
+          style={{ background: "#000" }}
+        >
+          {/* Thumbnail */}
+          <div style={{ paddingTop: "56.25%", position: "relative" }}>
+            {thumbUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                src={thumbUrl}
+                alt={label ?? "Video thumbnail"}
+                className="absolute inset-0 w-full h-full object-cover"
+              />
+            ) : (
+              <div className="absolute inset-0" style={{ background: "var(--depth)" }} />
+            )}
+            {/* Play overlay */}
+            <div
+              className="absolute inset-0 flex flex-col items-center justify-center gap-2"
+              style={{ background: "rgba(0,0,0,0.32)" }}
+            >
+              <span
+                className="w-12 h-12 rounded-full flex items-center justify-center"
+                style={{ background: "rgba(255,255,255,0.92)", color: "#000", fontSize: 18 }}
+              >
+                ▶
+              </span>
+              {label && (
+                <p className="font-display text-[10px] tracking-widest text-white drop-shadow">
+                  {label}
+                </p>
+              )}
+            </div>
+          </div>
+        </button>
+      );
+    }
+
+    return (
+      <div className={cn("rounded-xl overflow-hidden", className)} style={{ background: "#000" }}>
+        <div className="relative w-full" style={{ paddingTop: "56.25%" }}>
+          <iframe
+            src={embedUrl}
+            className="absolute inset-0 w-full h-full"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
+            allowFullScreen
+            title={label ?? "Video"}
+          />
+        </div>
+      </div>
+    );
+  }
+
+  // ── YouTube / Vimeo / Drive — tap-to-load iframe ─────────────────────────────
   const embedUrl = extractEmbedUrl(url, provider);
 
   if (!expanded) {
