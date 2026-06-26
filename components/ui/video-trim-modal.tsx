@@ -287,14 +287,14 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
           >
             {busy ? "Processing…" : "Trim & Compress"}
           </button>
-          {onSkipTrim && !busy && (
+          {onSkipTrim && (
             <button
               onClick={() => { cancelRef.current = true; onSkipTrim(file); }}
               className="rounded-xl px-3 py-2.5 font-display text-[10px] tracking-widest text-teal"
               style={{ border: "1px solid rgba(47,214,192,0.3)", background: "rgba(47,214,192,0.07)" }}
               title="Upload the original file without trimming or compressing"
             >
-              Skip
+              {busy ? "Skip Processing" : "Skip"}
             </button>
           )}
           <button
