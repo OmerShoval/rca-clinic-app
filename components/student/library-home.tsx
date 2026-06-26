@@ -25,6 +25,7 @@ interface LibraryHomeProps {
   debriefs: Debrief[];
   hasIsraelOcean: boolean;
   hasWavePool: boolean;
+  // hasIsraelOcean/hasWavePool kept for API compat — Personal Plan shelf removed
 }
 
 type SortMode = "all" | "by-clinic";
@@ -209,7 +210,6 @@ export function LibraryHome({
   const reduce = useReducedMotion();
   const { t, lang } = useLanguage();
   const firstName = studentName.split(" ")[0].toUpperCase();
-  const planCount = (hasIsraelOcean ? 1 : 0) + (hasWavePool ? 1 : 0);
   const [sortMode, setSortMode] = useState<SortMode>("all");
 
   // Group debriefs by tag for "by-clinic" mode
@@ -350,41 +350,6 @@ export function LibraryHome({
                   ))}
             </ShelfSection>
 
-            {/* ── Shelf: Personal Plan ── */}
-            <ShelfSection
-              title={t("lib_personal")}
-              count={planCount}
-              shelfBg="linear-gradient(180deg, #382600 0%, #1e1300 55%, #2c1e00 100%)"
-              sectionDelay={0.3}
-            >
-              {hasIsraelOcean && (
-                <Book
-                  href={`/s/${slug}/home-base`}
-                  title={t("lib_israel")}
-                  footer={t("lib_home_plan")}
-                  colorIndex={1}
-                  bookIndex={0}
-                  delay={0.38}
-                />
-              )}
-              {hasWavePool && (
-                <Book
-                  href={`/s/${slug}/home-base`}
-                  title={t("lib_wave_pool")}
-                  footer={t("lib_home_plan")}
-                  colorIndex={4}
-                  bookIndex={1}
-                  delay={0.44}
-                />
-              )}
-              {!hasIsraelOcean && !hasWavePool && (
-                <>
-                  <GhostBook bi={0} delay={0.35} />
-                  <GhostBook bi={1} delay={0.42} />
-                </>
-              )}
-            </ShelfSection>
-
             {/* ── Shelf: Coming Soon ── */}
             <ShelfSection
               title={t("lib_coming_soon")}
@@ -461,40 +426,6 @@ export function LibraryHome({
               </div>
             )}
 
-            {/* Personal Plan always visible below clinic shelves */}
-            <ShelfSection
-              title={t("lib_personal")}
-              count={planCount}
-              shelfBg="linear-gradient(180deg, #382600 0%, #1e1300 55%, #2c1e00 100%)"
-              sectionDelay={0.08 * (tagGroups.length + 1)}
-            >
-              {hasIsraelOcean && (
-                <Book
-                  href={`/s/${slug}/home-base`}
-                  title={t("lib_israel")}
-                  footer={t("lib_home_plan")}
-                  colorIndex={1}
-                  bookIndex={0}
-                  delay={0.15}
-                />
-              )}
-              {hasWavePool && (
-                <Book
-                  href={`/s/${slug}/home-base`}
-                  title={t("lib_wave_pool")}
-                  footer={t("lib_home_plan")}
-                  colorIndex={4}
-                  bookIndex={1}
-                  delay={0.22}
-                />
-              )}
-              {!hasIsraelOcean && !hasWavePool && (
-                <>
-                  <GhostBook bi={0} delay={0.15} />
-                  <GhostBook bi={1} delay={0.22} />
-                </>
-              )}
-            </ShelfSection>
           </motion.div>
         )}
       </AnimatePresence>
@@ -507,7 +438,7 @@ export function LibraryHome({
         className="px-5"
       >
         <Link
-          href={`/s/${slug}/strategy`}
+          href={`/s/${slug}/patterns`}
           className="flex items-center gap-4 rounded-2xl px-5 py-4 transition-opacity active:opacity-70"
           style={{
             background: "rgba(139,92,246,0.08)",
@@ -516,7 +447,7 @@ export function LibraryHome({
         >
           <span className="text-3xl leading-none flex-shrink-0">🗺</span>
           <div className="flex-1 min-w-0">
-            <p className="font-display text-[8px] tracking-[0.3em] text-purple-400 mb-0.5">ROADMAP</p>
+            <p className="font-display text-[8px] tracking-[0.3em] text-purple-400 mb-0.5">PATTERNS</p>
             <p className="font-display text-ink leading-none" style={{ fontSize: 16 }}>{t("lib_roadmap")}</p>
             <p className="text-ink-faint mt-1" style={{ fontSize: 11 }}>{t("lib_roadmap_sub")}</p>
           </div>

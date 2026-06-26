@@ -1,15 +1,16 @@
 "use client";
 
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { createPortal } from "react-dom";
 import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
-import { uploadFileDirect, uploadVideoToStream } from "@/lib/upload-client";
+import { useUploadManager } from "@/lib/upload-manager";
 
 interface Props {
   label: string;
   studentSlug: string;
+  studentName: string;
   value: string;
   accentColor?: string;
   accentBg?: string;
@@ -50,22 +51,29 @@ function isHostedFile(url: string): boolean {
 export function VideoUploader({
   label,
   studentSlug,
+  studentName,
   value,
   accentColor = "var(--teal)",
   accentBg = "var(--teal-soft)",
   accentBorder = "rgba(47,214,192,0.3)",
   onChange,
 }: Props) {
+  const uploadManager = useUploadManager();
+
   const [tab, setTab] = useState<Tab>(value && !isHostedFile(value) ? "paste" : "upload");
   const [uploadState, setUploadState] = useState<UploadState>(value && isHostedFile(value) ? "done" : "idle");
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [previewFile, setPreviewFile] = useState<File | null>(null);
   const [trimmingFile, setTrimmingFile] = useState<File | null>(null);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [currentUploadId, setCurrentUploadId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pasteValue, setPasteValue] = useState(value && !isHostedFile(value) ? value : "");
 
-  const uploadRef = useRef<{ abort(): void } | null>(null);
+  // Derive progress from the global upload queue
+  const uploadProgress =
+    currentUploadId
+      ? (uploadManager.items.find((i) => i.id === currentUploadId)?.progress ?? 0)
+      : 0;
 
   useEffect(() => {
     if (value && isHostedFile(value)) {
@@ -84,8 +92,8 @@ export function VideoUploader({
     if (previewUrl) URL.revokeObjectURL(previewUrl);
     setPreviewUrl(null);
     setPreviewFile(null);
+    setCurrentUploadId(null);
     setUploadState("idle");
-    setUploadProgress(0);
     setError(null);
   }
 
@@ -121,49 +129,37 @@ export function VideoUploader({
   function startUpload() {
     if (!previewFile || !previewUrl) return;
     setUploadState("uploading");
-    setUploadProgress(0);
     setError(null);
 
-    // GIFs → Supabase Storage (they're images, not video — CF Stream doesn't accept them)
-    // Videos (mp4/mov/webm) → Cloudflare Stream (HLS, thumbnails, CDN)
-    const isGif = previewFile.type === "image/gif";
-    const uploadPromise = isGif
-      ? uploadFileDirect({
-          file: previewFile,
-          studentSlug,
-          kind: "video",
-          onProgress: setUploadProgress,
-          uploadRef,
-        })
-      : uploadVideoToStream({
-          file: previewFile,
-          onProgress: setUploadProgress,
-          uploadRef,
-        });
-
-    uploadPromise
-      .then((url) => {
-        URL.revokeObjectURL(previewUrl);
+    const capturedPreviewUrl = previewUrl;
+    const id = uploadManager.enqueue({
+      file: previewFile,
+      studentSlug,
+      studentName,
+      kind: "video",
+      onComplete(url) {
+        URL.revokeObjectURL(capturedPreviewUrl);
         setPreviewUrl(null);
         setPreviewFile(null);
+        setCurrentUploadId(null);
         setUploadState("done");
         onChange(url);
-      })
-      .catch((err: Error) => {
-        if (err.message === "cancelled") {
-          setUploadState("preview");
-          setUploadProgress(0);
-          return;
-        }
-        setError(err.message);
+      },
+      onError(msg) {
+        setError(msg);
         setUploadState("preview");
-      });
+        setCurrentUploadId(null);
+      },
+    });
+    setCurrentUploadId(id);
   }
 
   function cancelUpload() {
-    uploadRef.current?.abort();
+    if (currentUploadId) {
+      uploadManager.cancel(currentUploadId);
+      setCurrentUploadId(null);
+    }
     setUploadState("preview");
-    setUploadProgress(0);
   }
 
   function handleReplace() {

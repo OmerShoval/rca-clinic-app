@@ -7,6 +7,9 @@ const MIME_TO_EXT: Record<string, string> = {
   "video/webm": "webm",
   "video/quicktime": "mov",
   "image/gif": "gif",
+  "audio/webm": "webm",
+  "audio/ogg": "ogg",
+  "audio/mp4": "m4a",
 };
 
 const ALLOWED_TYPES = new Set(Object.keys(MIME_TO_EXT));

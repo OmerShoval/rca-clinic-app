@@ -9,6 +9,7 @@ import type { DebriefBlock, Debrief } from "@/lib/database.types";
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
 interface StudentInfo {
+  id: string;
   slug: string;
   full_name: string;
   whatsapp_number: string | null;
@@ -378,6 +379,23 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
     setBlocks(next);
     blocksRef.current = next;
     scheduleBlockSave();
+
+    // Auto-save video URLs to the student's video library (fire-and-forget)
+    if ((field === "video_url" || field === "video_url_secondary") && value?.startsWith("http")) {
+      const dayNum = debrief.day_number;
+      const label = dayNum != null ? `Day ${dayNum} — ${debrief.wave_label || "Session"}` : (debrief.wave_label || "Session");
+      fetch(`/api/coach/students/${student.id}/videos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          video_url: value,
+          label,
+          day_number: dayNum ?? null,
+          kind: "session",
+          debrief_id: debrief.id,
+        }),
+      }).catch(() => {});
+    }
   }
 
   function handleLabelChange(val: string) {
@@ -548,7 +566,7 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
       ) : (
         <div className="flex flex-col gap-2">
           {blocks.map((block) => (
-            <BlockEditor key={block.id} block={block} studentSlug={student.slug} onChange={handleBlockChange} />
+            <BlockEditor key={block.id} block={block} studentSlug={student.slug} studentName={student.full_name} onChange={handleBlockChange} />
           ))}
         </div>
       )}

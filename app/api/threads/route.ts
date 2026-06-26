@@ -22,7 +22,7 @@ export async function POST(req: NextRequest) {
   if (auth.error) return auth.error;
 
   const body = await req.json();
-  const { question_text, clip_url, title } = body;
+  const { question_text, clip_url, title, step_ref } = body;
 
   if (!question_text?.trim()) {
     return NextResponse.json({ error: "question_text is required" }, { status: 400 });
@@ -37,6 +37,7 @@ export async function POST(req: NextRequest) {
       clip_url: clip_url?.trim() || null,
       title: title?.trim() || null,
       status: "new",
+      step_ref: step_ref?.trim() || null,
     })
     .select()
     .single();

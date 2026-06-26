@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase";
 import { CoachDashboardClient } from "@/components/coach-dashboard-client";
+import { UploadManagerProvider } from "@/lib/upload-manager";
 
 export default async function CoachDashboard() {
   const cookieStore = await cookies();
@@ -20,9 +21,11 @@ export default async function CoachDashboard() {
     .order("number");
 
   return (
-    <CoachDashboardClient
-      students={students ?? []}
-      clinics={clinics ?? []}
-    />
+    <UploadManagerProvider>
+      <CoachDashboardClient
+        students={students ?? []}
+        clinics={clinics ?? []}
+      />
+    </UploadManagerProvider>
   );
 }

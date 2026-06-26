@@ -2,31 +2,32 @@ export type Lang = "en" | "he";
 
 const dict: Record<string, { en: string; he: string }> = {
   // ── Bottom Nav ──────────────────────────────────────────────────────────────
-  nav_my_waves:   { en: "My Waves",   he: "הגלים שלי" },
-  nav_home:       { en: "Home",       he: "בית" },
-  nav_back_home:  { en: "Back Home",  he: "חזרה הביתה" },
-  nav_ask_omer:   { en: "Ask Omer",   he: "שאל את עומר" },
+  nav_my_waves:      { en: "Sessions",    he: "סשנים" },
+  nav_home:          { en: "Home",        he: "בית" },
+  nav_back_home:     { en: "Back Home",   he: "חזרה הביתה" },
+  nav_ask_omer:      { en: "Ask Omer",    he: "שאל את עומר" },
+  nav_my_patterns:   { en: "My Patterns", he: "הדפוסים שלי" },
 
   // ── Library Home ────────────────────────────────────────────────────────────
   lib_my:           { en: "my",           he: "שלי" },
   lib_library:      { en: "LIBRARY",      he: "ספרייה" },
   lib_stage:        { en: "STAGE",        he: "שלב" },
   lib_focus:        { en: "Focus:",       he: "פוקוס:" },
-  lib_all_waves:    { en: "ALL WAVES",    he: "כל הגלים" },
+  lib_all_waves:    { en: "ALL SESSIONS", he: "כל הסשנים" },
   lib_by_clinic:    { en: "BY CLINIC",    he: "לפי קליניקה" },
-  lib_my_waves:     { en: "My Waves",     he: "הגלים שלי" },
-  lib_personal:     { en: "Personal Plan",he: "תוכנית אישית" },
-  lib_coming_soon:  { en: "Coming Soon",  he: "בקרוב" },
-  lib_other_waves:  { en: "Other Waves",  he: "גלים נוספים" },
-  lib_no_waves:     { en: "No waves yet.",he: "אין גלים עדיין." },
-  lib_israel:       { en: "ISRAEL OCEAN", he: "האוקיינוס הישראלי" },
-  lib_wave_pool:    { en: "WAVE POOL",    he: "בריכת גלים" },
-  lib_home_plan:    { en: "HOME PLAN",    he: "תוכנית הבית" },
-  lib_roadmap:      { en: "Build Strategy", he: "אסטרטגיית בנייה" },
-  lib_roadmap_sub:  { en: "Your personal roadmap", he: "מפת הדרכים האישית שלך" },
+  lib_my_waves:     { en: "Sessions",     he: "סשנים" },
+  lib_personal:     { en: "Personal Plan", he: "תוכנית אישית" },
+  lib_coming_soon:  { en: "Coming Soon",   he: "בקרוב" },
+  lib_other_waves:  { en: "Other Sessions", he: "סשנים נוספים" },
+  lib_no_waves:     { en: "No sessions yet.", he: "אין סשנים עדיין." },
+  lib_israel:       { en: "ISRAEL OCEAN",  he: "האוקיינוס הישראלי" },
+  lib_wave_pool:    { en: "WAVE POOL",     he: "בריכת גלים" },
+  lib_home_plan:    { en: "HOME PLAN",     he: "תוכנית הבית" },
+  lib_roadmap:      { en: "My Patterns",   he: "הדפוסים שלי" },
+  lib_roadmap_sub:  { en: "Your skill paths and progression", he: "מסלולי הפיתוח שלך" },
 
   // ── Waves List ──────────────────────────────────────────────────────────────
-  waves_heading:        { en: "My Waves",    he: "הגלים שלי" },
+  waves_heading:        { en: "Sessions",      he: "סשנים" },
   waves_your_sessions:  { en: "Your Sessions", he: "האימונים שלך" },
   waves_all_filter:     { en: "ALL",         he: "הכל" },
   waves_from_coach:     { en: "debriefs from your coach",  he: "סיכומים מהמאמן" },
@@ -34,7 +35,7 @@ const dict: Record<string, { en: string; he: string }> = {
   waves_first_msg:      { en: "Omer will publish your first debrief after your next session.", he: "עומר יפרסם את הסיכום הראשון שלך לאחר האימון הבא." },
   waves_none_yet:       { en: "No debriefs yet", he: "אין סיכומים עדיין" },
   waves_check_back:     { en: "Check back after your next session", he: "בדוק שוב לאחר האימון הבא" },
-  waves_none_in_clinic: { en: "No waves in this clinic", he: "אין גלים בקליניקה זו" },
+  waves_none_in_clinic: { en: "No sessions in this clinic", he: "אין סשנים בקליניקה זו" },
   waves_show_all:       { en: "Show all",    he: "הצג הכל" },
 
   // ── Ask Page ─────────────────────────────────────────────────────────────────
@@ -111,11 +112,11 @@ const dict: Record<string, { en: string; he: string }> = {
   notes_save:        { en: "SAVE NOTE",       he: "שמור הערה" },
   notes_saved:       { en: "✓ NOTE SAVED",    he: "✓ הערה נשמרה" },
 
-  // ── Strategy ─────────────────────────────────────────────────────────────────
-  nav_strategy:      { en: "Strategy",        he: "אסטרטגיה" },
-  strat_heading:     { en: "Build Strategy",  he: "אסטרטגיית בנייה" },
-  strat_subtitle:    { en: "Your personal roadmap, built by your coach.", he: "מפת הדרכים האישית שלך, שנבנתה על ידי המאמן שלך." },
-  strat_empty:       { en: "Your coach hasn't built your strategy yet.", he: "המאמן שלך עדיין לא בנה את האסטרטגיה שלך." },
+  // ── Patterns (Strategy) ──────────────────────────────────────────────────────
+  nav_strategy:      { en: "My Patterns",     he: "הדפוסים שלי" },
+  strat_heading:     { en: "My Patterns",     he: "הדפוסים שלי" },
+  strat_subtitle:    { en: "Your skill paths and progression, built by your coach.", he: "מסלולי הפיתוח שלך, שנבנו על ידי המאמן שלך." },
+  strat_empty:       { en: "Your coach hasn't built your patterns yet.", he: "המאמן שלך עדיין לא בנה את הדפוסים שלך." },
   strat_goal:        { en: "GOAL",            he: "מטרה" },
   strat_factor:      { en: "FACTOR",          he: "גורם" },
   strat_step:        { en: "STEP",            he: "צעד" },

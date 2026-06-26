@@ -64,9 +64,10 @@ interface Snapshot {
 interface StrategyCanvasProps {
   studentId: string;
   studentSlug: string;
+  studentName: string;
 }
 
-function StrategyCanvas({ studentId, studentSlug }: StrategyCanvasProps) {
+function StrategyCanvas({ studentId, studentSlug, studentName }: StrategyCanvasProps) {
   const { screenToFlowPosition } = useReactFlow();
   const containerRef = useRef<HTMLDivElement>(null);
   const [nodes, setNodes] = useState<Node[]>([]);
@@ -75,6 +76,8 @@ function StrategyCanvas({ studentId, studentSlug }: StrategyCanvasProps) {
   const [saving, setSaving] = useState(false);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; nodeId?: string; edgeId?: string } | null>(null);
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Map of step node ID → count of "I felt it" threads from student
+  const [feltItCounts, setFeltItCounts] = useState<Record<string, number>>({});
 
   // Undo/redo stacks — snapshots before each change
   const historyRef = useRef<Snapshot[]>([]);
@@ -111,7 +114,7 @@ function StrategyCanvas({ studentId, studentSlug }: StrategyCanvasProps) {
     setCanRedo(futureRef.current.length > 0);
   }
 
-  // Load strategy on mount
+  // Load strategy and felt-it counts on mount
   useEffect(() => {
     fetch(`/api/coach/students/${studentId}/strategy`)
       .then((r) => r.json())
@@ -120,6 +123,18 @@ function StrategyCanvas({ studentId, studentSlug }: StrategyCanvasProps) {
         setEdges((e as Edge[]) ?? []);
         setLoaded(true);
       });
+
+    fetch(`/api/coach/students/${studentId}/threads`)
+      .then((r) => r.json())
+      .then((threads: { step_ref?: string | null }[]) => {
+        if (!Array.isArray(threads)) return;
+        const counts: Record<string, number> = {};
+        for (const t of threads) {
+          if (t.step_ref) counts[t.step_ref] = (counts[t.step_ref] ?? 0) + 1;
+        }
+        setFeltItCounts(counts);
+      })
+      .catch(() => {});
   }, [studentId]);
 
   // Auto-save with debounce
@@ -208,7 +223,13 @@ function StrategyCanvas({ studentId, studentSlug }: StrategyCanvasProps) {
     data: {
       ...n.data,
       // Override step number with per-goal computed number
-      ...(n.type === "step" ? { number: stepNumbers[n.id] ?? (n.data.number as number ?? 1) } : {}),
+      ...(n.type === "step" ? {
+        number: stepNumbers[n.id] ?? (n.data.number as number ?? 1),
+        feltItCount: feltItCounts[n.id] ?? 0,
+      } : {}),
+      studentId,
+      studentSlug,
+      studentName,
       onLabelChange: (label: string) => updateNodeData(n.id, { label }),
       onUrlChange: (url: string) => updateNodeData(n.id, { url }),
       onCaptionChange: (caption: string) => updateNodeData(n.id, { caption }),
@@ -481,11 +502,11 @@ function NodeTypePicker({ x, y, onPick, onClose }: { x: number; y: number; onPic
   );
 }
 
-export function StrategyBuilder({ studentId, studentSlug }: { studentId: string; studentSlug: string }) {
+export function StrategyBuilder({ studentId, studentSlug, studentName }: { studentId: string; studentSlug: string; studentName: string }) {
   return (
     <ReactFlowProvider>
       <div style={{ height: "calc(100vh - 200px)", minHeight: 480 }}>
-        <StrategyCanvas studentId={studentId} studentSlug={studentSlug} />
+        <StrategyCanvas studentId={studentId} studentSlug={studentSlug} studentName={studentName} />
       </div>
     </ReactFlowProvider>
   );

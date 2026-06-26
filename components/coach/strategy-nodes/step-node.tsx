@@ -7,6 +7,7 @@ export function StepNode({ data, selected }: NodeProps) {
   const d = data as unknown as NodeData;
   const num = d.number ?? 1;
   const done = d.done ?? false;
+  const feltItCount = d.feltItCount ?? 0;
 
   return (
     <div
@@ -21,19 +22,37 @@ export function StepNode({ data, selected }: NodeProps) {
     >
       <Handle type="target" position={Position.Left} style={handleStyle} />
       <Handle type="source" position={Position.Right} style={handleStyle} />
-      {/* Done toggle — click to mark step complete/incomplete */}
-      <button
-        onClick={(e) => { e.stopPropagation(); d.onDoneChange?.(!done); }}
-        onMouseDown={(e) => e.stopPropagation()}
-        className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center font-display text-[10px] text-abyss font-bold transition-all"
-        style={{
-          background: done ? "rgba(80,200,100,0.85)" : "var(--gold)",
-          boxShadow: done ? "0 0 6px rgba(80,200,100,0.4)" : "none",
-        }}
-        title={done ? "Mark incomplete" : "Mark complete"}
-      >
-        {done ? "✓" : num}
-      </button>
+      {/* Done toggle + felt-it badge */}
+      <div className="flex-shrink-0 flex flex-col items-center gap-1">
+        <button
+          onClick={(e) => { e.stopPropagation(); d.onDoneChange?.(!done); }}
+          onMouseDown={(e) => e.stopPropagation()}
+          className="w-6 h-6 rounded-full flex items-center justify-center font-display text-[10px] text-abyss font-bold transition-all"
+          style={{
+            background: done ? "rgba(80,200,100,0.85)" : "var(--gold)",
+            boxShadow: done ? "0 0 6px rgba(80,200,100,0.4)" : "none",
+          }}
+          title={done ? "Mark incomplete" : "Mark complete"}
+        >
+          {done ? "✓" : num}
+        </button>
+        {feltItCount > 0 && (
+          <div
+            title={`${feltItCount} "I felt it" ${feltItCount === 1 ? "note" : "notes"} from student`}
+            className="flex items-center justify-center rounded-full font-display font-bold"
+            style={{
+              width: 14,
+              height: 14,
+              fontSize: 7,
+              background: "rgba(255,107,94,0.2)",
+              border: "1px solid rgba(255,107,94,0.5)",
+              color: "var(--coral)",
+            }}
+          >
+            {feltItCount > 9 ? "9+" : feltItCount}
+          </div>
+        )}
+      </div>
       <div className="flex-1 min-w-0">
         <p className="font-display text-[7px] tracking-[0.2em] text-gold opacity-60 mb-0.5">STEP</p>
         <EditableLabel
@@ -49,7 +68,7 @@ export function StepNode({ data, selected }: NodeProps) {
             ✓ {new Date(d.doneAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
           </p>
         )}
-        <MediaAttach url={d.url} onUrlChange={(v) => d.onUrlChange?.(v)} onUpload={d.onMediaUpload} />
+        <MediaAttach url={d.url} onUrlChange={(v) => d.onUrlChange?.(v)} onUpload={d.onMediaUpload} studentId={d.studentId} studentSlug={d.studentSlug} studentName={d.studentName} />
         <WhyField
           why={d.why}
           whyVisible={d.whyVisible}

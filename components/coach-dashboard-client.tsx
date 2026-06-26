@@ -9,6 +9,7 @@ import { BackHomeEditor } from "@/components/coach/back-home-editor";
 import { InboxView } from "@/components/coach/inbox-view";
 import { StrategyBuilder } from "@/components/coach/strategy-builder";
 import { TrainingEditor } from "@/components/coach/training-editor";
+import { UploadPanel } from "@/components/coach/upload-panel";
 import type { Student, Clinic, Debrief } from "@/lib/database.types";
 
 type Tab = "waves" | "israel" | "wave_pool" | "strategy" | "training";
@@ -169,6 +170,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
             >
               ↗
             </a>
+            <UploadPanel />
             <button
               onClick={handleLogout}
               disabled={loggingOut}
@@ -325,7 +327,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                 {/* Tabs */}
                 <div className="flex gap-1 mt-4 flex-wrap">
                   {(["waves", "israel", "wave_pool", "strategy", "training"] as Tab[]).map((tab) => {
-                    const labels: Record<Tab, string> = { waves: "My Waves", israel: "Israel Ocean", wave_pool: "Wave Pool", strategy: "Strategy", training: "Training" };
+                    const labels: Record<Tab, string> = { waves: "Sessions", israel: "Israel Ocean", wave_pool: "Wave Pool", strategy: "Patterns", training: "Training" };
                     const isStrategy = tab === "strategy";
                     const isTraining = tab === "training";
                     const isActive = activeTab === tab;
@@ -377,7 +379,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
                   <BackHomeEditor studentId={selectedStudent.id} studentSlug={selectedStudent.slug} environment="wave_pool" />
                 )}
                 {activeTab === "strategy" && (
-                  <StrategyBuilder studentId={selectedStudent.id} studentSlug={selectedStudent.slug} />
+                  <StrategyBuilder studentId={selectedStudent.id} studentSlug={selectedStudent.slug} studentName={selectedStudent.full_name} />
                 )}
                 {activeTab === "training" && (
                   <TrainingEditor studentId={selectedStudent.id} studentSlug={selectedStudent.slug} />
@@ -527,8 +529,8 @@ function WavesTab({
       {debriefs.length === 0 ? (
         <div className="text-center py-10 rounded-2xl" style={{ border: "1px dashed var(--glass-edge)" }}>
           <p className="text-3xl mb-2">🏄</p>
-          <p className="font-display text-ink text-lg mb-1">No waves yet</p>
-          <p className="text-ink-faint text-sm">Create the first debrief above</p>
+          <p className="font-display text-ink text-lg mb-1">No sessions yet</p>
+          <p className="text-ink-faint text-sm">Create the first session above</p>
         </div>
       ) : (
         <div className="flex flex-col gap-2">

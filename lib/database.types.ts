@@ -241,6 +241,7 @@ export interface Database {
           reply_type: "video" | "voice" | "whatsapp" | null;
           submitted_at: string;
           answered_at: string | null;
+          step_ref: string | null;
         };
         Insert: {
           student_id: string;
@@ -251,6 +252,7 @@ export interface Database {
           reply_url?: string | null;
           reply_type?: "video" | "voice" | "whatsapp" | null;
           answered_at?: string | null;
+          step_ref?: string | null;
         };
         Update: {
           title?: string | null;
@@ -260,6 +262,35 @@ export interface Database {
           reply_url?: string | null;
           reply_type?: "video" | "voice" | "whatsapp" | null;
           answered_at?: string | null;
+          step_ref?: string | null;
+        };
+        Relationships: [];
+      };
+      student_videos: {
+        Row: {
+          id: string;
+          student_id: string;
+          video_url: string;
+          label: string;
+          day_number: number | null;
+          kind: "session" | "node" | "reference";
+          debrief_id: string | null;
+          created_at: string;
+        };
+        Insert: {
+          student_id: string;
+          video_url: string;
+          label?: string;
+          day_number?: number | null;
+          kind?: "session" | "node" | "reference";
+          debrief_id?: string | null;
+        };
+        Update: {
+          video_url?: string;
+          label?: string;
+          day_number?: number | null;
+          kind?: "session" | "node" | "reference";
+          debrief_id?: string | null;
         };
         Relationships: [];
       };

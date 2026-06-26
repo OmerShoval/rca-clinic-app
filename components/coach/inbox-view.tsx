@@ -143,12 +143,22 @@ export function InboxView() {
                     {initials}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-2 flex-wrap">
                       <p className="font-display text-[11px] tracking-wide text-ink">{thread.student?.full_name ?? "Unknown"}</p>
                       <span className="font-display text-[9px] tracking-widest px-1.5 py-0.5 rounded flex-shrink-0" style={{ color: sm.color, background: sm.bg }}>
                         {sm.label.toUpperCase()}
                       </span>
+                      {thread.title?.startsWith("I felt it") && (
+                        <span className="font-display text-[9px] tracking-widest px-1.5 py-0.5 rounded flex-shrink-0" style={{ color: "var(--coral)", background: "var(--coral-soft)" }}>
+                          ✦ Patterns
+                        </span>
+                      )}
                     </div>
+                    {thread.title?.startsWith("I felt it") && (
+                      <p className="font-display text-[10px] tracking-wide mt-0.5" style={{ color: "var(--coral)", opacity: 0.85 }}>
+                        {thread.title}
+                      </p>
+                    )}
                     <p className="text-ink-dim text-xs mt-0.5 line-clamp-2">{thread.question_text}</p>
                     <p className="font-display text-[9px] tracking-widest text-ink-faint mt-1">
                       {new Date(thread.submitted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
@@ -171,6 +181,16 @@ export function InboxView() {
                         className="px-4 py-4 flex flex-col gap-4 rounded-b-2xl"
                         style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)", borderTop: "none" }}
                       >
+                        {/* Patterns context pill */}
+                        {thread.title?.startsWith("I felt it") && (
+                          <div className="flex items-center gap-2 px-3 py-2 rounded-xl" style={{ background: "var(--coral-soft)", border: "1px solid rgba(255,107,94,0.2)" }}>
+                            <span style={{ fontSize: 14 }}>✦</span>
+                            <p className="font-display text-[11px] tracking-widest" style={{ color: "var(--coral)" }}>
+                              {thread.title}
+                            </p>
+                          </div>
+                        )}
+
                         {/* Question */}
                         <p className="text-ink-dim text-sm leading-relaxed">{thread.question_text}</p>
 

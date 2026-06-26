@@ -45,10 +45,11 @@ const VIDEO_FIELDS = new Set(["video_url", "video_url_secondary"]);
 interface Props {
   block: DebriefBlock;
   studentSlug: string;
+  studentName: string;
   onChange: (id: string, field: string, value: string) => void;
 }
 
-export function BlockEditor({ block, studentSlug, onChange }: Props) {
+export function BlockEditor({ block, studentSlug, studentName, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const meta = META[block.type];
   const fields = BLOCK_FIELDS[block.type];
@@ -114,6 +115,7 @@ export function BlockEditor({ block, studentSlug, onChange }: Props) {
                       key={field}
                       label={label}
                       studentSlug={studentSlug}
+                      studentName={studentName}
                       value={value}
                       accentColor={meta.color}
                       accentBg={meta.bg}
