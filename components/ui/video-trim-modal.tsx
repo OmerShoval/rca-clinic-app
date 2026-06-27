@@ -160,7 +160,75 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
   const endSec = endPct * duration;
   const trimDuration = endSec - startSec;
   const busy = phase === "loading_engine" || phase === "trimming";
+  const [minimized, setMinimized] = useState(false);
 
+  // ── Minimized floating pill ────────────────────────────────────────────────
+  if (minimized) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 20, scale: 0.95 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        style={{
+          position: "fixed",
+          bottom: 20,
+          right: 20,
+          zIndex: 50,
+          width: 280,
+          borderRadius: 16,
+          background: "rgba(12,20,22,0.96)",
+          border: "1px solid rgba(224,182,79,0.35)",
+          boxShadow: "0 8px 32px rgba(0,0,0,0.6)",
+          padding: "10px 12px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 8,
+        }}
+      >
+        {/* Header row */}
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 13 }}>🎬</span>
+            <div>
+              <p className="font-display text-[9px] tracking-widest text-gold">
+                {phase === "loading_engine" ? "Loading converter…" : phase === "trimming" ? `Trimming… ${progress}%` : "Processing…"}
+              </p>
+              <p className="font-display text-[8px] text-ink-faint truncate" style={{ maxWidth: 160 }}>{file.name}</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setMinimized(false)}
+              className="w-6 h-6 rounded-lg flex items-center justify-center transition-opacity hover:opacity-80"
+              style={{ background: "rgba(255,255,255,0.07)", fontSize: 11, color: "var(--ink-faint)" }}
+              title="Restore"
+            >
+              ↗
+            </button>
+            <button
+              onClick={cancel}
+              className="w-6 h-6 rounded-lg flex items-center justify-center transition-opacity hover:opacity-80"
+              style={{ background: "rgba(255,80,60,0.12)", fontSize: 10, color: "var(--coral)" }}
+              title="Cancel"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+
+        {/* Progress bar */}
+        <div className="w-full h-1 rounded-full overflow-hidden" style={{ background: "rgba(255,255,255,0.08)" }}>
+          <motion.div
+            className="h-full rounded-full"
+            style={{ background: "var(--gold)" }}
+            animate={{ width: phase === "loading_engine" ? "15%" : `${Math.max(progress, 5)}%` }}
+            transition={{ ease: "linear", duration: 0.3 }}
+          />
+        </div>
+      </motion.div>
+    );
+  }
+
+  // ── Full modal ─────────────────────────────────────────────────────────────
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
@@ -287,6 +355,16 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
           >
             {busy ? "Processing…" : "Trim & Compress"}
           </button>
+          {busy && (
+            <button
+              onClick={() => setMinimized(true)}
+              className="rounded-xl px-3 py-2.5 font-display text-[10px] tracking-widest"
+              style={{ border: "1px solid rgba(224,182,79,0.3)", background: "rgba(224,182,79,0.07)", color: "var(--gold)" }}
+              title="Run in background"
+            >
+              − Min
+            </button>
+          )}
           {onSkipTrim && (
             <button
               onClick={() => { cancelRef.current = true; onSkipTrim(file); }}
@@ -294,7 +372,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
               style={{ border: "1px solid rgba(47,214,192,0.3)", background: "rgba(47,214,192,0.07)" }}
               title="Upload the original file without trimming or compressing"
             >
-              {busy ? "Skip Processing" : "Skip"}
+              {busy ? "Skip" : "Skip"}
             </button>
           )}
           <button
