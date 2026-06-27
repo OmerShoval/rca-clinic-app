@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { BlockEditor } from "@/components/coach/block-editor";
+import { MediaAttach } from "@/components/coach/strategy-nodes/shared";
 import { BOOK_PALETTES } from "@/components/student/book";
 import type { DebriefBlock, Debrief } from "@/lib/database.types";
 
@@ -317,45 +318,28 @@ function TagPicker({ debriefId, currentTag, onTagChange }: TagPickerProps) {
 
 // ─── SessionVideoSlot ────────────────────────────────────────────────────────
 
-interface StudentVideoItem {
-  id: string;
-  video_url: string;
-  label: string;
-  day_number: number | null;
-}
-
 function cfThumb(url: string): string | null {
   const m = url.match(/videodelivery\.net\/([a-f0-9]{32,})/);
-  return m ? `https://videodelivery.net/${m[1]}/thumbnails/thumbnail.jpg?time=1s&height=80` : null;
+  return m ? `https://videodelivery.net/${m[1]}/thumbnails/thumbnail.jpg?time=1s&height=160` : null;
 }
 
 function SessionVideoSlot({
   studentId,
+  studentSlug,
+  studentName,
   url,
-  libOpen,
-  onToggleLib,
   onChange,
 }: {
   studentId: string;
+  studentSlug: string;
+  studentName: string;
   url: string;
-  libOpen: boolean;
-  onToggleLib: () => void;
   onChange: (url: string) => void;
 }) {
-  const [videos, setVideos] = useState<StudentVideoItem[]>([]);
-  const [libLoaded, setLibLoaded] = useState(false);
   const thumb = url ? cfThumb(url) : null;
 
-  useEffect(() => {
-    if (!libOpen || libLoaded) return;
-    fetch(`/api/coach/students/${studentId}/videos`)
-      .then((r) => r.json())
-      .then((d: StudentVideoItem[]) => setVideos(Array.isArray(d) ? d : []))
-      .finally(() => setLibLoaded(true));
-  }, [libOpen, libLoaded, studentId]);
-
   return (
-    <div className="rounded-xl p-3 flex flex-col gap-2" style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}>
+    <div className="rounded-xl p-3 flex flex-col gap-2.5" style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}>
       <div className="flex items-center justify-between">
         <label className="flex items-center gap-1.5 font-display text-[9px] tracking-[0.22em] text-ink-faint">
           <span>🎬</span>
@@ -371,83 +355,22 @@ function SessionVideoSlot({
         )}
       </div>
 
-      {/* Thumbnail or input row */}
-      {thumb ? (
-        <div className="flex items-center gap-2">
+      {/* Thumbnail when a video is set */}
+      {thumb && (
+        <div className="rounded-lg overflow-hidden" style={{ border: "1px solid rgba(255,255,255,0.08)" }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={thumb} alt="session" className="w-20 h-12 object-cover rounded-lg flex-shrink-0" />
-          <div className="flex-1 min-w-0">
-            <p className="font-display text-[10px] text-ink truncate">{url}</p>
-            <button onClick={onToggleLib} className="font-display text-[9px] tracking-widest text-gold mt-0.5 hover:opacity-80">
-              Change from library
-            </button>
-          </div>
-        </div>
-      ) : (
-        <div className="flex gap-2">
-          <input
-            type="text"
-            value={url}
-            onChange={(e) => onChange(e.target.value)}
-            placeholder="Paste Cloudflare Stream / video URL…"
-            className="flex-1 min-w-0 rounded-lg px-2.5 py-2 font-display text-[11px] text-ink placeholder:text-ink-faint outline-none"
-            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
-          />
-          <button
-            onClick={onToggleLib}
-            className="flex-shrink-0 rounded-lg px-2.5 py-2 font-display text-[10px] tracking-widest transition-all"
-            style={libOpen
-              ? { background: "rgba(224,182,79,0.15)", color: "var(--gold)", border: "1px solid rgba(224,182,79,0.35)" }
-              : { background: "var(--glass)", color: "var(--ink-faint)", border: "1px solid var(--glass-edge)" }
-            }
-          >
-            Library
-          </button>
+          <img src={thumb} alt="session video" className="w-full object-cover" style={{ maxHeight: 140 }} />
         </div>
       )}
 
-      {/* Library picker */}
-      <AnimatePresence>
-        {libOpen && (
-          <motion.div
-            initial={{ opacity: 0, height: 0 }}
-            animate={{ opacity: 1, height: "auto" }}
-            exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.18 }}
-            style={{ overflow: "hidden" }}
-          >
-            <div className="pt-1">
-              {!libLoaded ? (
-                <div className="flex justify-center py-3">
-                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-4 h-4 rounded-full border-2 border-gold border-t-transparent" />
-                </div>
-              ) : videos.length === 0 ? (
-                <p className="font-display text-[9px] text-ink-faint text-center py-3">No videos yet — upload one to a block first.</p>
-              ) : (
-                <div className="grid gap-1.5 overflow-y-auto" style={{ gridTemplateColumns: "repeat(3, 1fr)", maxHeight: 160 }}>
-                  {videos.map((v) => {
-                    const t = cfThumb(v.video_url);
-                    return (
-                      <button
-                        key={v.id}
-                        onClick={() => onChange(v.video_url)}
-                        className="rounded-lg overflow-hidden transition-opacity hover:opacity-80 text-left"
-                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
-                      >
-                        {t
-                          ? <img src={t} alt={v.label} className="w-full h-10 object-cover block" /> // eslint-disable-line @next/next/no-img-element
-                          : <div className="w-full h-10 flex items-center justify-center text-base">🎬</div>
-                        }
-                        <p className="font-display text-[7px] tracking-wide text-ink px-1 py-0.5 truncate">{v.label || "Video"}</p>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      {/* MediaAttach — same drag-drop / upload / paste / library as nodes */}
+      <MediaAttach
+        url={url}
+        onUrlChange={onChange}
+        studentId={studentId}
+        studentSlug={studentSlug}
+        studentName={studentName}
+      />
     </div>
   );
 }
@@ -468,7 +391,6 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
   const [coverOpen, setCoverOpen] = useState(false);
   // Session video
   const [sessionVideoUrl, setSessionVideoUrl] = useState<string>(debrief.session_video_url ?? "");
-  const [sessionVideoLibOpen, setSessionVideoLibOpen] = useState(false);
   // Session summary
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryWentWell, setSummaryWentWell] = useState(debrief.summary_went_well ?? "");
@@ -609,7 +531,6 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
   // ── Session video ────────────────────────────────────────────────────────────
   function handleSessionVideoChange(url: string) {
     setSessionVideoUrl(url);
-    setSessionVideoLibOpen(false);
     if (!url.trim()) {
       fetch(`/api/coach/debriefs/${debrief.id}`, {
         method: "PATCH",
@@ -757,9 +678,9 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
       {/* ── Session Video ── */}
       <SessionVideoSlot
         studentId={student.id}
+        studentSlug={student.slug}
+        studentName={student.full_name}
         url={sessionVideoUrl}
-        libOpen={sessionVideoLibOpen}
-        onToggleLib={() => setSessionVideoLibOpen((o) => !o)}
         onChange={handleSessionVideoChange}
       />
 
