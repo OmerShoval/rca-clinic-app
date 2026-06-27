@@ -31,7 +31,7 @@ export default async function DebriefDetailPage({ params }: Props) {
 
   const { data: debrief } = await db
     .from("debriefs")
-    .select("id, wave_label, day_number, published_at, status, student_id")
+    .select("id, wave_label, day_number, published_at, status, student_id, session_video_url, summary_went_well, summary_learned, summary_coach_view, summary_felt, summary_grateful")
     .eq("id", debriefId)
     .eq("student_id", student.id)
     .eq("status", "published")
@@ -66,6 +66,12 @@ export default async function DebriefDetailPage({ params }: Props) {
         wave_label: debrief.wave_label,
         day_number: debrief.day_number,
         published_at: debrief.published_at,
+        session_video_url: debrief.session_video_url ?? null,
+        summary_went_well: debrief.summary_went_well ?? null,
+        summary_learned: debrief.summary_learned ?? null,
+        summary_coach_view: debrief.summary_coach_view ?? null,
+        summary_felt: debrief.summary_felt ?? null,
+        summary_grateful: debrief.summary_grateful ?? null,
       }}
       blocks={rawBlocks ?? []}
       paletteIndex={paletteIndex}

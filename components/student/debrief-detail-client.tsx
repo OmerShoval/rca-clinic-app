@@ -39,6 +39,12 @@ interface DebriefMeta {
   wave_label: string;
   day_number: number | null;
   published_at: string | null;
+  session_video_url: string | null;
+  summary_went_well: string | null;
+  summary_learned: string | null;
+  summary_coach_view: string | null;
+  summary_felt: string | null;
+  summary_grateful: string | null;
 }
 
 interface Props {
@@ -364,6 +370,114 @@ function NotesSection({ debriefId, accent, rgb }: { debriefId: string; accent: s
   );
 }
 
+// ─── SessionVideoCard ────────────────────────────────────────────────────────
+
+function SessionVideoCard({ url, accent }: { url: string; accent: string }) {
+  const [playing, setPlaying] = useState(false);
+  const cfMatch = url.match(/videodelivery\.net\/([a-f0-9]{32,})/);
+  const cfUid = cfMatch ? cfMatch[1] : null;
+  const thumb = cfUid ? `https://videodelivery.net/${cfUid}/thumbnails/thumbnail.jpg?time=1s&height=300` : null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.18, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      className="mx-5 mt-4 rounded-2xl overflow-hidden"
+      style={{ border: `1px solid ${accent}30` }}
+    >
+      <div className="px-4 pt-3 pb-2 flex items-center gap-2" style={{ background: `rgba(${accent.replace(/[^,\d]/g, "").slice(0,20)}, 0.06)` }}>
+        <span style={{ fontSize: 14 }}>🎬</span>
+        <span className="font-display" style={{ fontSize: 9, letterSpacing: "0.3em", color: accent }}>SESSION VIDEO</span>
+      </div>
+      {playing && cfUid ? (
+        <div className="relative" style={{ paddingTop: "56.25%" }}>
+          <iframe
+            src={`https://iframe.videodelivery.net/${cfUid}`}
+            allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+            allowFullScreen
+            className="absolute inset-0 w-full h-full"
+            style={{ border: "none" }}
+          />
+        </div>
+      ) : thumb ? (
+        <button
+          onClick={() => setPlaying(true)}
+          className="relative w-full block transition-opacity active:opacity-75"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thumb} alt="session video" className="w-full object-cover" style={{ maxHeight: 220 }} />
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.25)" }}>
+            <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: `${accent}cc`, backdropFilter: "blur(6px)" }}>
+              <span style={{ fontSize: 22, marginLeft: 3 }}>▶</span>
+            </div>
+          </div>
+        </button>
+      ) : (
+        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-3 transition-opacity hover:opacity-70"
+          style={{ background: "rgba(255,255,255,0.03)" }}>
+          <span style={{ fontSize: 18 }}>🔗</span>
+          <span className="font-display text-ink text-xs truncate">{url}</span>
+        </a>
+      )}
+    </motion.div>
+  );
+}
+
+// ─── SessionSummaryCard ───────────────────────────────────────────────────────
+
+function SessionSummaryCard({
+  wentWell,
+  learned,
+  coachView,
+  felt,
+  grateful,
+  accent,
+}: {
+  wentWell: string | null;
+  learned: string | null;
+  coachView: string | null;
+  felt: string | null;
+  grateful: string | null;
+  accent: string;
+}) {
+  const fields = [
+    { icon: "✅", label: "What went well",   value: wentWell },
+    { icon: "💡", label: "What I learned",    value: learned },
+    { icon: "👁",  label: "Coach's read",      value: coachView },
+    { icon: "🌊", label: "What I felt",       value: felt },
+    { icon: "🙏", label: "Grateful for",      value: grateful },
+  ].filter((f) => f.value);
+
+  if (fields.length === 0) return null;
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 14 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ delay: 0.24, duration: 0.42, ease: [0.22, 1, 0.36, 1] }}
+      className="mx-5 mt-4 rounded-2xl overflow-hidden"
+      style={{ border: `1px solid ${accent}25`, background: "rgba(255,255,255,0.025)" }}
+    >
+      <div className="px-4 pt-3 pb-2 flex items-center gap-2" style={{ borderBottom: `1px solid ${accent}18` }}>
+        <span style={{ fontSize: 14 }}>📋</span>
+        <span className="font-display" style={{ fontSize: 9, letterSpacing: "0.3em", color: accent }}>SESSION SUMMARY</span>
+      </div>
+      <div className="flex flex-col divide-y" style={{ borderColor: "rgba(255,255,255,0.05)" }}>
+        {fields.map(({ icon, label, value }) => (
+          <div key={label} className="px-4 py-3 flex gap-3 items-start">
+            <span style={{ fontSize: 16, flexShrink: 0, lineHeight: 1.5 }}>{icon}</span>
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="font-display" style={{ fontSize: 8, letterSpacing: "0.22em", color: `${accent}99` }}>{label.toUpperCase()}</span>
+              <p style={{ fontSize: 14, color: "rgba(241,238,230,0.88)", lineHeight: 1.55 }}>{value}</p>
+            </div>
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+}
+
 // ─── DebriefDetailClient ──────────────────────────────────────────────────────
 
 export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Props) {
@@ -482,6 +596,21 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
           style={{ height: 48, background: "linear-gradient(to bottom, transparent, var(--abyss))" }}
         />
       </header>
+
+      {/* ══ SESSION VIDEO ════════════════════════════════════════════════════ */}
+      {debrief.session_video_url && (
+        <SessionVideoCard url={debrief.session_video_url} accent={pal.accent} />
+      )}
+
+      {/* ══ SESSION SUMMARY ══════════════════════════════════════════════════ */}
+      <SessionSummaryCard
+        wentWell={debrief.summary_went_well}
+        learned={debrief.summary_learned}
+        coachView={debrief.summary_coach_view}
+        felt={debrief.summary_felt}
+        grateful={debrief.summary_grateful}
+        accent={pal.accent}
+      />
 
       {/* ══ CHAPTER PILLS ════════════════════════════════════════════════════ */}
       {presentTypes.length > 0 && (

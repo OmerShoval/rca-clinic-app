@@ -1,5 +1,13 @@
 import type { StrategyData, StrategyNode } from "@/components/student/strategy-view";
 
+export interface PatternSubStep {
+  id: string;
+  label: string;
+  done: boolean;
+  doneAt?: string;
+  videoUrl?: string;
+}
+
 export interface PatternStep {
   id: string;
   title: string;
@@ -7,6 +15,7 @@ export interface PatternStep {
   videoUrl: string | null;
   status: "done" | "active" | "locked";
   number: number;
+  substeps: PatternSubStep[];
 }
 
 export interface PatternPath {
@@ -48,6 +57,7 @@ export function buildPaths(strategy: StrategyData | null): PatternPath[] {
         } else {
           status = "locked";
         }
+        const rawSubsteps = (s.data as { substeps?: PatternSubStep[] }).substeps ?? [];
         return {
           id: s.id,
           title: s.data.label ?? "",
@@ -55,6 +65,7 @@ export function buildPaths(strategy: StrategyData | null): PatternPath[] {
           videoUrl: s.data.url ?? null,
           status,
           number: s.data.number ?? i + 1,
+          substeps: rawSubsteps,
         };
       });
 

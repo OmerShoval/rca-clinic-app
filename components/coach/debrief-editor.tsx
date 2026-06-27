@@ -315,6 +315,143 @@ function TagPicker({ debriefId, currentTag, onTagChange }: TagPickerProps) {
   );
 }
 
+// ─── SessionVideoSlot ────────────────────────────────────────────────────────
+
+interface StudentVideoItem {
+  id: string;
+  video_url: string;
+  label: string;
+  day_number: number | null;
+}
+
+function cfThumb(url: string): string | null {
+  const m = url.match(/videodelivery\.net\/([a-f0-9]{32,})/);
+  return m ? `https://videodelivery.net/${m[1]}/thumbnails/thumbnail.jpg?time=1s&height=80` : null;
+}
+
+function SessionVideoSlot({
+  studentId,
+  url,
+  libOpen,
+  onToggleLib,
+  onChange,
+}: {
+  studentId: string;
+  url: string;
+  libOpen: boolean;
+  onToggleLib: () => void;
+  onChange: (url: string) => void;
+}) {
+  const [videos, setVideos] = useState<StudentVideoItem[]>([]);
+  const [libLoaded, setLibLoaded] = useState(false);
+  const thumb = url ? cfThumb(url) : null;
+
+  useEffect(() => {
+    if (!libOpen || libLoaded) return;
+    fetch(`/api/coach/students/${studentId}/videos`)
+      .then((r) => r.json())
+      .then((d: StudentVideoItem[]) => setVideos(Array.isArray(d) ? d : []))
+      .finally(() => setLibLoaded(true));
+  }, [libOpen, libLoaded, studentId]);
+
+  return (
+    <div className="rounded-xl p-3 flex flex-col gap-2" style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}>
+      <div className="flex items-center justify-between">
+        <label className="flex items-center gap-1.5 font-display text-[9px] tracking-[0.22em] text-ink-faint">
+          <span>🎬</span>
+          TODAY&apos;S SESSION VIDEO
+        </label>
+        {url && (
+          <button
+            onClick={() => onChange("")}
+            className="font-display text-[8px] tracking-widest text-coral hover:opacity-70 transition-opacity"
+          >
+            ✕ Remove
+          </button>
+        )}
+      </div>
+
+      {/* Thumbnail or input row */}
+      {thumb ? (
+        <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={thumb} alt="session" className="w-20 h-12 object-cover rounded-lg flex-shrink-0" />
+          <div className="flex-1 min-w-0">
+            <p className="font-display text-[10px] text-ink truncate">{url}</p>
+            <button onClick={onToggleLib} className="font-display text-[9px] tracking-widest text-gold mt-0.5 hover:opacity-80">
+              Change from library
+            </button>
+          </div>
+        </div>
+      ) : (
+        <div className="flex gap-2">
+          <input
+            type="text"
+            value={url}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="Paste Cloudflare Stream / video URL…"
+            className="flex-1 min-w-0 rounded-lg px-2.5 py-2 font-display text-[11px] text-ink placeholder:text-ink-faint outline-none"
+            style={{ background: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.1)" }}
+          />
+          <button
+            onClick={onToggleLib}
+            className="flex-shrink-0 rounded-lg px-2.5 py-2 font-display text-[10px] tracking-widest transition-all"
+            style={libOpen
+              ? { background: "rgba(224,182,79,0.15)", color: "var(--gold)", border: "1px solid rgba(224,182,79,0.35)" }
+              : { background: "var(--glass)", color: "var(--ink-faint)", border: "1px solid var(--glass-edge)" }
+            }
+          >
+            Library
+          </button>
+        </div>
+      )}
+
+      {/* Library picker */}
+      <AnimatePresence>
+        {libOpen && (
+          <motion.div
+            initial={{ opacity: 0, height: 0 }}
+            animate={{ opacity: 1, height: "auto" }}
+            exit={{ opacity: 0, height: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{ overflow: "hidden" }}
+          >
+            <div className="pt-1">
+              {!libLoaded ? (
+                <div className="flex justify-center py-3">
+                  <motion.div animate={{ rotate: 360 }} transition={{ duration: 1, repeat: Infinity, ease: "linear" }} className="w-4 h-4 rounded-full border-2 border-gold border-t-transparent" />
+                </div>
+              ) : videos.length === 0 ? (
+                <p className="font-display text-[9px] text-ink-faint text-center py-3">No videos yet — upload one to a block first.</p>
+              ) : (
+                <div className="grid gap-1.5 overflow-y-auto" style={{ gridTemplateColumns: "repeat(3, 1fr)", maxHeight: 160 }}>
+                  {videos.map((v) => {
+                    const t = cfThumb(v.video_url);
+                    return (
+                      <button
+                        key={v.id}
+                        onClick={() => onChange(v.video_url)}
+                        className="rounded-lg overflow-hidden transition-opacity hover:opacity-80 text-left"
+                        style={{ background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)" }}
+                      >
+                        {t
+                          ? <img src={t} alt={v.label} className="w-full h-10 object-cover block" /> // eslint-disable-line @next/next/no-img-element
+                          : <div className="w-full h-10 flex items-center justify-center text-base">🎬</div>
+                        }
+                        <p className="font-display text-[7px] tracking-wide text-ink px-1 py-0.5 truncate">{v.label || "Video"}</p>
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    </div>
+  );
+}
+
 // ─── DebriefEditor ───────────────────────────────────────────────────────────
 
 export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) {
@@ -329,9 +466,20 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
   const [coverImageUrl, setCoverImageUrl] = useState<string | null>(debrief.cover_image_url ?? null);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [coverOpen, setCoverOpen] = useState(false);
+  // Session video
+  const [sessionVideoUrl, setSessionVideoUrl] = useState<string>(debrief.session_video_url ?? "");
+  const [sessionVideoLibOpen, setSessionVideoLibOpen] = useState(false);
+  // Session summary
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [summaryWentWell, setSummaryWentWell] = useState(debrief.summary_went_well ?? "");
+  const [summaryLearned, setSummaryLearned] = useState(debrief.summary_learned ?? "");
+  const [summaryCoachView, setSummaryCoachView] = useState(debrief.summary_coach_view ?? "");
+  const [summaryFelt, setSummaryFelt] = useState(debrief.summary_felt ?? "");
+  const [summaryGrateful, setSummaryGrateful] = useState(debrief.summary_grateful ?? "");
 
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const labelTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const summaryTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({});
   const blocksRef = useRef<DebriefBlock[]>([]);
 
   useEffect(() => {
@@ -340,7 +488,19 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
     setTag(debrief.tag ?? null);
     setColorIndex(debrief.cover_color_index ?? null);
     setCoverImageUrl(debrief.cover_image_url ?? null);
-  }, [debrief.id, debrief.wave_label, debrief.status, debrief.tag, debrief.cover_color_index, debrief.cover_image_url]);
+    setSessionVideoUrl(debrief.session_video_url ?? "");
+    setSummaryWentWell(debrief.summary_went_well ?? "");
+    setSummaryLearned(debrief.summary_learned ?? "");
+    setSummaryCoachView(debrief.summary_coach_view ?? "");
+    setSummaryFelt(debrief.summary_felt ?? "");
+    setSummaryGrateful(debrief.summary_grateful ?? "");
+  }, [
+    debrief.id, debrief.wave_label, debrief.status, debrief.tag,
+    debrief.cover_color_index, debrief.cover_image_url,
+    debrief.session_video_url,
+    debrief.summary_went_well, debrief.summary_learned,
+    debrief.summary_coach_view, debrief.summary_felt, debrief.summary_grateful,
+  ]);
 
   useEffect(() => {
     setLoading(true);
@@ -444,6 +604,46 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
   async function handleDelete() {
     await fetch(`/api/coach/debriefs/${debrief.id}`, { method: "DELETE" });
     onDelete(debrief.id);
+  }
+
+  // ── Session video ────────────────────────────────────────────────────────────
+  function handleSessionVideoChange(url: string) {
+    setSessionVideoUrl(url);
+    setSessionVideoLibOpen(false);
+    if (!url.trim()) {
+      fetch(`/api/coach/debriefs/${debrief.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ session_video_url: null }),
+      }).catch(() => {});
+      return;
+    }
+    fetch(`/api/coach/debriefs/${debrief.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ session_video_url: url }),
+    }).catch(() => {});
+    // Also register in the student video library
+    const dayNum = debrief.day_number;
+    const label = dayNum != null ? `Day ${dayNum} — ${debrief.wave_label || "Session"}` : (debrief.wave_label || "Session");
+    fetch(`/api/coach/students/${student.id}/videos`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ video_url: url, label, day_number: dayNum ?? null, kind: "session", debrief_id: debrief.id }),
+    }).catch(() => {});
+  }
+
+  // ── Session summary ──────────────────────────────────────────────────────────
+  function saveSummaryField(field: string, value: string) {
+    const key = `summary_${field}`;
+    if (summaryTimers.current[key]) clearTimeout(summaryTimers.current[key]);
+    summaryTimers.current[key] = setTimeout(() => {
+      fetch(`/api/coach/debriefs/${debrief.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ [key]: value || null }),
+      }).catch(() => {});
+    }, 600);
   }
 
   return (
@@ -553,6 +753,74 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* ── Session Video ── */}
+      <SessionVideoSlot
+        studentId={student.id}
+        url={sessionVideoUrl}
+        libOpen={sessionVideoLibOpen}
+        onToggleLib={() => setSessionVideoLibOpen((o) => !o)}
+        onChange={handleSessionVideoChange}
+      />
+
+      {/* ── Session Summary ── */}
+      <div className="rounded-xl overflow-hidden" style={{ border: "1px solid var(--glass-edge)" }}>
+        <button
+          onClick={() => setSummaryOpen((o) => !o)}
+          className="w-full flex items-center justify-between px-3 py-2.5 transition-colors hover:bg-white/[0.02]"
+          style={{ background: "var(--glass)" }}
+        >
+          <div className="flex items-center gap-2">
+            <span style={{ fontSize: 13 }}>📋</span>
+            <span className="font-display text-[10px] tracking-[0.2em] text-ink-faint">SESSION SUMMARY</span>
+            {(summaryWentWell || summaryLearned || summaryCoachView || summaryFelt || summaryGrateful) && (
+              <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: "var(--teal)" }} />
+            )}
+          </div>
+          <span className="font-display text-[9px] text-ink-faint" style={{ transform: summaryOpen ? "rotate(180deg)" : "none", transition: "transform 0.2s", display: "inline-block" }}>▾</span>
+        </button>
+        <AnimatePresence>
+          {summaryOpen && (
+            <motion.div
+              initial={{ height: 0, opacity: 0 }}
+              animate={{ height: "auto", opacity: 1 }}
+              exit={{ height: 0, opacity: 0 }}
+              transition={{ duration: 0.2 }}
+              style={{ overflow: "hidden" }}
+            >
+              <div className="px-3 py-3 flex flex-col gap-3" style={{ borderTop: "1px solid var(--glass-edge)" }}>
+                {(
+                  [
+                    { key: "went_well",   icon: "✅", label: "What went well",        value: summaryWentWell,   set: setSummaryWentWell },
+                    { key: "learned",     icon: "💡", label: "What I learned",         value: summaryLearned,    set: setSummaryLearned },
+                    { key: "coach_view",  icon: "👁",  label: "Coach's read",           value: summaryCoachView,  set: setSummaryCoachView },
+                    { key: "felt",        icon: "🌊", label: "What I felt",            value: summaryFelt,       set: setSummaryFelt },
+                    { key: "grateful",    icon: "🙏", label: "Grateful for",           value: summaryGrateful,   set: setSummaryGrateful },
+                  ] as const
+                ).map(({ key, icon, label, value, set }) => (
+                  <div key={key}>
+                    <label className="flex items-center gap-1.5 font-display text-[9px] tracking-[0.2em] text-ink-faint mb-1">
+                      <span>{icon}</span>
+                      {label.toUpperCase()}
+                    </label>
+                    <textarea
+                      value={value}
+                      onChange={(e) => {
+                        set(e.target.value);
+                        saveSummaryField(key, e.target.value);
+                      }}
+                      placeholder={`${label}…`}
+                      rows={2}
+                      className="w-full bg-transparent font-display text-[11px] text-ink rounded-lg px-2.5 py-2 outline-none resize-none"
+                      style={{ border: "1px solid rgba(255,255,255,0.08)" }}
+                    />
+                  </div>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* ── Blocks ── */}
       {loading ? (

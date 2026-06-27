@@ -237,6 +237,7 @@ function StrategyCanvas({ studentId, studentSlug, studentName }: StrategyCanvasP
       onWhyChange: (why: string) => updateNodeData(n.id, { why }),
       onWhyVisibleChange: (whyVisible: boolean) => updateNodeData(n.id, { whyVisible }),
       onDoneChange: (done: boolean) => updateNodeData(n.id, { done, doneAt: done ? new Date().toISOString() : undefined }),
+      onSubstepsChange: (substeps: unknown[]) => updateNodeData(n.id, { substeps }),
       // Add Step from Goal
       ...(n.type === "goal" ? {
         onAddStep: () => {

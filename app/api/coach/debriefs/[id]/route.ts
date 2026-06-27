@@ -11,7 +11,11 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { wave_label, day_number, status, tag, cover_color_index, cover_image_url } = body;
+  const {
+    wave_label, day_number, status, tag, cover_color_index, cover_image_url,
+    session_video_url,
+    summary_went_well, summary_learned, summary_coach_view, summary_felt, summary_grateful,
+  } = body;
 
   const db = createServerClient();
 
@@ -23,6 +27,12 @@ export async function PATCH(
     tag?: string | null;
     cover_color_index?: number | null;
     cover_image_url?: string | null;
+    session_video_url?: string | null;
+    summary_went_well?: string | null;
+    summary_learned?: string | null;
+    summary_coach_view?: string | null;
+    summary_felt?: string | null;
+    summary_grateful?: string | null;
   };
 
   const update: DebriefUpdate = {};
@@ -35,6 +45,12 @@ export async function PATCH(
   if (tag !== undefined) update.tag = tag;
   if (cover_color_index !== undefined) update.cover_color_index = cover_color_index;
   if (cover_image_url !== undefined) update.cover_image_url = cover_image_url;
+  if (session_video_url !== undefined) update.session_video_url = session_video_url;
+  if (summary_went_well !== undefined) update.summary_went_well = summary_went_well;
+  if (summary_learned !== undefined) update.summary_learned = summary_learned;
+  if (summary_coach_view !== undefined) update.summary_coach_view = summary_coach_view;
+  if (summary_felt !== undefined) update.summary_felt = summary_felt;
+  if (summary_grateful !== undefined) update.summary_grateful = summary_grateful;
 
   const { data, error } = await db
     .from("debriefs")

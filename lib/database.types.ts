@@ -99,6 +99,12 @@ export interface Database {
           tag: string | null;
           cover_color_index: number | null;
           cover_image_url: string | null;
+          session_video_url: string | null;
+          summary_went_well: string | null;
+          summary_learned: string | null;
+          summary_coach_view: string | null;
+          summary_felt: string | null;
+          summary_grateful: string | null;
         };
         Insert: {
           student_id: string;
@@ -109,6 +115,12 @@ export interface Database {
           tag?: string | null;
           cover_color_index?: number | null;
           cover_image_url?: string | null;
+          session_video_url?: string | null;
+          summary_went_well?: string | null;
+          summary_learned?: string | null;
+          summary_coach_view?: string | null;
+          summary_felt?: string | null;
+          summary_grateful?: string | null;
         };
         Update: {
           wave_label?: string;
@@ -118,6 +130,12 @@ export interface Database {
           tag?: string | null;
           cover_color_index?: number | null;
           cover_image_url?: string | null;
+          session_video_url?: string | null;
+          summary_went_well?: string | null;
+          summary_learned?: string | null;
+          summary_coach_view?: string | null;
+          summary_felt?: string | null;
+          summary_grateful?: string | null;
         };
         Relationships: [];
       };

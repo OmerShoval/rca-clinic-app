@@ -5,6 +5,14 @@ import { createPortal } from "react-dom";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
 import { useUploadManagerSafe } from "@/lib/upload-manager";
 
+export interface SubStep {
+  id: string;
+  label: string;
+  done: boolean;
+  doneAt?: string;
+  videoUrl?: string;
+}
+
 export interface NodeData {
   label: string;
   number?: number;
@@ -16,6 +24,8 @@ export interface NodeData {
   // Step completion
   done?: boolean;
   doneAt?: string;
+  // Sub-steps
+  substeps?: SubStep[];
   // Student context for library browser + clip uploads
   studentId?: string;
   studentSlug?: string;
@@ -31,6 +41,7 @@ export interface NodeData {
   onWhyVisibleChange?: (v: boolean) => void;
   onDoneChange?: (done: boolean) => void;
   onAddStep?: () => void;
+  onSubstepsChange?: (substeps: SubStep[]) => void;
 }
 
 export function EditableLabel({

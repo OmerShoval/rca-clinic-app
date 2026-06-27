@@ -4,7 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { VideoSlot } from "@/components/ui/video-slot";
-import type { PatternPath, PatternStep } from "@/lib/patterns";
+import type { PatternPath, PatternStep, PatternSubStep } from "@/lib/patterns";
 import { uploadStudentClip } from "@/lib/upload-client";
 
 // ── Trail geometry helpers ───────────────────────────────────────────────────
@@ -170,10 +170,12 @@ function StepSheet({
   step,
   onClose,
   onFeltIt,
+  onOpenSubStep,
 }: {
   step: PatternStep | null;
   onClose: () => void;
   onFeltIt: () => void;
+  onOpenSubStep: (ss: PatternSubStep) => void;
 }) {
   const isOpen = !!step;
 
@@ -277,6 +279,76 @@ function StepSheet({
                 )}
               </div>
 
+              {/* ── Sub-steps ── */}
+              {step.substeps.length > 0 && (
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="font-display tracking-widest" style={{ fontSize: 10, color: "rgba(224,182,79,0.7)", textTransform: "uppercase" }}>
+                      Sub-steps · {step.substeps.filter(s => s.done).length}/{step.substeps.length}
+                    </p>
+                  </div>
+                  {/* Mini progress */}
+                  <div className="h-1 rounded-full overflow-hidden mb-3" style={{ background: "rgba(255,255,255,0.07)" }}>
+                    <motion.div
+                      className="h-full rounded-full"
+                      style={{ background: "rgba(224,182,79,0.7)" }}
+                      initial={{ width: 0 }}
+                      animate={{ width: `${step.substeps.length > 0 ? Math.round((step.substeps.filter(s => s.done).length / step.substeps.length) * 100) : 0}%` }}
+                      transition={{ duration: 0.5, ease: "easeOut" }}
+                    />
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    {step.substeps.map((ss) => {
+                      const cfMatch = ss.videoUrl?.match(/videodelivery\.net\/([a-f0-9]{32,})/);
+                      const thumb = cfMatch ? `https://videodelivery.net/${cfMatch[1]}/thumbnails/thumbnail.jpg?time=1s&height=60` : null;
+                      return (
+                        <motion.button
+                          key={ss.id}
+                          onClick={() => onOpenSubStep(ss)}
+                          whileTap={{ scale: 0.97 }}
+                          className="w-full flex items-center gap-3 text-left rounded-2xl px-3 py-2.5 transition-opacity active:opacity-70"
+                          style={{
+                            background: ss.done ? "rgba(20,60,30,0.5)" : "rgba(255,255,255,0.04)",
+                            border: `1px solid ${ss.done ? "rgba(80,200,100,0.3)" : "rgba(255,255,255,0.09)"}`,
+                          }}
+                        >
+                          {/* Done badge */}
+                          <div
+                            className="flex-shrink-0 w-6 h-6 rounded-full flex items-center justify-center"
+                            style={{
+                              background: ss.done ? "rgba(80,200,100,0.85)" : "rgba(255,255,255,0.08)",
+                              border: ss.done ? "none" : "1.5px solid rgba(255,255,255,0.2)",
+                            }}
+                          >
+                            {ss.done && <span style={{ fontSize: 10, color: "#fff" }}>✓</span>}
+                          </div>
+                          {/* Label */}
+                          <p
+                            className="flex-1 font-semibold leading-tight"
+                            style={{
+                              fontSize: 14,
+                              color: ss.done ? "rgba(241,238,230,0.55)" : "var(--ink)",
+                              textDecoration: ss.done ? "line-through" : "none",
+                            }}
+                          >
+                            {ss.label || "Sub-step"}
+                          </p>
+                          {/* Thumbnail */}
+                          {thumb && (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img src={thumb} alt="" className="flex-shrink-0 rounded-lg object-cover" style={{ width: 44, height: 30 }} />
+                          )}
+                          {/* Chevron */}
+                          {ss.videoUrl && (
+                            <span style={{ fontSize: 12, color: "var(--ink-faint)", flexShrink: 0 }}>›</span>
+                          )}
+                        </motion.button>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
               {/* Actions */}
               <div className="flex gap-3">
                 <button
@@ -305,6 +377,181 @@ function StepSheet({
                     I Felt It ✦
                   </button>
                 )}
+              </div>
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ── Sub-step immersive popup ──────────────────────────────────────────────────
+
+function SubStepSheet({
+  substep,
+  stepTitle,
+  onClose,
+}: {
+  substep: PatternSubStep | null;
+  stepTitle: string;
+  onClose: () => void;
+}) {
+  const [playing, setPlaying] = useState(false);
+  const isOpen = !!substep;
+
+  const cfMatch = substep?.videoUrl?.match(/videodelivery\.net\/([a-f0-9]{32,})/);
+  const cfUid = cfMatch ? cfMatch[1] : null;
+  const thumb = cfUid ? `https://videodelivery.net/${cfUid}/thumbnails/thumbnail.jpg?time=1s&height=400` : null;
+
+  // Reset player when substep changes
+  useEffect(() => { setPlaying(false); }, [substep?.id]);
+
+  return (
+    <AnimatePresence>
+      {isOpen && substep && (
+        <>
+          {/* Full-screen scrim */}
+          <motion.div
+            key="ss-scrim"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.25 }}
+            onClick={onClose}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 60,
+              background: "rgba(2,6,8,.92)",
+              backdropFilter: "blur(14px)",
+              WebkitBackdropFilter: "blur(14px)",
+            }}
+          />
+
+          {/* Card — scale + fade in from centre */}
+          <motion.div
+            key="ss-card"
+            initial={{ opacity: 0, scale: 0.88, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            exit={{ opacity: 0, scale: 0.92, y: 12 }}
+            transition={{ duration: 0.32, ease: [0.22, 1, 0.36, 1] }}
+            style={{
+              position: "fixed",
+              inset: 0,
+              zIndex: 61,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              padding: "24px 16px",
+              pointerEvents: "none",
+            }}
+          >
+            <div
+              className="flex flex-col w-full overflow-hidden"
+              style={{
+                maxWidth: 400,
+                maxHeight: "90vh",
+                borderRadius: 28,
+                background: "linear-gradient(175deg, rgba(18,28,30,0.98) 0%, rgba(6,12,14,0.98) 100%)",
+                border: "1px solid rgba(224,182,79,0.25)",
+                boxShadow: "0 32px 80px rgba(0,0,0,.7), 0 0 0 1px rgba(224,182,79,0.08)",
+                pointerEvents: "auto",
+                overflow: "hidden",
+              }}
+            >
+              {/* Video area */}
+              <div className="relative flex-shrink-0" style={{ aspectRatio: "16/9", background: "#000" }}>
+                {playing && cfUid ? (
+                  <iframe
+                    src={`https://iframe.videodelivery.net/${cfUid}?autoplay=true`}
+                    allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
+                    allowFullScreen
+                    className="absolute inset-0 w-full h-full"
+                    style={{ border: "none" }}
+                  />
+                ) : thumb ? (
+                  <button
+                    onClick={() => setPlaying(true)}
+                    className="absolute inset-0 w-full h-full transition-opacity active:opacity-80"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={thumb} alt={substep.label} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)" }}>
+                      <motion.div
+                        whileHover={{ scale: 1.08 }}
+                        className="w-16 h-16 rounded-full flex items-center justify-center"
+                        style={{
+                          background: "rgba(224,182,79,0.9)",
+                          boxShadow: "0 0 32px rgba(224,182,79,0.5)",
+                        }}
+                      >
+                        <span style={{ fontSize: 26, marginLeft: 4 }}>▶</span>
+                      </motion.div>
+                    </div>
+                  </button>
+                ) : (
+                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{ background: "rgba(255,255,255,0.03)" }}>
+                    <span style={{ fontSize: 36 }}>🎬</span>
+                    <p className="font-display text-ink-faint" style={{ fontSize: 11, letterSpacing: "0.2em" }}>VIDEO COMING SOON</p>
+                  </div>
+                )}
+
+                {/* Close button over video */}
+                <button
+                  onClick={onClose}
+                  className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
+                  style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: 14 }}
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Info */}
+              <div className="px-5 py-4 flex flex-col gap-3 overflow-y-auto">
+                {/* Breadcrumb */}
+                <p className="font-display" style={{ fontSize: 9, letterSpacing: "0.28em", color: "rgba(224,182,79,0.55)", textTransform: "uppercase" }}>
+                  {stepTitle} · Sub-step
+                </p>
+
+                {/* Title + done badge */}
+                <div className="flex items-start gap-3">
+                  <div
+                    className="flex-shrink-0 w-7 h-7 rounded-full flex items-center justify-center mt-0.5"
+                    style={{
+                      background: substep.done ? "rgba(80,200,100,0.85)" : "rgba(255,255,255,0.08)",
+                      border: substep.done ? "none" : "1.5px solid rgba(255,255,255,0.2)",
+                    }}
+                  >
+                    {substep.done && <span style={{ fontSize: 12, color: "#fff" }}>✓</span>}
+                  </div>
+                  <h2
+                    className="font-display text-ink leading-snug flex-1"
+                    style={{ fontSize: 26 }}
+                  >
+                    {substep.label || "Sub-step"}
+                  </h2>
+                </div>
+
+                {substep.done && substep.doneAt && (
+                  <p className="font-display" style={{ fontSize: 9, letterSpacing: "0.2em", color: "rgba(80,200,100,0.7)", textTransform: "uppercase" }}>
+                    ✓ Done {new Date(substep.doneAt).toLocaleDateString("en-GB", { day: "numeric", month: "long" })}
+                  </p>
+                )}
+
+                {/* Close */}
+                <button
+                  onClick={onClose}
+                  className="w-full py-3.5 rounded-2xl font-display tracking-widest transition-opacity active:opacity-70 mt-1"
+                  style={{
+                    fontSize: 13,
+                    background: "rgba(255,255,255,.045)",
+                    border: "1px solid rgba(255,255,255,.08)",
+                    color: "var(--ink)",
+                  }}
+                >
+                  Back to step
+                </button>
               </div>
             </div>
           </motion.div>
@@ -689,6 +936,7 @@ interface PatternTrailProps {
 
 export function PatternTrail({ slug, path }: PatternTrailProps) {
   const [activeStep, setActiveStep] = useState<PatternStep | null>(null);
+  const [activeSubStep, setActiveSubStep] = useState<PatternSubStep | null>(null);
   const [feltItOpen, setFeltItOpen] = useState(false);
   const reduce = useReducedMotion();
 
@@ -862,9 +1110,13 @@ export function PatternTrail({ slug, path }: PatternTrailProps) {
       <StepSheet
         step={activeStep}
         onClose={() => setActiveStep(null)}
-        onFeltIt={() => {
-          setFeltItOpen(true);
-        }}
+        onFeltIt={() => setFeltItOpen(true)}
+        onOpenSubStep={(ss) => setActiveSubStep(ss)}
+      />
+      <SubStepSheet
+        substep={activeSubStep}
+        stepTitle={activeStep?.title ?? ""}
+        onClose={() => setActiveSubStep(null)}
       />
       <FeltItSheet
         open={feltItOpen}
