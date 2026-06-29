@@ -16,6 +16,11 @@ interface Props {
   accentBg?: string;
   accentBorder?: string;
   onChange: (url: string) => void;
+  /** When provided, the upload manager auto-saves to student_videos on success. */
+  studentId?: string;
+  debriefId?: string | null;
+  debriefLabel?: string;
+  debriefDayNum?: number | null;
 }
 
 type Tab = "upload" | "paste";
@@ -57,6 +62,10 @@ export function VideoUploader({
   accentBg = "var(--teal-soft)",
   accentBorder = "rgba(47,214,192,0.3)",
   onChange,
+  studentId,
+  debriefId,
+  debriefLabel,
+  debriefDayNum,
 }: Props) {
   const uploadManager = useUploadManager();
 
@@ -137,6 +146,9 @@ export function VideoUploader({
       studentSlug,
       studentName,
       kind: "video",
+      persistVideo: studentId
+        ? { studentId, debriefId, label: debriefLabel, dayNum: debriefDayNum, videoKind: "session" }
+        : undefined,
       onComplete(url) {
         URL.revokeObjectURL(capturedPreviewUrl);
         setPreviewUrl(null);

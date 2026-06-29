@@ -400,9 +400,9 @@ export function MediaAttach({
         studentSlug: studentSlug!,
         studentName: studentName!,
         kind: "node",
+        persistVideo: studentId ? { studentId, label: "Node clip", videoKind: "node" } : undefined,
         onComplete(resultUrl) {
           onUrlChange?.(resultUrl);
-          saveNodeClip(resultUrl);
           setActiveClipId(null);
         },
         onError() { setActiveClipId(null); },
@@ -433,9 +433,9 @@ export function MediaAttach({
         studentSlug: studentSlug!,
         studentName: studentName!,
         kind: "node",
+        persistVideo: studentId ? { studentId, label: "Node clip", videoKind: "node" } : undefined,
         onComplete(resultUrl) {
           onUrlChange?.(resultUrl);
-          saveNodeClip(resultUrl);
           setActiveClipId(null);
         },
         onError() { setActiveClipId(null); },
@@ -454,15 +454,6 @@ export function MediaAttach({
         setUploading(false);
       }
     }
-  }
-
-  function saveNodeClip(videoUrl: string) {
-    if (!studentId) return;
-    fetch(`/api/coach/students/${studentId}/videos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ video_url: videoUrl, label: "Node clip", kind: "node" }),
-    }).catch(() => {});
   }
 
   async function handleLibraryClip(video: StudentVideo) {

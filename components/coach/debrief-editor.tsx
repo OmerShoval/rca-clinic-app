@@ -32,9 +32,10 @@ interface CoverCustomizerProps {
   imageUrl: string | null;
   onColorChange: (idx: number) => void;
   onImageChange: (url: string | null) => void;
+  onError: (msg: string) => void;
 }
 
-function CoverCustomizer({ debriefId, studentSlug, colorIndex, imageUrl, onColorChange, onImageChange }: CoverCustomizerProps) {
+function CoverCustomizer({ debriefId, studentSlug, colorIndex, imageUrl, onColorChange, onImageChange, onError }: CoverCustomizerProps) {
   const [uploading, setUploading] = useState(false);
   const fileRef = useRef<HTMLInputElement>(null);
 
@@ -47,16 +48,30 @@ function CoverCustomizer({ debriefId, studentSlug, colorIndex, imageUrl, onColor
       fd.append("file", file);
       fd.append("studentSlug", studentSlug);
       fd.append("kind", "cover");
-      const res = await fetch("/api/coach/upload", { method: "POST", body: fd });
-      const json = await res.json();
+      const uploadRes = await fetch("/api/coach/upload", { method: "POST", body: fd });
+      if (!uploadRes.ok) {
+        const err = await uploadRes.json().catch(() => ({ error: `HTTP ${uploadRes.status}` }));
+        console.error("[cover] upload failed", uploadRes.status, err);
+        onError((err as { error?: string }).error ?? `Cover upload failed (${uploadRes.status})`);
+        return;
+      }
+      const json = await uploadRes.json() as { url?: string };
       if (json.url) {
         onImageChange(json.url);
-        await fetch(`/api/coach/debriefs/${debriefId}`, {
+        const patchRes = await fetch(`/api/coach/debriefs/${debriefId}`, {
           method: "PATCH",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ cover_image_url: json.url }),
         });
+        if (!patchRes.ok) {
+          const err = await patchRes.json().catch(() => ({ error: `HTTP ${patchRes.status}` }));
+          console.error("[cover] debrief PATCH failed", patchRes.status, err);
+          onError((err as { error?: string }).error ?? `Cover save failed (${patchRes.status})`);
+        }
       }
+    } catch (e) {
+      console.error("[cover] unexpected error", e);
+      onError("Unexpected error during cover upload");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -391,6 +406,7 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
   const [coverOpen, setCoverOpen] = useState(false);
   // Session video
   const [sessionVideoUrl, setSessionVideoUrl] = useState<string>(debrief.session_video_url ?? "");
+  const [videoSaveError, setVideoSaveError] = useState<string | null>(null);
   // Session summary
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [summaryWentWell, setSummaryWentWell] = useState(debrief.summary_went_well ?? "");
@@ -454,6 +470,35 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
     }, 1200);
   }, [debrief.id]);
 
+  function showVideoError(msg: string) {
+    setVideoSaveError(msg);
+    setTimeout(() => setVideoSaveError(null), 6000);
+  }
+
+  async function saveToVideoLibrary(videoUrl: string, label: string, dayNum: number | null) {
+    try {
+      const res = await fetch(`/api/coach/students/${student.id}/videos`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          video_url: videoUrl,
+          label,
+          day_number: dayNum,
+          kind: "session",
+          debrief_id: debrief.id,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        console.error("[video-library] save failed", res.status, err);
+        showVideoError((err as { error?: string }).error ?? `Video library save failed (${res.status})`);
+      }
+    } catch (e) {
+      console.error("[video-library] network error", e);
+      showVideoError("Network error — video not saved to library");
+    }
+  }
+
   function handleBlockChange(blockId: string, field: string, value: string) {
     const next = blocks.map((b) =>
       b.id === blockId ? { ...b, [field]: value } : b
@@ -462,21 +507,12 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
     blocksRef.current = next;
     scheduleBlockSave();
 
-    // Auto-save video URLs to the student's video library (fire-and-forget)
-    if ((field === "video_url" || field === "video_url_secondary") && value?.startsWith("http")) {
+    // CF-Stream uploads are saved atomically by the upload manager; only save paste/external URLs here
+    const isCFStreamOrSupabase = /videodelivery\.net\/|supabase\.co\/storage/.test(value ?? "");
+    if ((field === "video_url" || field === "video_url_secondary") && value?.startsWith("http") && !isCFStreamOrSupabase) {
       const dayNum = debrief.day_number;
       const label = dayNum != null ? `Day ${dayNum} — ${debrief.wave_label || "Session"}` : (debrief.wave_label || "Session");
-      fetch(`/api/coach/students/${student.id}/videos`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          video_url: value,
-          label,
-          day_number: dayNum ?? null,
-          kind: "session",
-          debrief_id: debrief.id,
-        }),
-      }).catch(() => {});
+      saveToVideoLibrary(value, label, dayNum ?? null);
     }
   }
 
@@ -529,29 +565,28 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
   }
 
   // ── Session video ────────────────────────────────────────────────────────────
-  function handleSessionVideoChange(url: string) {
+  async function handleSessionVideoChange(url: string) {
     setSessionVideoUrl(url);
-    if (!url.trim()) {
-      fetch(`/api/coach/debriefs/${debrief.id}`, {
+    try {
+      const res = await fetch(`/api/coach/debriefs/${debrief.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ session_video_url: null }),
-      }).catch(() => {});
-      return;
+        body: JSON.stringify({ session_video_url: url || null }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+        console.error("[session-video] debrief PATCH failed", res.status, err);
+        showVideoError((err as { error?: string }).error ?? `Session video save failed (${res.status})`);
+      }
+    } catch (e) {
+      console.error("[session-video] network error", e);
+      showVideoError("Network error — session video not saved");
     }
-    fetch(`/api/coach/debriefs/${debrief.id}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ session_video_url: url }),
-    }).catch(() => {});
-    // Also register in the student video library
-    const dayNum = debrief.day_number;
-    const label = dayNum != null ? `Day ${dayNum} — ${debrief.wave_label || "Session"}` : (debrief.wave_label || "Session");
-    fetch(`/api/coach/students/${student.id}/videos`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ video_url: url, label, day_number: dayNum ?? null, kind: "session", debrief_id: debrief.id }),
-    }).catch(() => {});
+    if (url) {
+      const dayNum = debrief.day_number;
+      const label = dayNum != null ? `Day ${dayNum} — ${debrief.wave_label || "Session"}` : (debrief.wave_label || "Session");
+      await saveToVideoLibrary(url, label, dayNum ?? null);
+    }
   }
 
   // ── Session summary ──────────────────────────────────────────────────────────
@@ -575,6 +610,21 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
       transition={{ duration: 0.25 }}
       className="flex flex-col gap-4"
     >
+      {/* Video save error banner */}
+      <AnimatePresence>
+        {videoSaveError && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0 }}
+            className="rounded-xl px-3 py-2 font-display text-[10px] tracking-wide text-coral"
+            style={{ background: "rgba(255,107,94,0.12)", border: "1px solid rgba(255,107,94,0.3)" }}
+          >
+            ⚠ {videoSaveError}
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* ── Row 1: Wave label + day + status ── */}
       <div className="flex items-center gap-3">
         <input
@@ -670,6 +720,7 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
               imageUrl={coverImageUrl}
               onColorChange={setColorIndex}
               onImageChange={setCoverImageUrl}
+              onError={showVideoError}
             />
           </motion.div>
         )}
@@ -755,7 +806,17 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
       ) : (
         <div className="flex flex-col gap-2">
           {blocks.map((block) => (
-            <BlockEditor key={block.id} block={block} studentSlug={student.slug} studentName={student.full_name} onChange={handleBlockChange} />
+            <BlockEditor
+              key={block.id}
+              block={block}
+              studentSlug={student.slug}
+              studentName={student.full_name}
+              studentId={student.id}
+              debriefId={debrief.id}
+              debriefLabel={debrief.day_number != null ? `Day ${debrief.day_number} — ${debrief.wave_label || "Session"}` : (debrief.wave_label || "Session")}
+              debriefDayNum={debrief.day_number ?? null}
+              onChange={handleBlockChange}
+            />
           ))}
         </div>
       )}

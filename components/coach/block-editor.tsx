@@ -46,10 +46,14 @@ interface Props {
   block: DebriefBlock;
   studentSlug: string;
   studentName: string;
+  studentId?: string;
+  debriefId?: string;
+  debriefLabel?: string;
+  debriefDayNum?: number | null;
   onChange: (id: string, field: string, value: string) => void;
 }
 
-export function BlockEditor({ block, studentSlug, studentName, onChange }: Props) {
+export function BlockEditor({ block, studentSlug, studentName, studentId, debriefId, debriefLabel, debriefDayNum, onChange }: Props) {
   const [open, setOpen] = useState(false);
   const meta = META[block.type];
   const fields = BLOCK_FIELDS[block.type];
@@ -116,6 +120,10 @@ export function BlockEditor({ block, studentSlug, studentName, onChange }: Props
                       label={label}
                       studentSlug={studentSlug}
                       studentName={studentName}
+                      studentId={studentId}
+                      debriefId={debriefId}
+                      debriefLabel={debriefLabel}
+                      debriefDayNum={debriefDayNum}
                       value={value}
                       accentColor={meta.color}
                       accentBg={meta.bg}

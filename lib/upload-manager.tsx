@@ -14,11 +14,21 @@ export interface UploadItem {
   error?: string;
 }
 
+export interface PersistVideoParams {
+  studentId: string;
+  debriefId?: string | null;
+  label?: string;
+  dayNum?: number | null;
+  videoKind?: "session" | "node" | "reference";
+}
+
 export interface EnqueueParams {
   file: File;
   studentSlug: string;
   studentName: string;
   kind: "audio" | "video" | "cover" | "node";
+  /** When set, the manager POSTs to student_videos on upload success — no caller code needed. */
+  persistVideo?: PersistVideoParams;
   onComplete?: (url: string) => void;
   onError?: (message: string) => void;
 }
@@ -108,6 +118,34 @@ export function UploadManagerProvider({ children }: { children: React.ReactNode 
             ),
           );
           params.onComplete?.(resultUrl);
+
+          // Atomic: persist the student_videos row so callers never forget
+          if (params.persistVideo) {
+            const { studentId, debriefId, label, dayNum, videoKind } = params.persistVideo;
+            fetch(`/api/coach/students/${studentId}/videos`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                video_url: resultUrl,
+                label: label ?? "",
+                day_number: dayNum ?? null,
+                kind: videoKind ?? "session",
+                debrief_id: debriefId ?? null,
+              }),
+            })
+              .then(async (res) => {
+                if (!res.ok) {
+                  const body = await res.json().catch(() => ({ error: `HTTP ${res.status}` }));
+                  console.error("[upload-manager] student_videos save failed", res.status, body);
+                  params.onError?.(
+                    `Upload succeeded but library save failed (${res.status}): ${(body as { error?: string }).error ?? "unknown"}`
+                  );
+                }
+              })
+              .catch((e: Error) => {
+                console.error("[upload-manager] student_videos network error", e);
+              });
+          }
         },
         onError(err: tus.DetailedError | Error) {
           abortors.current.delete(id);
