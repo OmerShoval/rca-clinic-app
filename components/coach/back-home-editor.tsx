@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "motion/react";
 import { VoiceRecorder } from "@/components/coach/voice-recorder";
+import { VideoUploader } from "@/components/coach/video-uploader";
 import type { Translation } from "@/lib/database.types";
 
 type Environment = "israel_ocean" | "wave_pool";
@@ -16,18 +17,19 @@ const FIELDS = [
   { key: "whats_different", label: "What's Different Here", placeholder: "How does this environment differ from what they know?", multiline: true },
   { key: "try_first", label: "Try First", placeholder: "The #1 thing to attempt on first waves…", multiline: true },
   { key: "on_wave_reminder", label: "On-Wave Reminder", placeholder: "One cue to remember mid-ride…", multiline: false },
-  { key: "video_url", label: "Reference Video URL", placeholder: "YouTube / Vimeo / Drive link…", multiline: false },
 ];
 
 interface Props {
   studentId: string;
   studentSlug: string;
   environment: Environment;
+  /** Cosmetic — used only for the upload-queue label. Falls back to the slug. */
+  studentName?: string;
 }
 
 type SaveStatus = "idle" | "saving" | "saved" | "error";
 
-export function BackHomeEditor({ studentId, studentSlug, environment }: Props) {
+export function BackHomeEditor({ studentId, studentSlug, environment, studentName }: Props) {
   const [data, setData] = useState<Partial<Translation>>({});
   const [loading, setLoading] = useState(true);
   const [saveStatus, setSaveStatus] = useState<SaveStatus>("idle");
@@ -156,6 +158,25 @@ export function BackHomeEditor({ studentId, studentSlug, environment }: Props) {
           )}
         </div>
       ))}
+
+      {/* Reference video — upload / paste / pick from library */}
+      <div>
+        <label className="font-display text-[9px] tracking-[0.2em] text-ink-faint block mb-1.5">Reference Video</label>
+        <VideoUploader
+          label="Reference Video"
+          studentSlug={studentSlug}
+          studentName={studentName ?? studentSlug}
+          studentId={studentId}
+          value={(data as Record<string, string>).video_url ?? ""}
+          accentColor={meta.color}
+          accentBg={meta.bg}
+          accentBorder={meta.border}
+          sourceType="back_home"
+          sourceId={(data as Partial<Translation>).id ?? environment}
+          tags={[meta.label]}
+          onChange={(url) => handleChange("video_url", url)}
+        />
+      </div>
 
       {/* Voice note */}
       <div

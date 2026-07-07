@@ -373,11 +373,8 @@ function NotesSection({ debriefId, accent, rgb }: { debriefId: string; accent: s
 // ─── SessionVideoCard ────────────────────────────────────────────────────────
 
 function SessionVideoCard({ url, accent }: { url: string; accent: string }) {
-  const [playing, setPlaying] = useState(false);
-  const cfMatch = url.match(/videodelivery\.net\/([a-f0-9]{32,})/);
-  const cfUid = cfMatch ? cfMatch[1] : null;
-  const thumb = cfUid ? `https://videodelivery.net/${cfUid}/thumbnails/thumbnail.jpg?time=1s&height=300` : null;
-
+  // One consistent playback path for every provider (Cloudflare Stream, a
+  // Supabase-hosted .mp4, a raw .m3u8, YouTube/Vimeo, …) via <VideoSlot>.
   return (
     <motion.div
       initial={{ opacity: 0, y: 14 }}
@@ -386,40 +383,13 @@ function SessionVideoCard({ url, accent }: { url: string; accent: string }) {
       className="mx-5 mt-4 rounded-2xl overflow-hidden"
       style={{ border: `1px solid ${accent}30` }}
     >
-      <div className="px-4 pt-3 pb-2 flex items-center gap-2" style={{ background: `rgba(${accent.replace(/[^,\d]/g, "").slice(0,20)}, 0.06)` }}>
+      <div className="px-4 pt-3 pb-2 flex items-center gap-2" style={{ background: `${accent}0f` /* 8-digit hex alpha ≈ 0.06 */ }}>
         <span style={{ fontSize: 14 }}>🎬</span>
         <span className="font-display" style={{ fontSize: 9, letterSpacing: "0.3em", color: accent }}>SESSION VIDEO</span>
       </div>
-      {playing && cfUid ? (
-        <div className="relative" style={{ paddingTop: "56.25%" }}>
-          <iframe
-            src={`https://iframe.videodelivery.net/${cfUid}`}
-            allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
-            allowFullScreen
-            className="absolute inset-0 w-full h-full"
-            style={{ border: "none" }}
-          />
-        </div>
-      ) : thumb ? (
-        <button
-          onClick={() => setPlaying(true)}
-          className="relative w-full block transition-opacity active:opacity-75"
-        >
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={thumb} alt="session video" className="w-full object-cover" style={{ maxHeight: 220 }} />
-          <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.25)" }}>
-            <div className="w-14 h-14 rounded-full flex items-center justify-center" style={{ background: `${accent}cc`, backdropFilter: "blur(6px)" }}>
-              <span style={{ fontSize: 22, marginLeft: 3 }}>▶</span>
-            </div>
-          </div>
-        </button>
-      ) : (
-        <a href={url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 px-4 py-3 transition-opacity hover:opacity-70"
-          style={{ background: "rgba(255,255,255,0.03)" }}>
-          <span style={{ fontSize: 18 }}>🔗</span>
-          <span className="font-display text-ink text-xs truncate">{url}</span>
-        </a>
-      )}
+      <div className="p-3">
+        <VideoSlot url={url} label="Session video" />
+      </div>
     </motion.div>
   );
 }
@@ -498,7 +468,7 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
   const totalEntries = filledBlocks.length;
 
   return (
-    <div className="flex flex-col pb-20">
+    <div className="flex flex-col pb-nav">
 
       {/* ══ BOOK HEADER ══════════════════════════════════════════════════════ */}
       <header className="relative overflow-hidden" style={{ minHeight: 236 }}>
@@ -523,7 +493,7 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
         >
           <Link
             href={`/s/${slug}`}
-            className="flex items-center gap-1.5 transition-opacity active:opacity-55"
+            className="flex items-center gap-1.5 py-3 px-2 -m-2 transition-opacity active:opacity-55"
             style={{ color: pal.accent }}
           >
             <span style={{ fontSize: 19, lineHeight: 1 }}>{isRTL ? "→" : "←"}</span>
@@ -552,7 +522,7 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
         )}
 
         {/* Wave label + date */}
-        <div className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-12 pl-7">
+        <div className="absolute bottom-0 left-0 right-0 px-5 pb-8 pt-12 ps-7">
           {debrief.day_number != null && (
             <motion.p
               className="font-display"
@@ -627,7 +597,7 @@ export function DebriefDetailClient({ slug, debrief, blocks, paletteIndex }: Pro
               return (
                 <a key={type} href={`#section-${type}`} className="flex-shrink-0">
                   <span
-                    className="font-display flex items-center gap-1.5 px-3 py-1.5 rounded-full"
+                    className="font-display flex items-center gap-1.5 px-3 py-2.5 rounded-full"
                     style={{
                       fontSize: 8,
                       letterSpacing: "0.18em",

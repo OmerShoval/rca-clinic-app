@@ -117,7 +117,7 @@ function CoverCustomizer({ debriefId, studentSlug, colorIndex, imageUrl, onColor
             />
             <button
               onClick={handleRemoveImage}
-              className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center font-display text-[8px]"
+              className="absolute -top-1 -right-1 w-4 h-4 rounded-full flex items-center justify-center font-display text-[8px] after:absolute after:-inset-3"
               style={{ background: "rgba(255,80,80,0.85)", color: "#fff" }}
               aria-label="Remove photo"
             >
@@ -344,12 +344,16 @@ function SessionVideoSlot({
   studentName,
   url,
   onChange,
+  debriefId,
+  sessionLabel,
 }: {
   studentId: string;
   studentSlug: string;
   studentName: string;
   url: string;
   onChange: (url: string) => void;
+  debriefId: string;
+  sessionLabel?: string;
 }) {
   const thumb = url ? cfThumb(url) : null;
 
@@ -385,6 +389,9 @@ function SessionVideoSlot({
         studentId={studentId}
         studentSlug={studentSlug}
         studentName={studentName}
+        sourceType="session"
+        sourceId={debriefId}
+        label={sessionLabel}
       />
     </div>
   );
@@ -626,7 +633,7 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
       </AnimatePresence>
 
       {/* ── Row 1: Wave label + day + status ── */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-3 flex-wrap">
         <input
           type="text"
           inputMode="numeric"
@@ -643,7 +650,7 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
           value={waveLabel}
           onChange={(e) => handleLabelChange(e.target.value)}
           placeholder="Wave label…"
-          className="flex-1 min-w-0 rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none font-display tracking-wide"
+          className="flex-1 min-w-[160px] rounded-xl px-3 py-2.5 text-sm text-ink placeholder:text-ink-faint outline-none font-display tracking-wide"
           style={{ background: "var(--glass)", border: "1px solid var(--glass-edge)" }}
           onFocus={(e) => (e.currentTarget.style.borderColor = "rgba(224,182,79,0.5)")}
           onBlur={(e) => (e.currentTarget.style.borderColor = "var(--glass-edge)")}
@@ -733,6 +740,8 @@ export function DebriefEditor({ debrief, student, onUpdated, onDelete }: Props) 
         studentName={student.full_name}
         url={sessionVideoUrl}
         onChange={handleSessionVideoChange}
+        debriefId={debrief.id}
+        sessionLabel={debrief.day_number != null ? `Day ${debrief.day_number} — ${debrief.wave_label || "Session"}` : (debrief.wave_label || "Session")}
       />
 
       {/* ── Session Summary ── */}

@@ -104,7 +104,7 @@ export function VoiceRecorder({ studentSlug, initialUrl, onSave }: Props) {
           <audio src={savedUrl} controls className="flex-1 h-8 min-w-0" style={{ filter: "invert(1) hue-rotate(180deg)" }} />
           <button
             onClick={() => setSavedUrl(null)}
-            className="font-display text-[10px] tracking-widest text-coral hover:opacity-70 flex-shrink-0"
+            className="font-display text-[10px] tracking-widest text-coral hover:opacity-70 flex-shrink-0 min-h-11 px-1"
           >
             Replace
           </button>
@@ -122,7 +122,7 @@ export function VoiceRecorder({ studentSlug, initialUrl, onSave }: Props) {
                 animate={{ scale: 1, opacity: 1 }}
                 exit={{ scale: 0.8, opacity: 0 }}
                 onClick={stopRecording}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 font-display text-[11px] tracking-widest text-coral"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 min-h-11 font-display text-[11px] tracking-widest text-coral"
                 style={{ background: "var(--coral-soft)", border: "1px solid rgba(255,107,94,0.3)" }}
               >
                 <motion.div
@@ -140,7 +140,7 @@ export function VoiceRecorder({ studentSlug, initialUrl, onSave }: Props) {
                 exit={{ scale: 0.8, opacity: 0 }}
                 onClick={startRecording}
                 disabled={uploading}
-                className="flex items-center gap-2 rounded-xl px-4 py-2.5 font-display text-[11px] tracking-widest text-teal"
+                className="flex items-center gap-2 rounded-xl px-4 py-2.5 min-h-11 font-display text-[11px] tracking-widest text-teal"
                 style={{ background: "var(--teal-soft)", border: "1px solid rgba(47,214,192,0.3)" }}
               >
                 <div className="w-2 h-2 rounded-full bg-teal" />
@@ -166,7 +166,7 @@ export function VoiceRecorder({ studentSlug, initialUrl, onSave }: Props) {
               <button
                 onClick={uploadRecording}
                 disabled={uploading}
-                className="flex-1 rounded-lg py-2 font-display text-[11px] tracking-widest text-gold transition-opacity disabled:opacity-50"
+                className="flex-1 rounded-lg py-2 min-h-11 font-display text-[11px] tracking-widest text-gold transition-opacity disabled:opacity-50"
                 style={{ background: "var(--gold-soft)", border: "1px solid rgba(224,182,79,0.3)" }}
               >
                 {uploading ? "Uploading…" : "Save Note"}
@@ -174,7 +174,7 @@ export function VoiceRecorder({ studentSlug, initialUrl, onSave }: Props) {
               <button
                 onClick={discardRecording}
                 disabled={uploading}
-                className="rounded-lg px-3 py-2 font-display text-[11px] tracking-widest text-ink-faint"
+                className="rounded-lg px-3 py-2 min-h-11 font-display text-[11px] tracking-widest text-ink-faint"
                 style={{ border: "1px solid var(--glass-edge)" }}
               >
                 Discard

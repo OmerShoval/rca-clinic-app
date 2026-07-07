@@ -33,7 +33,7 @@ export function StrategyToolbar({ onAdd, saving, canUndo, canRedo, onUndo, onRed
       <button
         onClick={onUndo}
         disabled={!canUndo}
-        className="px-3 py-2 rounded-full font-display text-[13px] tracking-widest transition-all"
+        className="px-3 py-2 min-h-11 rounded-full font-display text-[13px] tracking-widest transition-all"
         style={{
           background: "var(--depth)",
           border: "1px solid var(--glass-edge)",
@@ -49,7 +49,7 @@ export function StrategyToolbar({ onAdd, saving, canUndo, canRedo, onUndo, onRed
       <button
         onClick={onRedo}
         disabled={!canRedo}
-        className="px-3 py-2 rounded-full font-display text-[13px] tracking-widest transition-all"
+        className="px-3 py-2 min-h-11 rounded-full font-display text-[13px] tracking-widest transition-all"
         style={{
           background: "var(--depth)",
           border: "1px solid var(--glass-edge)",
@@ -65,7 +65,7 @@ export function StrategyToolbar({ onAdd, saving, canUndo, canRedo, onUndo, onRed
       <div className="relative">
         <button
           onClick={() => setOpen((v) => !v)}
-          className="flex items-center gap-2 px-4 py-2 rounded-full font-display text-[11px] tracking-widest text-abyss transition-all"
+          className="flex items-center gap-2 px-4 py-2 min-h-11 rounded-full font-display text-[11px] tracking-widest text-abyss transition-all"
           style={{ background: "var(--gold)", boxShadow: "0 2px 12px rgba(224,182,79,0.35)" }}
         >
           + Add Node
@@ -98,7 +98,7 @@ export function StrategyToolbar({ onAdd, saving, canUndo, canRedo, onUndo, onRed
       {/* Fit view */}
       <button
         onClick={() => fitView({ padding: 0.2, duration: 400 })}
-        className="px-3 py-2 rounded-full font-display text-[10px] tracking-widest text-ink-faint transition-all hover:text-ink"
+        className="px-3 py-2 min-h-11 rounded-full font-display text-[10px] tracking-widest text-ink-faint transition-all hover:text-ink"
         style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}
         title="Fit view"
       >

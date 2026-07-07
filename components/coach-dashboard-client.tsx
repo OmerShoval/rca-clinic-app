@@ -129,7 +129,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
   const ungrouped = students.filter((s) => !clinics.some((c) => c.id === s.clinic_id));
 
   return (
-    <div className="flex h-screen overflow-hidden bg-abyss">
+    <div dir="ltr" className="flex h-dvh overflow-hidden bg-abyss">
       {/* Radial glow */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
@@ -164,6 +164,13 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
               Inbox
             </button>
             <a
+              href="/coach/library"
+              className="px-3 py-2 rounded-xl font-display text-[10px] tracking-widest text-ink-faint hover:text-teal transition-colors"
+              style={{ border: "1px solid var(--glass-edge)" }}
+            >
+              🎬
+            </a>
+            <a
               href="/"
               className="px-3 py-2 rounded-xl font-display text-[10px] tracking-widest text-ink-faint hover:text-teal transition-colors"
               style={{ border: "1px solid var(--glass-edge)" }}
@@ -183,7 +190,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
         </div>
 
         {/* Roster */}
-        <div className="flex-1 overflow-y-auto px-3 py-3">
+        <div className="flex-1 overflow-y-auto px-3 py-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))]">
           {byClinic.map(({ clinic, students: gs }) => (
             <div key={clinic.id} className="mb-4">
               <p className="font-display text-[10px] tracking-[0.25em] text-gold px-1 mb-2">
@@ -237,7 +244,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
         <AnimatePresence mode="wait">
           {/* Inbox */}
           {view === "inbox" && (
-            <motion.div key="inbox" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6">
+            <motion.div key="inbox" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <button onClick={() => setView("student")} className="md:hidden flex items-center gap-2 font-display text-[11px] tracking-widest text-ink-faint mb-5">
                 ← Roster
               </button>
@@ -247,7 +254,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
 
           {/* Add Student */}
           {view === "addStudent" && (
-            <motion.div key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6">
+            <motion.div key="add" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               {/* Mobile back */}
               <button onClick={() => { setView("student"); }} className="md:hidden flex items-center gap-2 font-display text-[11px] tracking-widest text-ink-faint mb-5">
                 ← Roster
@@ -258,7 +265,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
 
           {/* Edit Student */}
           {view === "editStudent" && editingStudent && (
-            <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6">
+            <motion.div key="edit" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} className="flex-1 overflow-y-auto px-5 py-6 pb-[calc(1.5rem+env(safe-area-inset-bottom))]">
               <button onClick={() => { setView("student"); setEditingStudent(null); }} className="md:hidden flex items-center gap-2 font-display text-[11px] tracking-widest text-ink-faint mb-5">
                 ← Back
               </button>
@@ -355,7 +362,7 @@ export function CoachDashboardClient({ students: initialStudents, clinics: initi
               </div>
 
               {/* Tab content */}
-              <div className="flex-1 overflow-y-auto px-5 py-5">
+              <div className="flex-1 overflow-y-auto px-5 py-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
                 {activeTab === "waves" && (
                   <WavesTab
                     student={selectedStudent}
@@ -437,7 +444,7 @@ function RosterRow({
           {student.focus_skill ?? "—"}
         </p>
       </div>
-      <div className="flex items-center gap-1.5 flex-shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+      <div className="flex items-center gap-1.5 flex-shrink-0 opacity-100 md:opacity-0 md:group-hover:opacity-100 transition-opacity">
         <button
           type="button"
           onClick={(e) => { e.stopPropagation(); onEdit(); }}

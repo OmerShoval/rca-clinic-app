@@ -30,7 +30,7 @@ export default function CoachLogin() {
   }
 
   return (
-    <div className="min-h-screen bg-abyss flex flex-col items-center justify-center px-6">
+    <div className="min-h-dvh bg-abyss flex flex-col items-center justify-center px-6">
       <div
         className="pointer-events-none fixed inset-0"
         style={{

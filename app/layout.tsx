@@ -26,12 +26,23 @@ export const metadata: Metadata = {
   title: "Ocean Athlete",
   description: "Your personal coaching space.",
   manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "black-translucent",
+    title: "Ocean Athlete",
+  },
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  // Keep maximumScale: 1 — on iOS Safari it is ignored for accessibility pinch-zoom
+  // (since iOS 10) but still suppresses the jarring auto-zoom when focusing sub-16px
+  // inputs, of which the coach forms have many.
   maximumScale: 1,
+  // Required so env(safe-area-inset-*) resolves to real values under the Dynamic
+  // Island / home indicator instead of 0.
+  viewportFit: "cover",
   themeColor: "#070f15",
 };
 

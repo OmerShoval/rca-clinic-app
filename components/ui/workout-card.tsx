@@ -45,16 +45,16 @@ export const WorkoutCard = React.forwardRef<HTMLDivElement, WorkoutCardProps>(
       >
         {date && (
           <div className="text-center mb-1">
-            <p className="font-display text-[9px] tracking-[0.25em] text-ink-faint uppercase">{date}</p>
+            <p className="font-display text-[10px] tracking-[0.25em] text-ink-faint uppercase">{date}</p>
           </div>
         )}
-        <p className="font-display text-[8px] tracking-[0.3em] text-teal text-center mb-1">{wodTitle}</p>
+        <p className="font-display text-[10px] tracking-[0.3em] text-teal text-center mb-1">{wodTitle}</p>
 
         <div className="w-full rounded-2xl p-4" style={{ background: "rgba(0,0,0,0.25)" }}>
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display text-ink leading-none" style={{ fontSize: 16 }}>{sessionTitle}</h3>
+            <h3 className="font-display text-ink leading-none min-w-0 break-words" style={{ fontSize: 16 }}>{sessionTitle}</h3>
             <div
-              className="flex items-center gap-1.5 rounded-full px-3 py-1 font-display text-[9px] tracking-[0.12em] text-ink-faint"
+              className="flex flex-shrink-0 items-center gap-1.5 rounded-full px-3 py-1 font-display text-[10px] tracking-[0.12em] text-ink-faint"
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}
             >
               <svg xmlns="http://www.w3.org/2000/svg" width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">

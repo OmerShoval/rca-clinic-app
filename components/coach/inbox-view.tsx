@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoSlot } from "@/components/ui/video-slot";
+import { VideoUploader } from "@/components/coach/video-uploader";
 import type { Thread } from "@/lib/database.types";
 
 interface EnrichedThread extends Thread {
@@ -216,7 +217,7 @@ export function InboxView() {
                         {thread.status !== "answered" ? (
                           <div className="flex flex-col gap-3 pt-1" style={{ borderTop: "1px solid var(--glass-edge)" }}>
                             <p className="font-display text-[10px] tracking-widest text-ink-faint">Reply via</p>
-                            <div className="flex gap-2">
+                            <div className="flex gap-2 flex-wrap">
                               {(["video", "voice", "whatsapp"] as ReplyType[]).map((type) => {
                                 const icons = { video: "🎥 Video", voice: "🎙 Voice", whatsapp: "💬 WhatsApp" };
                                 return (
@@ -224,7 +225,7 @@ export function InboxView() {
                                     key={type}
                                     type="button"
                                     onClick={() => setReplyType(type)}
-                                    className="flex-1 py-2 rounded-xl font-display text-[10px] tracking-widest transition-all"
+                                    className="flex-1 py-2 min-h-11 rounded-xl font-display text-[10px] tracking-widest transition-all"
                                     style={replyType === type
                                       ? { background: "var(--gold-soft)", color: "var(--gold)", border: "1px solid rgba(224,182,79,0.3)" }
                                       : { background: "transparent", color: "var(--ink-faint)", border: "1px solid var(--glass-edge)" }
@@ -236,7 +237,22 @@ export function InboxView() {
                               })}
                             </div>
 
-                            {replyType !== "whatsapp" && (
+                            {/* Video reply — upload / paste / pick from library */}
+                            {replyType === "video" && thread.student && (
+                              <VideoUploader
+                                label="Reply Clip"
+                                studentSlug={thread.student.slug}
+                                studentName={thread.student.full_name}
+                                studentId={thread.student.id}
+                                value={replyUrl}
+                                sourceType="reply"
+                                sourceId={thread.id}
+                                onChange={setReplyUrl}
+                              />
+                            )}
+
+                            {/* Voice reply, or video reply when the student record is missing */}
+                            {(replyType === "voice" || (replyType === "video" && !thread.student)) && (
                               <input
                                 type="url"
                                 value={replyUrl}

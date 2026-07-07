@@ -97,6 +97,11 @@ export function HabitHeatmap({
     <motion.div
       onHoverStart={() => setHovered(true)}
       onHoverEnd={() => { setHovered(false); setTooltip(null); }}
+      onTap={(event) => {
+        // Tap outside a cell dismisses the tooltip (touch devices have no hover)
+        const target = event.target as HTMLElement | null;
+        if (!target?.closest?.("[data-heatmap-cell]")) setTooltip(null);
+      }}
       className={cn("relative flex flex-col gap-3 rounded-2xl p-4", className)}
       style={{ background: "rgba(255,255,255,0.03)", border: "1px solid rgba(255,255,255,0.07)" }}
     >
@@ -118,9 +123,9 @@ export function HabitHeatmap({
         </div>
       </div>
 
-      {/* Day labels */}
-      <div className="flex gap-1">
-        <div className="flex flex-col gap-1 mr-1">
+      {/* Day labels — dir=ltr keeps week columns chronological in RTL */}
+      <div className="flex gap-1" dir="ltr">
+        <div className="flex flex-col gap-1 me-1">
           {DAY_LABELS.map((d, i) => (
             <div key={i} className="h-4 w-3 flex items-center justify-center font-display text-[7px] text-ink-faint">{d}</div>
           ))}
@@ -133,6 +138,7 @@ export function HabitHeatmap({
               {col.map((cell, ri) => (
                 <motion.div
                   key={ri}
+                  data-heatmap-cell
                   className="h-4 w-4 rounded-[3px] cursor-pointer"
                   animate={{
                     backgroundColor: cellColor(cell.frac, cell.isFuture),
@@ -142,6 +148,7 @@ export function HabitHeatmap({
                   transition={{ duration: 0.25, delay: ci * 0.015 }}
                   onHoverStart={() => !cell.isFuture && setTooltip({ date: cell.date, count: Math.round(cell.frac * totalHabits), total: totalHabits })}
                   onHoverEnd={() => setTooltip(null)}
+                  onTap={() => !cell.isFuture && setTooltip({ date: cell.date, count: Math.round(cell.frac * totalHabits), total: totalHabits })}
                 />
               ))}
             </div>

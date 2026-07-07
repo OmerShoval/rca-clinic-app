@@ -3,7 +3,7 @@
 import { Handle, Position, NodeProps } from "@xyflow/react";
 import { EditableLabel, NodeData, handleStyle, MediaAttach, WhyField } from "./shared";
 
-export function FactorNode({ data, selected }: NodeProps) {
+export function FactorNode({ id, data, selected }: NodeProps) {
   const d = data as unknown as NodeData;
   return (
     <div
@@ -27,7 +27,17 @@ export function FactorNode({ data, selected }: NodeProps) {
         className="font-display text-[12px] tracking-wide text-ink leading-snug"
         multiline
       />
-      <MediaAttach url={d.url} onUrlChange={(v) => d.onUrlChange?.(v)} onUpload={d.onMediaUpload} />
+      <MediaAttach
+        url={d.url}
+        onUrlChange={(v) => d.onUrlChange?.(v)}
+        onUpload={d.onMediaUpload}
+        studentId={d.studentId}
+        studentSlug={d.studentSlug}
+        studentName={d.studentName}
+        sourceType="strategy_node"
+        sourceId={id}
+        label={d.label}
+      />
       <WhyField
         why={d.why}
         whyVisible={d.whyVisible}

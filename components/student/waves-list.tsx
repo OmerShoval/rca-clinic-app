@@ -33,7 +33,7 @@ export function WavesList({ slug, debriefs }: Props) {
       : `${debriefs.length} ${debriefs.length !== 1 ? t("waves_from_coach") : t("waves_debrief_s")}`;
 
   return (
-    <main className="flex flex-col px-5 pt-10 pb-28 gap-6">
+    <main className="flex flex-col px-5 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-nav gap-6">
       {/* Radial glow */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
@@ -59,7 +59,7 @@ export function WavesList({ slug, debriefs }: Props) {
         >
           <button
             onClick={() => setActiveTag(null)}
-            className="rounded-full px-3 py-1 font-display text-[9px] tracking-[0.18em] transition-all"
+            className="rounded-full px-4 py-2.5 min-h-[40px] font-display text-[11px] tracking-[0.18em] transition-all"
             style={
               activeTag === null
                 ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.3)" }
@@ -72,7 +72,7 @@ export function WavesList({ slug, debriefs }: Props) {
             <button
               key={tag}
               onClick={() => setActiveTag(activeTag === tag ? null : tag)}
-              className="rounded-full px-3 py-1 font-display text-[9px] tracking-[0.18em] transition-all"
+              className="rounded-full px-4 py-2.5 min-h-[40px] font-display text-[11px] tracking-[0.18em] transition-all"
               style={
                 activeTag === tag
                   ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.3)" }
@@ -119,7 +119,7 @@ export function WavesList({ slug, debriefs }: Props) {
                       <p className="text-ink text-sm font-medium leading-snug">{d.wave_label}</p>
                       <div className="flex items-center gap-2 mt-0.5 flex-wrap">
                         {d.published_at && (
-                          <p className="font-display text-[9px] tracking-widest text-ink-faint">
+                          <p className="font-display text-[11px] tracking-widest text-ink-faint">
                             {new Date(d.published_at).toLocaleDateString(dateLocale, {
                               month: "short",
                               day: "numeric",
@@ -129,7 +129,7 @@ export function WavesList({ slug, debriefs }: Props) {
                         )}
                         {d.tag && (
                           <span
-                            className="font-display text-[8px] tracking-widest rounded-full px-2 py-0.5"
+                            className="font-display text-[11px] tracking-widest rounded-full px-2 py-0.5"
                             style={{
                               background: "rgba(47,214,192,0.1)",
                               color: "var(--teal)",

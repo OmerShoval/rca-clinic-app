@@ -2,7 +2,7 @@ import Link from "next/link";
 
 export default function NotFound() {
   return (
-    <div className="min-h-screen bg-abyss flex flex-col items-center justify-center px-6 text-center">
+    <div className="min-h-dvh bg-abyss flex flex-col items-center justify-center px-6 text-center">
       <div
         className="pointer-events-none fixed inset-0 -z-10"
         style={{ background: "radial-gradient(ellipse 600px 300px at 50% 20%, rgba(47,214,192,0.06), transparent 70%)" }}

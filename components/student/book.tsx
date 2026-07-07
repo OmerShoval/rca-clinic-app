@@ -127,14 +127,18 @@ export function Book({ href, title, footer, colorIndex, bookIndex, delay, coverI
         {/* 3-D wrapper — rotates on hover to reveal spine */}
         <motion.div
           whileHover={reduce ? {} : { rotateY: -22, transition: { type: "spring", stiffness: 220, damping: 20 } }}
-          whileTap={{ scale: 0.93, transition: { type: "spring", stiffness: 480, damping: 22 } }}
+          whileTap={
+            reduce
+              ? { scale: 0.93, transition: { type: "spring", stiffness: 480, damping: 22 } }
+              : { rotateY: -12, scale: 0.93, transition: { type: "spring", stiffness: 480, damping: 22 } }
+          }
           className="relative w-fit [container-type:inline-size]"
           style={{ transformStyle: "preserve-3d", minWidth: W, height: "100%" }}
         >
 
           {/* ── FRONT COVER ───────────────────────────────────────────────────── */}
           <div
-            className="flex flex-col h-full rounded-l-[3px] rounded-r-[2px] overflow-hidden shadow-book relative select-none"
+            className="flex flex-col h-full rounded-s-[3px] rounded-e-[2px] overflow-hidden shadow-book relative select-none"
             style={{ width: W }}
           >
             {/* Top — colored art / photo section */}
@@ -166,7 +170,7 @@ export function Book({ href, title, footer, colorIndex, bookIndex, delay, coverI
                 <div
                   className="absolute bottom-1.5 left-2 font-display"
                   style={{
-                    fontSize: 6,
+                    fontSize: 8,
                     letterSpacing: "0.18em",
                     color: coverImageUrl ? "rgba(255,255,255,0.85)" : pal.accent,
                     background: coverImageUrl ? "rgba(0,0,0,0.45)" : "rgba(0,0,0,0.35)",
@@ -185,8 +189,8 @@ export function Book({ href, title, footer, colorIndex, bookIndex, delay, coverI
 
               {/* Binding strip */}
               <div
-                className="absolute top-0 left-0 bottom-0 mix-blend-overlay"
-                style={{ width: "8.2%", background: "var(--book-bind)" }}
+                className="absolute top-0 bottom-0 mix-blend-overlay"
+                style={{ insetInlineStart: 0, width: "8.2%", background: "var(--book-bind)" }}
               />
             </div>
 
@@ -194,14 +198,14 @@ export function Book({ href, title, footer, colorIndex, bookIndex, delay, coverI
             <div className="flex-1 relative bg-book-gradient">
               {/* Binding strip */}
               <div
-                className="absolute top-0 left-0 bottom-0 opacity-20"
-                style={{ width: "8.2%", background: "var(--book-bind)" }}
+                className="absolute top-0 bottom-0 opacity-20"
+                style={{ insetInlineStart: 0, width: "8.2%", background: "var(--book-bind)" }}
               />
 
               {/* Text content */}
               <div
                 className="flex flex-col justify-between h-full [container-type:inline-size]"
-                style={{ padding: "7% 6% 7% 15%" }}
+                style={{ paddingBlock: "7%", paddingInline: "15% 6%" }}
               >
                 {/* Title */}
                 <span
@@ -258,7 +262,7 @@ export function Book({ href, title, footer, colorIndex, bookIndex, delay, coverI
 
             {/* Inset border overlay */}
             <div
-              className="absolute inset-0 rounded-l-[3px] rounded-r-[2px] pointer-events-none"
+              className="absolute inset-0 rounded-s-[3px] rounded-e-[2px] pointer-events-none"
               style={{
                 boxShadow:
                   "inset 0 0 0 1px rgba(255,255,255,0.09), inset 0 1px 0 rgba(255,255,255,0.14)",
@@ -281,7 +285,7 @@ export function Book({ href, title, footer, colorIndex, bookIndex, delay, coverI
 
           {/* ── BACK COVER ────────────────────────────────────────────────────── */}
           <div
-            className="absolute inset-0 rounded-l-[3px] rounded-r-[2px]"
+            className="absolute inset-0 rounded-s-[3px] rounded-e-[2px]"
             style={{
               width: W,
               background: "#08141e",

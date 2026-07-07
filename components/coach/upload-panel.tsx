@@ -21,7 +21,9 @@ export function UploadPanel() {
   function openPanel() {
     if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
-      setPanelPos({ top: rect.bottom + 6, left: rect.left });
+      // Clamp so the 296px-wide panel never overflows the right/left viewport edge
+      const left = Math.max(8, Math.min(rect.left, window.innerWidth - 296 - 12));
+      setPanelPos({ top: rect.bottom + 6, left });
     }
     setOpen((o) => !o);
   }

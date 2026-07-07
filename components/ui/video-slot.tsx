@@ -3,56 +3,13 @@
 import { useState, useRef } from "react";
 import { cn } from "@/lib/utils";
 import { HlsPlayer } from "@/components/ui/hls-player";
-
-export type VideoProvider =
-  | "YouTube"
-  | "Vimeo"
-  | "Drive"
-  | "CloudflareStream"
-  | "Direct"
-  | "GIF"
-  | "Link";
-
-export function detectProvider(url: string): VideoProvider {
-  if (/youtube\.com\/watch|youtu\.be\//.test(url)) return "YouTube";
-  if (/vimeo\.com\/\d+/.test(url)) return "Vimeo";
-  if (/drive\.google\.com\/file\/d\//.test(url)) return "Drive";
-  if (/videodelivery\.net\/[a-f0-9]{32,}/.test(url)) return "CloudflareStream";
-  if (/\.gif(\?|$)/i.test(url)) return "GIF";
-  if (/\.(mp4|mov|webm|m4v)(\?|$)/i.test(url)) return "Direct";
-  return "Link";
-}
-
-function extractCFStreamUid(url: string): string | null {
-  const m = url.match(/videodelivery\.net\/([a-f0-9]{32,})/);
-  return m ? m[1] : null;
-}
-
-export function extractEmbedUrl(url: string, provider: VideoProvider): string {
-  if (provider === "YouTube") {
-    const match = url.match(/(?:v=|youtu\.be\/)([^&?/]+)/);
-    return match
-      ? `https://www.youtube.com/embed/${match[1]}?rel=0&modestbranding=1&autoplay=1`
-      : url;
-  }
-  if (provider === "Vimeo") {
-    const match = url.match(/vimeo\.com\/(\d+)/);
-    return match
-      ? `https://player.vimeo.com/video/${match[1]}?color=2fd6c0&byline=0&portrait=0&autoplay=1`
-      : url;
-  }
-  if (provider === "Drive") {
-    const match = url.match(/\/file\/d\/([^/]+)/);
-    return match ? `https://drive.google.com/file/d/${match[1]}/preview` : url;
-  }
-  if (provider === "CloudflareStream") {
-    const uid = extractCFStreamUid(url);
-    return uid
-      ? `https://iframe.videodelivery.net/${uid}?autoplay=true&muted=true&defaultTextTrack=off`
-      : url;
-  }
-  return url;
-}
+import {
+  detectProvider,
+  extractStreamUid,
+  isHlsManifest,
+  embedUrlFor,
+  posterUrlFor,
+} from "@/lib/video";
 
 interface VideoSlotProps {
   url?: string | null;
@@ -61,6 +18,13 @@ interface VideoSlotProps {
 }
 
 const SPEEDS = [0.25, 0.5, 1, 2] as const;
+
+// Human-friendly provider name for the tap-to-load embed button.
+const PROVIDER_LABEL: Record<string, string> = {
+  youtube: "YouTube",
+  vimeo: "Vimeo",
+  drive: "Google Drive",
+};
 
 export function VideoSlot({ url, label, className }: VideoSlotProps) {
   const [expanded, setExpanded] = useState(false);
@@ -90,7 +54,7 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
   const provider = detectProvider(url);
 
   // ── External link ────────────────────────────────────────────────────────────
-  if (provider === "Link") {
+  if (provider === "link") {
     return (
       <a
         href={url}
@@ -114,7 +78,7 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
   }
 
   // ── GIF ──────────────────────────────────────────────────────────────────────
-  if (provider === "GIF") {
+  if (provider === "gif") {
     return (
       <div
         className={cn("rounded-xl overflow-hidden", className)}
@@ -125,7 +89,7 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
           src={url}
           alt={label ?? "clip"}
           className="w-full h-auto block"
-          style={{ maxHeight: "75vh", objectFit: "contain" }}
+          style={{ maxHeight: "75dvh", objectFit: "contain" }}
           loading="lazy"
         />
         {label && (
@@ -137,8 +101,34 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
     );
   }
 
-  // ── Direct MP4 / MOV / WebM — with speed controls ───────────────────────────
-  if (provider === "Direct") {
+  // ── Cloudflare Stream — custom HLS player (hls.js, speed controls, scrubber) ──
+  if (provider === "cloudflare") {
+    const uid = extractStreamUid(url);
+    if (!uid) {
+      return (
+        <a href={url} target="_blank" rel="noopener noreferrer" className={cn("block text-teal underline text-sm", className)}>
+          {label ?? "Watch video"}
+        </a>
+      );
+    }
+    return <HlsPlayer uid={uid} label={label} className={className} />;
+  }
+
+  // ── Raw HLS manifest (.m3u8) — play via the same HLS player, not a native <video> ──
+  if (provider === "direct" && isHlsManifest(url)) {
+    return (
+      <HlsPlayer
+        manifestUrl={url}
+        posterUrl={posterUrlFor(url) ?? undefined}
+        label={label}
+        className={className}
+      />
+    );
+  }
+
+  // ── Direct MP4 / MOV / WebM (incl. Supabase Storage) — with speed controls ──
+  if (provider === "direct") {
+    const poster = posterUrlFor(url);
     return (
       <div
         className={cn("rounded-xl overflow-hidden", className)}
@@ -148,11 +138,12 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
         <video
           ref={videoRef}
           src={url}
+          poster={poster ?? undefined}
           controls
           playsInline
           preload="metadata"
           className="w-full h-auto block"
-          style={{ maxHeight: "75vh", background: "#000" }}
+          style={{ maxHeight: "75dvh", background: "#000" }}
         />
         {/* Speed controls */}
         <div className="flex items-center gap-1.5 px-3 py-2">
@@ -164,7 +155,7 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
               key={rate}
               type="button"
               onClick={() => applySpeed(rate)}
-              className="font-display text-[9px] tracking-wide px-2 py-0.5 rounded transition-colors"
+              className="font-display text-[9px] tracking-wide px-3 py-2.5 rounded transition-colors"
               style={
                 playbackRate === rate
                   ? { background: "var(--teal)", color: "var(--abyss)" }
@@ -184,21 +175,9 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
     );
   }
 
-  // ── Cloudflare Stream — custom HLS player (hls.js, speed controls, scrubber) ──
-  if (provider === "CloudflareStream") {
-    const uid = extractCFStreamUid(url);
-    if (!uid) {
-      return (
-        <a href={url} target="_blank" rel="noopener noreferrer" className={cn("block text-teal underline text-sm", className)}>
-          {label ?? "Watch video"}
-        </a>
-      );
-    }
-    return <HlsPlayer uid={uid} label={label} className={className} />;
-  }
-
   // ── YouTube / Vimeo / Drive — tap-to-load iframe ─────────────────────────────
-  const embedUrl = extractEmbedUrl(url, provider);
+  const embedUrl = embedUrlFor(url) ?? url;
+  const providerLabel = PROVIDER_LABEL[provider] ?? "Video";
 
   if (!expanded) {
     return (
@@ -221,7 +200,7 @@ export function VideoSlot({ url, label, className }: VideoSlotProps) {
           <p className="font-display text-[12px] tracking-widest text-teal">
             {label ?? "Watch Clip"}
           </p>
-          <p className="font-display text-[9px] tracking-widest text-ink-faint">{provider}</p>
+          <p className="font-display text-[9px] tracking-widest text-ink-faint">{providerLabel}</p>
         </div>
       </button>
     );

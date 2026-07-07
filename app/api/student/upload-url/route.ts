@@ -1,18 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireStudentAuth } from "@/lib/student-auth";
 import { createServerClient } from "@/lib/supabase";
+import {
+  extForMime,
+  VIDEO_MIME_TYPES,
+  IMAGE_MIME_TYPES,
+  AUDIO_MIME_TYPES,
+} from "@/lib/video";
 
-const MIME_TO_EXT: Record<string, string> = {
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "video/quicktime": "mov",
-  "image/gif": "gif",
-  "audio/webm": "webm",
-  "audio/ogg": "ogg",
-  "audio/mp4": "m4a",
-};
+const ALLOWED_TYPES = new Set<string>([
+  ...VIDEO_MIME_TYPES,
+  ...IMAGE_MIME_TYPES,
+  ...AUDIO_MIME_TYPES,
+]);
 
-const ALLOWED_TYPES = new Set(Object.keys(MIME_TO_EXT));
+/** Strip anything but [a-z0-9-] so an id can never contain path separators or `..`. */
+function sanitizeId(id: string): string {
+  return id.toLowerCase().replace(/[^a-z0-9-]/g, "");
+}
 
 /** POST /api/student/upload-url — generate a storage path for a student clip upload. */
 export async function POST(req: NextRequest) {
@@ -28,8 +33,15 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const ext = MIME_TO_EXT[contentType];
-  const objectPath = `student-clips/${auth.studentId}/${Date.now()}.${ext}`;
+  const studentId = sanitizeId(auth.studentId);
+  if (!studentId) {
+    return NextResponse.json({ error: "Invalid student id" }, { status: 400 });
+  }
+
+  const ext = extForMime(contentType);
+  const ts = Date.now();
+  const rand = crypto.randomUUID().slice(0, 8);
+  const objectPath = `student-clips/${studentId}/${ts}-${rand}.${ext}`;
 
   const db = createServerClient();
   const { data } = db.storage.from("rca-notes").getPublicUrl(objectPath);

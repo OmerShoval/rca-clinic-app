@@ -38,7 +38,7 @@ export function PatternsHome({ slug, studentName, paths }: PatternsHomeProps) {
   const firstName = studentName.split(" ")[0].toUpperCase();
 
   return (
-    <main className="flex flex-col pb-28 pt-10">
+    <main className="flex flex-col pb-nav pt-[calc(env(safe-area-inset-top)+3.5rem)]">
       <div
         className="pointer-events-none fixed inset-0 -z-10"
         style={{
@@ -170,7 +170,7 @@ export function PatternsHome({ slug, studentName, paths }: PatternsHomeProps) {
                 {/* Footer row */}
                 <div className="flex items-center justify-between">
                   <p
-                    className="font-display text-[10px] tracking-[0.15em]"
+                    className="font-display text-[11px] tracking-[0.15em]"
                     style={{ color: "rgba(241,238,230,0.45)" }}
                   >
                     {path.doneCount} of {path.totalCount} steps

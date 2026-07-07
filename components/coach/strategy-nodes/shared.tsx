@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
 import { useUploadManagerSafe } from "@/lib/upload-manager";
+import type { VideoSourceType } from "@/lib/database.types";
 
 export interface SubStep {
   id: string;
@@ -125,11 +126,14 @@ export function EditableLabel({
   );
 }
 
+// 24px hit area with a ~12px visible dot: the transparent border acts as
+// touch hit-slop while backgroundClip keeps the gold fill small.
 export const handleStyle = {
-  width: 10,
-  height: 10,
+  width: 24,
+  height: 24,
   background: "rgba(224,182,79,0.7)",
-  border: "1px solid rgba(224,182,79,0.4)",
+  border: "6px solid transparent",
+  backgroundClip: "padding-box" as const,
   borderRadius: "50%",
 };
 
@@ -349,6 +353,9 @@ export function MediaAttach({
   studentId,
   studentSlug,
   studentName,
+  sourceType,
+  sourceId,
+  label,
 }: {
   url?: string;
   onUrlChange?: (url: string) => void;
@@ -356,9 +363,28 @@ export function MediaAttach({
   studentId?: string;
   studentSlug?: string;
   studentName?: string;
+  /** Where this clip came from — tags the video library row. */
+  sourceType?: VideoSourceType;
+  /** Id of the originating entity (node id, debrief id, …). */
+  sourceId?: string;
+  /** Human label for the library row (e.g. the node label). */
+  label?: string;
 }) {
   const uploadManager = useUploadManagerSafe();
   const canUseManager = !!(uploadManager && studentId && studentSlug && studentName);
+
+  // Persisted library-row params — always set when the manager is usable so
+  // every upload lands in the library tagged by where it came from.
+  const persistVideo = canUseManager
+    ? {
+        studentId: studentId!,
+        label: label && label.trim() ? label.trim() : "Node clip",
+        videoKind: "node" as const,
+        sourceType,
+        sourceId,
+        tags: label && label.trim() ? [label.trim()] : undefined,
+      }
+    : undefined;
 
   const [open, setOpen] = useState(false);
   const [mediaTab, setMediaTab] = useState<MediaTab>(studentId ? "library" : "upload");
@@ -400,7 +426,7 @@ export function MediaAttach({
         studentSlug: studentSlug!,
         studentName: studentName!,
         kind: "node",
-        persistVideo: studentId ? { studentId, label: "Node clip", videoKind: "node" } : undefined,
+        persistVideo,
         onComplete(resultUrl) {
           onUrlChange?.(resultUrl);
           setActiveClipId(null);
@@ -433,7 +459,7 @@ export function MediaAttach({
         studentSlug: studentSlug!,
         studentName: studentName!,
         kind: "node",
-        persistVideo: studentId ? { studentId, label: "Node clip", videoKind: "node" } : undefined,
+        persistVideo,
         onComplete(resultUrl) {
           onUrlChange?.(resultUrl);
           setActiveClipId(null);
@@ -545,7 +571,7 @@ export function MediaAttach({
           )}
           <button
             onClick={(e) => { e.stopPropagation(); onUrlChange?.(""); }}
-            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center font-bold text-white"
+            className="absolute top-1 right-1 w-5 h-5 rounded-full flex items-center justify-center font-bold text-white after:absolute after:-inset-3"
             style={{ fontSize: 12, lineHeight: 1, background: "rgba(0,0,0,0.7)" }}
             title="Remove"
           >
@@ -588,7 +614,7 @@ export function MediaAttach({
             ))}
             <button
               onClick={(e) => { e.stopPropagation(); closePanel(); }}
-              className="ml-auto font-display text-[9px] text-ink-faint px-1 opacity-60 hover:opacity-100"
+              className="ml-auto font-display text-[9px] text-ink-faint px-1 opacity-60 hover:opacity-100 relative after:absolute after:-inset-3"
             >
               ✕
             </button>
@@ -737,7 +763,7 @@ export function MediaAttach({
         ) : (
           <button
             onClick={(e) => { e.stopPropagation(); setOpen(true); }}
-            className="flex items-center gap-1 font-display text-[8px] tracking-wide text-ink-faint opacity-40 hover:opacity-80 transition-opacity"
+            className="flex items-center gap-1 font-display text-[8px] tracking-wide text-ink-faint opacity-40 hover:opacity-80 transition-opacity relative after:absolute after:-inset-2"
           >
             📎 <span>add media</span>
           </button>

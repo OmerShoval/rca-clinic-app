@@ -1,23 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCoachAuth } from "@/lib/coach-auth";
 import { createServerClient } from "@/lib/supabase";
+import {
+  extForMime,
+  VIDEO_MIME_TYPES,
+  IMAGE_MIME_TYPES,
+  AUDIO_MIME_TYPES,
+} from "@/lib/video";
 
-const MIME_TO_EXT: Record<string, string> = {
-  "video/mp4": "mp4",
-  "video/webm": "webm",
-  "video/quicktime": "mov",
-  "video/x-msvideo": "avi",
-  "image/gif": "gif",
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/heic": "heic",
-  "audio/webm": "webm",
-  "audio/mp4": "m4a",
-  "audio/mpeg": "mp3",
-  "audio/ogg": "ogg",
-  "audio/wav": "wav",
-};
+const ALLOWED_TYPES = new Set<string>([
+  ...VIDEO_MIME_TYPES,
+  ...IMAGE_MIME_TYPES,
+  ...AUDIO_MIME_TYPES,
+]);
+
+/** Strip anything but [a-z0-9-] so a slug can never contain path separators or `..`. */
+function sanitizeSlug(slug: string): string {
+  return slug.toLowerCase().replace(/[^a-z0-9-]/g, "");
+}
 
 export async function POST(req: NextRequest) {
   const deny = await requireCoachAuth();
@@ -37,7 +37,19 @@ export async function POST(req: NextRequest) {
     );
   }
 
-  const ext = MIME_TO_EXT[contentType] ?? "bin";
+  if (!ALLOWED_TYPES.has(contentType)) {
+    return NextResponse.json(
+      { error: `Unsupported type: ${contentType}` },
+      { status: 400 }
+    );
+  }
+
+  const slug = sanitizeSlug(studentSlug);
+  if (!slug) {
+    return NextResponse.json({ error: "Invalid studentSlug" }, { status: 400 });
+  }
+
+  const ext = extForMime(contentType);
   const folder =
     kind === "cover"
       ? "cover-photos"
@@ -47,7 +59,9 @@ export async function POST(req: NextRequest) {
       ? "coach-clips"
       : "coach-notes";
 
-  const objectPath = `${folder}/${studentSlug}/${Date.now()}.${ext}`;
+  const ts = Date.now();
+  const rand = crypto.randomUUID().slice(0, 8);
+  const objectPath = `${folder}/${slug}/${ts}-${rand}.${ext}`;
 
   const db = createServerClient();
   const { data: urlData } = db.storage.from("rca-notes").getPublicUrl(objectPath);

@@ -18,11 +18,11 @@ export function LanguageToggle() {
   const selected = languages.find((l) => l.code === lang) ?? languages[0];
 
   useEffect(() => {
-    function onOutside(e: MouseEvent) {
+    function onOutside(e: PointerEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     }
-    document.addEventListener("mousedown", onOutside);
-    return () => document.removeEventListener("mousedown", onOutside);
+    document.addEventListener("pointerdown", onOutside);
+    return () => document.removeEventListener("pointerdown", onOutside);
   }, []);
 
   return (
@@ -32,7 +32,8 @@ export function LanguageToggle() {
         onClick={() => setOpen((o) => !o)}
         className="flex items-center gap-2 rounded-full transition-all active:scale-95"
         style={{
-          padding: "7px 14px 7px 10px",
+          padding: "10px 16px 10px 12px",
+          minHeight: 44,
           fontSize: 13,
           fontFamily: lang === "he"
             ? "var(--font-hebrew), system-ui, sans-serif"
@@ -70,8 +71,9 @@ export function LanguageToggle() {
       {/* ── Dropdown ── */}
       {open && (
         <div
-          className="absolute left-0 mt-2 w-44 rounded-xl overflow-hidden animate-fade-in"
+          className="absolute right-0 mt-2 w-44 rounded-xl overflow-hidden animate-fade-in"
           style={{
+            maxWidth: "calc(100vw - 2rem)",
             background: "rgba(10,22,28,0.97)",
             backdropFilter: "blur(24px)",
             WebkitBackdropFilter: "blur(24px)",
@@ -86,9 +88,12 @@ export function LanguageToggle() {
               <button
                 key={l.code}
                 onClick={() => { setLang(l.code); setOpen(false); }}
-                className="flex items-center gap-2.5 w-full px-3 py-3 text-left transition-colors"
+                className={
+                  "flex items-center gap-2.5 w-full px-3 py-3 text-left transition-colors" +
+                  (active ? "" : " hover:bg-white/5")
+                }
                 style={{
-                  background: active ? "rgba(47,214,192,0.1)" : "transparent",
+                  background: active ? "rgba(47,214,192,0.1)" : undefined,
                   color: active ? "var(--teal)" : "var(--ink)",
                   fontWeight: active ? 600 : 400,
                   fontSize: 14,
@@ -97,12 +102,6 @@ export function LanguageToggle() {
                       ? "var(--font-hebrew), system-ui, sans-serif"
                       : "var(--font-sans), system-ui, sans-serif",
                   borderBottom: l.code === "en" ? "1px solid rgba(255,255,255,0.07)" : "none",
-                }}
-                onMouseEnter={(e) => {
-                  if (!active) (e.currentTarget as HTMLElement).style.background = "rgba(255,255,255,0.05)";
-                }}
-                onMouseLeave={(e) => {
-                  if (!active) (e.currentTarget as HTMLElement).style.background = "transparent";
                 }}
               >
                 <span style={{ fontSize: 18, lineHeight: 1 }}>{l.flag}</span>

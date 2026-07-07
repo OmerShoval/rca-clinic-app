@@ -115,7 +115,7 @@ function ShelfSection({
           )}
           <button
             onClick={() => scroll("left")}
-            className="w-6 h-6 flex items-center justify-center rounded-full transition-opacity active:opacity-100"
+            className="w-6 h-6 min-w-11 min-h-11 flex items-center justify-center rounded-full transition-opacity active:opacity-100"
             style={{ border: "1px solid rgba(255,255,255,0.14)", opacity: 0.42, fontSize: 13 }}
             aria-label="Scroll left"
           >
@@ -123,7 +123,7 @@ function ShelfSection({
           </button>
           <button
             onClick={() => scroll("right")}
-            className="w-6 h-6 flex items-center justify-center rounded-full transition-opacity active:opacity-100"
+            className="w-6 h-6 min-w-11 min-h-11 flex items-center justify-center rounded-full transition-opacity active:opacity-100"
             style={{ border: "1px solid rgba(255,255,255,0.14)", opacity: 0.42, fontSize: 13 }}
             aria-label="Scroll right"
           >
@@ -164,7 +164,7 @@ function ShelfSection({
             duration: 0.55,
             ease: [0.22, 1, 0.36, 1],
           }}
-          style={{ transformOrigin: "left" }}
+          style={{ transformOrigin: isRTL ? "right" : "left" }}
         >
           <div
             className="h-4 rounded-sm"
@@ -208,7 +208,7 @@ export function LibraryHome({
   hasWavePool,
 }: LibraryHomeProps) {
   const reduce = useReducedMotion();
-  const { t, lang } = useLanguage();
+  const { t, lang, isRTL } = useLanguage();
   const firstName = studentName.split(" ")[0].toUpperCase();
   const [sortMode, setSortMode] = useState<SortMode>("all");
 
@@ -232,7 +232,7 @@ export function LibraryHome({
   const hasTags = debriefs.some((d) => d.tag);
 
   return (
-    <main className="flex flex-col gap-8 pt-10 pb-28">
+    <main className="flex flex-col gap-8 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-nav">
       {/* Background glow */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"
@@ -300,7 +300,7 @@ export function LibraryHome({
               <button
                 key={mode}
                 onClick={() => setSortMode(mode)}
-                className="rounded-full px-3 py-1 font-display text-[9px] tracking-[0.18em] transition-all"
+                className="rounded-full px-4 py-2.5 min-h-[40px] font-display text-[11px] tracking-[0.18em] transition-all"
                 style={
                   sortMode === mode
                     ? { background: "var(--teal-soft)", color: "var(--teal)", border: "1px solid rgba(47,214,192,0.3)" }
@@ -451,7 +451,7 @@ export function LibraryHome({
             <p className="font-display text-ink leading-none" style={{ fontSize: 16 }}>{t("lib_roadmap")}</p>
             <p className="text-ink-faint mt-1" style={{ fontSize: 11 }}>{t("lib_roadmap_sub")}</p>
           </div>
-          <span className="text-ink-faint text-base flex-shrink-0">→</span>
+          <span className="text-ink-faint text-base flex-shrink-0">{isRTL ? "←" : "→"}</span>
         </Link>
       </motion.div>
 
@@ -476,7 +476,7 @@ export function LibraryHome({
             <p className="font-display text-ink leading-none" style={{ fontSize: 16 }}>{t("nav_training")}</p>
             <p className="text-ink-faint mt-1" style={{ fontSize: 11 }}>Your workouts, habits &amp; consistency tracker</p>
           </div>
-          <span className="text-ink-faint text-base flex-shrink-0">→</span>
+          <span className="text-ink-faint text-base flex-shrink-0">{isRTL ? "←" : "→"}</span>
         </Link>
       </motion.div>
     </main>

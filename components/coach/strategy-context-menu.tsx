@@ -24,11 +24,21 @@ export function StrategyContextMenu({ x, y, nodeId, edgeId, onDelete, onDuplicat
     return () => window.removeEventListener("mousedown", handler);
   }, [onClose]);
 
+  // Clamp so the menu never renders off-screen near viewport edges
+  const MENU_W = 150;
+  const MENU_H = 90;
+  const clampedX = typeof window !== "undefined"
+    ? Math.min(Math.max(8, x), window.innerWidth - MENU_W - 8)
+    : x;
+  const clampedY = typeof window !== "undefined"
+    ? Math.min(Math.max(8, y), window.innerHeight - MENU_H - 8)
+    : y;
+
   return (
     <div
       ref={ref}
-      className="fixed z-50 rounded-xl py-1 shadow-2xl"
-      style={{ left: x, top: y, background: "var(--depth)", border: "1px solid var(--glass-edge)", minWidth: 150 }}
+      className="fixed z-50 rounded-xl py-1 shadow-2xl max-h-[70dvh] overflow-y-auto"
+      style={{ left: clampedX, top: clampedY, background: "var(--depth)", border: "1px solid var(--glass-edge)", minWidth: 150 }}
     >
       {onDuplicate && (
         <button

@@ -145,7 +145,7 @@ function HabitLogForm({
             <button
               key={habit}
               onClick={() => toggle(habit)}
-              className="flex items-center gap-3 rounded-xl p-3 text-left transition-all"
+              className="flex items-center gap-3 rounded-xl p-3 text-start transition-all"
               style={{
                 background: done ? "rgba(47,214,192,0.1)" : "rgba(255,255,255,0.03)",
                 border: `1px solid ${done ? "rgba(47,214,192,0.35)" : "rgba(255,255,255,0.07)"}`,
@@ -180,7 +180,7 @@ function HabitLogForm({
       <button
         onClick={handleSave}
         disabled={saving}
-        className="rounded-xl py-2.5 font-display text-[10px] tracking-[0.2em] transition-all"
+        className="rounded-xl py-2.5 min-h-[44px] font-display text-[10px] tracking-[0.2em] transition-all"
         style={{
           background: saved ? "rgba(47,214,192,0.15)" : "rgba(47,214,192,0.12)",
           border: `1px solid ${saved ? "rgba(47,214,192,0.5)" : "rgba(47,214,192,0.25)"}`,
@@ -225,7 +225,7 @@ export function TrainingClient({ studentName, program, initialLogs, strategy }: 
   const weekDay = new Date().toLocaleDateString("en-US", { weekday: "long" });
 
   return (
-    <main className="flex flex-col gap-6 pt-10 pb-28 px-5">
+    <main className="flex flex-col gap-6 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-nav px-5">
       {/* Background glow */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"

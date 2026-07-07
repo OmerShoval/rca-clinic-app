@@ -4,6 +4,8 @@ import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence, useReducedMotion } from "motion/react";
 import Link from "next/link";
 import { VideoSlot } from "@/components/ui/video-slot";
+import { VideoThumb } from "@/components/ui/video-thumb";
+import { useLanguage } from "@/lib/language-context";
 import type { PatternPath, PatternStep, PatternSubStep } from "@/lib/patterns";
 import { uploadStudentClip } from "@/lib/upload-client";
 
@@ -31,6 +33,14 @@ function buildSvgPath(n: number): string {
 function svgViewH(n: number): number {
   return START_Y + Math.max(0, n - 1) * STEP_Y + 42 + 80;
 }
+
+// Horizontal offset that keeps tile centers on the SVG path at any container
+// width: the path scales horizontally (preserveAspectRatio="none", 430-wide
+// viewBox), so the tile center must sit at (LEFT_X / 430) * width. Tile
+// half-width = 42px. (430 - RIGHT_X) / 430 is the same fraction, so one
+// constant serves both columns. Physical margins (not justify-start/end) so
+// the tiles stay glued to the physical, non-flipping SVG under RTL too.
+const TILE_EDGE_PAD = `calc(${((LEFT_X / 430) * 100).toFixed(4)}% - 42px)`;
 
 // ── Tile icons ───────────────────────────────────────────────────────────────
 
@@ -130,7 +140,7 @@ function StepTile({ step, isYou }: { step: PatternStep; isYou: boolean }) {
             style={{
               position: "absolute",
               top: -6,
-              right: -6,
+              insetInlineEnd: -6,
               background: "#f3c34a",
               color: "#1a1207",
               fontSize: 10,
@@ -204,36 +214,43 @@ function StepSheet({
           {/* Sheet */}
           <motion.div
             key="sheet"
-            initial={{ y: 60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 60, opacity: 0 }}
+            initial={{ y: 60, x: "-50%", opacity: 0 }}
+            animate={{ y: 0, x: "-50%", opacity: 1 }}
+            exit={{ y: 60, x: "-50%", opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             style={{
               position: "fixed",
               bottom: 0,
               left: "50%",
-              transform: "translateX(-50%)",
               width: "100%",
               maxWidth: 430,
               zIndex: 41,
               background: "linear-gradient(var(--depth), var(--abyss))",
               borderTop: "1px solid var(--glass-edge)",
               borderRadius: "26px 26px 0 0",
-              paddingBottom: 32,
+              paddingBottom: "calc(32px + env(safe-area-inset-bottom))",
+              maxHeight: "85dvh",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
             }}
           >
-            {/* Grab handle */}
-            <div
+            {/* Grab handle — full-width tappable area (44px+ touch target) */}
+            <button
+              type="button"
               onClick={onClose}
-              style={{
-                width: 42,
-                height: 5,
-                borderRadius: 99,
-                background: "rgba(255,255,255,.18)",
-                margin: "10px auto 16px",
-                cursor: "pointer",
-              }}
-            />
+              aria-label="Close"
+              className="block w-full py-3 cursor-pointer"
+            >
+              <div
+                style={{
+                  width: 42,
+                  height: 5,
+                  borderRadius: 99,
+                  background: "rgba(255,255,255,.18)",
+                  margin: "0 auto",
+                }}
+              />
+            </button>
 
             <div className="px-5 flex flex-col gap-4">
               {/* Video */}
@@ -299,8 +316,6 @@ function StepSheet({
                   </div>
                   <div className="flex flex-col gap-2">
                     {step.substeps.map((ss) => {
-                      const cfMatch = ss.videoUrl?.match(/videodelivery\.net\/([a-f0-9]{32,})/);
-                      const thumb = cfMatch ? `https://videodelivery.net/${cfMatch[1]}/thumbnails/thumbnail.jpg?time=1s&height=60` : null;
                       return (
                         <motion.button
                           key={ss.id}
@@ -334,9 +349,14 @@ function StepSheet({
                             {ss.label || "Sub-step"}
                           </p>
                           {/* Thumbnail */}
-                          {thumb && (
-                            // eslint-disable-next-line @next/next/no-img-element
-                            <img src={thumb} alt="" className="flex-shrink-0 rounded-lg object-cover" style={{ width: 44, height: 30 }} />
+                          {ss.videoUrl && (
+                            <VideoThumb
+                              url={ss.videoUrl}
+                              label={ss.label}
+                              height={60}
+                              showPlayIcon={false}
+                              className="flex-shrink-0 rounded-lg w-11"
+                            />
                           )}
                           {/* Chevron */}
                           {ss.videoUrl && (
@@ -397,15 +417,7 @@ function SubStepSheet({
   stepTitle: string;
   onClose: () => void;
 }) {
-  const [playing, setPlaying] = useState(false);
   const isOpen = !!substep;
-
-  const cfMatch = substep?.videoUrl?.match(/videodelivery\.net\/([a-f0-9]{32,})/);
-  const cfUid = cfMatch ? cfMatch[1] : null;
-  const thumb = cfUid ? `https://videodelivery.net/${cfUid}/thumbnails/thumbnail.jpg?time=1s&height=400` : null;
-
-  // Reset player when substep changes
-  useEffect(() => { setPlaying(false); }, [substep?.id]);
 
   return (
     <AnimatePresence>
@@ -451,7 +463,7 @@ function SubStepSheet({
               className="flex flex-col w-full overflow-hidden"
               style={{
                 maxWidth: 400,
-                maxHeight: "90vh",
+                maxHeight: "90dvh",
                 borderRadius: 28,
                 background: "linear-gradient(175deg, rgba(18,28,30,0.98) 0%, rgba(6,12,14,0.98) 100%)",
                 border: "1px solid rgba(224,182,79,0.25)",
@@ -461,37 +473,11 @@ function SubStepSheet({
               }}
             >
               {/* Video area */}
-              <div className="relative flex-shrink-0" style={{ aspectRatio: "16/9", background: "#000" }}>
-                {playing && cfUid ? (
-                  <iframe
-                    src={`https://iframe.videodelivery.net/${cfUid}?autoplay=true`}
-                    allow="accelerometer; autoplay; encrypted-media; picture-in-picture"
-                    allowFullScreen
-                    className="absolute inset-0 w-full h-full"
-                    style={{ border: "none" }}
-                  />
-                ) : thumb ? (
-                  <button
-                    onClick={() => setPlaying(true)}
-                    className="absolute inset-0 w-full h-full transition-opacity active:opacity-80"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={thumb} alt={substep.label} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.3)" }}>
-                      <motion.div
-                        whileHover={{ scale: 1.08 }}
-                        className="w-16 h-16 rounded-full flex items-center justify-center"
-                        style={{
-                          background: "rgba(224,182,79,0.9)",
-                          boxShadow: "0 0 32px rgba(224,182,79,0.5)",
-                        }}
-                      >
-                        <span style={{ fontSize: 26, marginLeft: 4 }}>▶</span>
-                      </motion.div>
-                    </div>
-                  </button>
+              <div className="relative flex-shrink-0" style={{ background: "#000" }}>
+                {substep.videoUrl ? (
+                  <VideoSlot url={substep.videoUrl} label={substep.label} className="rounded-none" />
                 ) : (
-                  <div className="absolute inset-0 flex flex-col items-center justify-center gap-2" style={{ background: "rgba(255,255,255,0.03)" }}>
+                  <div className="flex flex-col items-center justify-center gap-2" style={{ aspectRatio: "16/9", background: "rgba(255,255,255,0.03)" }}>
                     <span style={{ fontSize: 36 }}>🎬</span>
                     <p className="font-display text-ink-faint" style={{ fontSize: 11, letterSpacing: "0.2em" }}>VIDEO COMING SOON</p>
                   </div>
@@ -500,7 +486,7 @@ function SubStepSheet({
                 {/* Close button over video */}
                 <button
                   onClick={onClose}
-                  className="absolute top-3 right-3 w-8 h-8 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
+                  className="absolute top-3 right-3 w-11 h-11 rounded-full flex items-center justify-center transition-opacity hover:opacity-80"
                   style={{ background: "rgba(0,0,0,0.55)", backdropFilter: "blur(4px)", border: "1px solid rgba(255,255,255,0.15)", color: "#fff", fontSize: 14 }}
                 >
                   ✕
@@ -740,34 +726,41 @@ function FeltItSheet({
 
           <motion.div
             key="felt-sheet"
-            initial={{ y: 60, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 60, opacity: 0 }}
+            initial={{ y: 60, x: "-50%", opacity: 0 }}
+            animate={{ y: 0, x: "-50%", opacity: 1 }}
+            exit={{ y: 60, x: "-50%", opacity: 0 }}
             transition={{ duration: 0.28, ease: [0.2, 0.8, 0.2, 1] }}
             style={{
               position: "fixed",
               bottom: 0,
               left: "50%",
-              transform: "translateX(-50%)",
               width: "100%",
               maxWidth: 430,
               zIndex: 51,
               background: "linear-gradient(var(--depth), var(--abyss))",
               borderTop: "1px solid var(--glass-edge)",
               borderRadius: "26px 26px 0 0",
-              paddingBottom: 36,
+              paddingBottom: "calc(36px + env(safe-area-inset-bottom))",
+              maxHeight: "85dvh",
+              overflowY: "auto",
+              WebkitOverflowScrolling: "touch",
             }}
           >
-            {/* Drag pill */}
-            <div
+            {/* Drag pill — full-width tappable area (44px+ touch target) */}
+            <button
+              type="button"
               onClick={reset}
-              style={{
-                width: 42, height: 5, borderRadius: 99,
-                background: "rgba(255,255,255,.18)",
-                margin: "10px auto 16px",
-                cursor: "pointer",
-              }}
-            />
+              aria-label="Close"
+              className="block w-full py-3 cursor-pointer"
+            >
+              <div
+                style={{
+                  width: 42, height: 5, borderRadius: 99,
+                  background: "rgba(255,255,255,.18)",
+                  margin: "0 auto",
+                }}
+              />
+            </button>
 
             <div className="px-5 flex flex-col gap-4">
               {done ? (
@@ -939,6 +932,7 @@ export function PatternTrail({ slug, path }: PatternTrailProps) {
   const [activeSubStep, setActiveSubStep] = useState<PatternSubStep | null>(null);
   const [feltItOpen, setFeltItOpen] = useState(false);
   const reduce = useReducedMotion();
+  const { isRTL } = useLanguage();
 
   const { steps, doneCount, totalCount, title } = path;
   const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
@@ -954,7 +948,7 @@ export function PatternTrail({ slug, path }: PatternTrailProps) {
 
   return (
     <>
-      <div className="max-w-[430px] mx-auto min-h-screen pb-28">
+      <div className="max-w-[430px] mx-auto min-h-dvh pb-nav">
         {/* Radial glow */}
         <div
           className="pointer-events-none fixed inset-0 -z-10"
@@ -966,10 +960,11 @@ export function PatternTrail({ slug, path }: PatternTrailProps) {
 
         {/* ── Sticky header ── */}
         <div
-          className="sticky top-0 z-10 px-5 pt-5 pb-4"
+          className="sticky top-0 z-10 px-5 pb-4"
           style={{
             background: "linear-gradient(var(--abyss) 70%, transparent)",
             backdropFilter: "blur(4px)",
+            paddingTop: "max(1.25rem, env(safe-area-inset-top))",
           }}
         >
           {/* Back link */}
@@ -977,7 +972,7 @@ export function PatternTrail({ slug, path }: PatternTrailProps) {
             href={`/s/${slug}/patterns`}
             className="font-display text-[10px] tracking-widest text-ink-faint flex items-center gap-1.5 mb-3 hover:text-teal transition-colors"
           >
-            ← Patterns
+            {isRTL ? "→" : "←"} Patterns
           </Link>
 
           <p
@@ -1067,19 +1062,24 @@ export function PatternTrail({ slug, path }: PatternTrailProps) {
                   duration: 0.35,
                   ease: [0.22, 1, 0.36, 1],
                 }}
-                className={`relative z-10 flex py-6 ${isLeft ? "justify-start pl-10" : "justify-end pr-10"}`}
+                className="relative z-10 flex py-6"
               >
                 <button
                   onClick={() => openStep(step)}
                   disabled={step.status === "locked"}
                   className="flex flex-col items-center gap-2.5 transition-transform active:scale-95 disabled:cursor-not-allowed"
+                  style={
+                    isLeft
+                      ? { width: 84, marginLeft: TILE_EDGE_PAD, marginRight: "auto" }
+                      : { width: 84, marginLeft: "auto", marginRight: TILE_EDGE_PAD }
+                  }
                 >
                   <StepTile step={step} isYou={isYou} />
                   <span
                     className="font-semibold text-center leading-tight"
                     style={{
                       fontSize: 13,
-                      maxWidth: 140,
+                      width: 140,
                       color:
                         step.status === "locked" ? "var(--ink-faint)" : "var(--ink)",
                     }}

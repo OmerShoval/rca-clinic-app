@@ -144,10 +144,10 @@ export function AskClient({ initialThreads }: Props) {
                 key={tab}
                 type="button"
                 onClick={() => { setClipTab(tab); clearClip(); }}
-                className="flex-1 py-1.5 font-display text-[9px] tracking-widest transition-colors"
+                className="flex-1 py-3 font-display text-[11px] tracking-widest transition-colors"
                 style={clipTab === tab
-                  ? { background: "var(--coral-soft)", color: "var(--coral)", borderRight: tab === "upload" ? "1px solid rgba(255,107,94,0.3)" : undefined }
-                  : { background: "transparent", color: "var(--ink-faint)", borderRight: tab === "upload" ? "1px solid var(--glass-edge)" : undefined }
+                  ? { background: "var(--coral-soft)", color: "var(--coral)", borderInlineEnd: tab === "upload" ? "1px solid rgba(255,107,94,0.3)" : undefined }
+                  : { background: "transparent", color: "var(--ink-faint)", borderInlineEnd: tab === "upload" ? "1px solid var(--glass-edge)" : undefined }
                 }
               >
                 {tab === "upload" ? "Upload Clip" : "Paste Link"}
@@ -210,7 +210,7 @@ export function AskClient({ initialThreads }: Props) {
                     {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
                     <video src={clipUrl} controls preload="metadata" className="w-full rounded-lg" style={{ maxHeight: 160, background: "#000" }} />
                     <div className="flex items-center justify-between">
-                      <p className="font-display text-[8px] tracking-widest text-teal">Clip ready ✓</p>
+                      <p className="font-display text-[11px] tracking-widest text-teal">Clip ready ✓</p>
                       <button type="button" onClick={clearClip} className="font-display text-[9px] tracking-widest text-coral">
                         Remove
                       </button>
@@ -270,7 +270,7 @@ export function AskClient({ initialThreads }: Props) {
                 <button
                   type="button"
                   onClick={() => setExpandedId(isOpen ? null : thread.id)}
-                  className="w-full flex items-start gap-3 px-4 py-3.5 rounded-2xl text-left transition-all"
+                  className="w-full flex items-start gap-3 px-4 py-3.5 rounded-2xl text-start transition-all"
                   style={{
                     background: "var(--glass)",
                     border: "1px solid var(--glass-edge)",
@@ -281,12 +281,12 @@ export function AskClient({ initialThreads }: Props) {
                     <p className="text-ink text-sm leading-snug line-clamp-2">{thread.question_text}</p>
                     <div className="flex items-center gap-2 mt-1.5">
                       <span
-                        className="font-display text-[9px] tracking-widest px-2 py-0.5 rounded"
+                        className="font-display text-[11px] tracking-widest px-2 py-0.5 rounded"
                         style={{ color: sm.color, background: sm.bg }}
                       >
                         {t(sm.labelKey).toUpperCase()}
                       </span>
-                      <span className="font-display text-[9px] tracking-widest text-ink-faint">
+                      <span className="font-display text-[11px] tracking-widest text-ink-faint">
                         {new Date(thread.submitted_at).toLocaleDateString("en-US", { month: "short", day: "numeric" })}
                       </span>
                     </div>

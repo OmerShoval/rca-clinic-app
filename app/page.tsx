@@ -149,7 +149,7 @@ export default function LoginPage() {
 
   if (checkingSession) {
     return (
-      <div className="min-h-screen bg-abyss flex items-center justify-center">
+      <div className="min-h-dvh bg-abyss flex items-center justify-center">
         <motion.div
           animate={{ opacity: [0.3, 1, 0.3] }}
           transition={{ duration: 1.8, repeat: Infinity }}
@@ -162,7 +162,7 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen bg-abyss flex flex-col items-center justify-center px-6 overflow-hidden">
+    <div className="relative min-h-dvh bg-abyss flex flex-col items-center justify-center px-6 overflow-hidden">
 
       {/* Subtle radial glow */}
       <div

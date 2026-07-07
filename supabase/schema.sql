@@ -98,6 +98,8 @@ CREATE TABLE rca.debrief_blocks (
   movement_id uuid                  -- FK → rca.movements(id), added phase0
 );
 
+-- student_videos IS the canonical video library (migration video_library_upgrade).
+-- Every coach upload, from any surface, writes one row here.
 CREATE TABLE rca.student_videos (
   id uuid NOT NULL DEFAULT gen_random_uuid(),
   student_id uuid NOT NULL,         -- FK → rca.students(id)
@@ -110,8 +112,27 @@ CREATE TABLE rca.student_videos (
   movement_id uuid,                 -- FK → rca.movements(id), added phase0
   wave_type text,                   -- added phase0
   is_best bool NOT NULL DEFAULT false,   -- added phase0
-  analysis jsonb                    -- {time_on_wave, speed_relative, foot_tag}, added phase0
+  analysis jsonb,                   -- {time_on_wave, speed_relative, foot_tag}, added phase0
+  -- video-library columns (migration video_library_upgrade)
+  provider text,                    -- cloudflare|youtube|vimeo|drive|gif|direct|link
+  stream_uid text,                  -- Cloudflare Stream uid (null for non-CF)
+  poster_url text,                  -- thumbnail / poster image URL
+  duration_s int4,                  -- length in seconds if known
+  size_bytes int8,                  -- original file size if known
+  mime_type text,
+  original_filename text,
+  tags text[] NOT NULL DEFAULT '{}',
+  source_type text,                 -- debrief_block|session|strategy_node|back_home|reply|reference|student_clip|manual
+  source_id text,                   -- id of the originating block/debrief/node/thread
+  status text NOT NULL DEFAULT 'ready',  -- uploading|processing|ready|error
+  checksum text,                    -- content hash for dedup
+  updated_at timestamptz NOT NULL DEFAULT now()
 );
+-- indexes: (student_id), (created_at desc), (debrief_id), (movement_id),
+--          (source_type, source_id), (kind), gin(tags),
+--          unique(student_id, checksum) where checksum not null,
+--          unique(student_id, video_url)
+-- trigger: trg_student_videos_touch keeps updated_at current on UPDATE.
 
 CREATE TABLE rca.translations (
   id uuid NOT NULL DEFAULT gen_random_uuid(),

@@ -110,7 +110,7 @@ function SubStepRow({
         <button
           onClick={toggleDone}
           onMouseDown={(e) => e.stopPropagation()}
-          className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mt-0.5 transition-all"
+          className="flex-shrink-0 w-4 h-4 rounded-full flex items-center justify-center mt-0.5 transition-all relative after:absolute after:-inset-3"
           style={{
             background: substep.done ? "rgba(80,200,100,0.85)" : "transparent",
             border: substep.done ? "none" : "1.5px solid rgba(255,255,255,0.3)",
@@ -149,7 +149,7 @@ function SubStepRow({
           <button
             onClick={(e) => { e.stopPropagation(); setLibOpen((o) => !o); }}
             onMouseDown={(e) => e.stopPropagation()}
-            className="flex-shrink-0 rounded px-1 py-0.5 font-display text-[7px] tracking-widest transition-all"
+            className="flex-shrink-0 rounded px-1 py-0.5 font-display text-[7px] tracking-widest transition-all relative after:absolute after:-inset-2"
             style={substep.videoUrl
               ? { background: "rgba(224,182,79,0.2)", color: "var(--gold)", border: "1px solid rgba(224,182,79,0.35)" }
               : { background: "rgba(255,255,255,0.06)", color: "var(--ink-faint)", border: "1px solid rgba(255,255,255,0.1)" }
@@ -163,7 +163,7 @@ function SubStepRow({
         <button
           onClick={(e) => { e.stopPropagation(); onRemove(); }}
           onMouseDown={(e) => e.stopPropagation()}
-          className="flex-shrink-0 font-display text-[9px] text-coral hover:opacity-70 transition-opacity"
+          className="flex-shrink-0 font-display text-[9px] text-coral hover:opacity-70 transition-opacity relative after:absolute after:-inset-2.5"
         >
           ✕
         </button>
@@ -201,7 +201,7 @@ function SubStepRow({
 
 // ── Step node ─────────────────────────────────────────────────────────────────
 
-export function StepNode({ data, selected }: NodeProps) {
+export function StepNode({ id, data, selected }: NodeProps) {
   const d = data as unknown as NodeData;
   const num = d.number ?? 1;
   const done = d.done ?? false;
@@ -286,7 +286,7 @@ export function StepNode({ data, selected }: NodeProps) {
           </p>
         )}
 
-        <MediaAttach url={d.url} onUrlChange={(v) => d.onUrlChange?.(v)} onUpload={d.onMediaUpload} studentId={d.studentId} studentSlug={d.studentSlug} studentName={d.studentName} />
+        <MediaAttach url={d.url} onUrlChange={(v) => d.onUrlChange?.(v)} onUpload={d.onMediaUpload} studentId={d.studentId} studentSlug={d.studentSlug} studentName={d.studentName} sourceType="strategy_node" sourceId={id} label={d.label} />
         <WhyField why={d.why} whyVisible={d.whyVisible} onWhyChange={d.onWhyChange} onWhyVisibleChange={d.onWhyVisibleChange} />
 
         {/* ── Sub-steps ── */}

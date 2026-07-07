@@ -6,6 +6,10 @@ import { useDropzone } from "react-dropzone";
 import { motion, AnimatePresence } from "motion/react";
 import { VideoTrimModal } from "@/components/ui/video-trim-modal";
 import { useUploadManager } from "@/lib/upload-manager";
+import { VideoThumb } from "@/components/ui/video-thumb";
+import { VideoSlot } from "@/components/ui/video-slot";
+import { VideoLibraryPicker } from "@/components/coach/video-library-picker";
+import type { VideoSourceType } from "@/lib/database.types";
 
 interface Props {
   label: string;
@@ -21,9 +25,13 @@ interface Props {
   debriefId?: string | null;
   debriefLabel?: string;
   debriefDayNum?: number | null;
+  /** Source tagging for the video library row. */
+  sourceType?: VideoSourceType;
+  sourceId?: string;
+  tags?: string[];
 }
 
-type Tab = "upload" | "paste";
+type Tab = "upload" | "paste" | "library";
 type UploadState = "idle" | "trimming" | "preview" | "uploading" | "done";
 
 /** Match `https://iframe.videodelivery.net/<uid>` */
@@ -66,6 +74,9 @@ export function VideoUploader({
   debriefId,
   debriefLabel,
   debriefDayNum,
+  sourceType,
+  sourceId,
+  tags,
 }: Props) {
   const uploadManager = useUploadManager();
 
@@ -77,6 +88,8 @@ export function VideoUploader({
   const [currentUploadId, setCurrentUploadId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [pasteValue, setPasteValue] = useState(value && !isHostedFile(value) ? value : "");
+  const [playingDone, setPlayingDone] = useState(false);
+  const [libraryOpen, setLibraryOpen] = useState(false);
 
   // Derive progress from the global upload queue
   const uploadProgress =
@@ -85,6 +98,7 @@ export function VideoUploader({
       : 0;
 
   useEffect(() => {
+    setPlayingDone(false);
     if (value && isHostedFile(value)) {
       setUploadState("done");
       setTab("upload");
@@ -147,7 +161,7 @@ export function VideoUploader({
       studentName,
       kind: "video",
       persistVideo: studentId
-        ? { studentId, debriefId, label: debriefLabel, dayNum: debriefDayNum, videoKind: "session" }
+        ? { studentId, debriefId, label: debriefLabel, dayNum: debriefDayNum, videoKind: "session", sourceType, sourceId, tags }
         : undefined,
       onComplete(url) {
         URL.revokeObjectURL(capturedPreviewUrl);
@@ -225,25 +239,44 @@ export function VideoUploader({
         )
       }
 
+      {/* Library picker — renders its own portal/modal */}
+      {libraryOpen && studentId && (
+        <VideoLibraryPicker
+          studentId={studentId}
+          onPick={(v) => { onChange(v.video_url); setLibraryOpen(false); setTab("library"); }}
+          onClose={() => setLibraryOpen(false)}
+        />
+      )}
+
       <div className="flex flex-col gap-2">
         <p className="font-display text-[9px] tracking-[0.2em] text-ink-faint">{label}</p>
 
         {/* Tabs */}
         <div className="flex rounded-lg overflow-hidden" style={{ border: "1px solid var(--glass-edge)" }}>
-          {(["upload", "paste"] as Tab[]).map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              className="flex-1 py-1.5 font-display text-[9px] tracking-widest transition-colors"
-              style={tab === t
-                ? { background: accentBg, color: accentColor, borderRight: t === "upload" ? `1px solid ${accentBorder}` : undefined }
-                : { background: "transparent", color: "var(--ink-faint)", borderRight: t === "upload" ? "1px solid var(--glass-edge)" : undefined }
-              }
-            >
-              {t === "upload" ? "Upload File" : "Paste Link"}
-            </button>
-          ))}
+          {(() => {
+            const tabDefs: { key: Tab; label: string }[] = [
+              { key: "upload", label: "Upload File" },
+              ...(studentId ? [{ key: "library" as Tab, label: "Library" }] : []),
+              { key: "paste", label: "Paste Link" },
+            ];
+            return tabDefs.map((t, i) => {
+              const isLast = i === tabDefs.length - 1;
+              return (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => setTab(t.key)}
+                  className="flex-1 py-3 font-display text-[9px] tracking-widest transition-colors"
+                  style={tab === t.key
+                    ? { background: accentBg, color: accentColor, borderRight: isLast ? undefined : `1px solid ${accentBorder}` }
+                    : { background: "transparent", color: "var(--ink-faint)", borderRight: isLast ? undefined : "1px solid var(--glass-edge)" }
+                  }
+                >
+                  {t.label}
+                </button>
+              );
+            });
+          })()}
         </div>
 
         <AnimatePresence mode="wait">
@@ -254,23 +287,20 @@ export function VideoUploader({
               {/* ── Done: CF Stream video ── */}
               {uploadState === "done" && cfUid && (
                 <div className="flex flex-col gap-2 rounded-xl overflow-hidden" style={{ border: `1px solid ${accentBorder}` }}>
-                  {/* Thumbnail from CF Stream */}
-                  <div className="relative" style={{ paddingTop: "56.25%", background: "#000" }}>
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={`https://videodelivery.net/${cfUid}/thumbnails/thumbnail.jpg?time=1s&height=400`}
-                      alt="Video thumbnail"
-                      className="absolute inset-0 w-full h-full object-cover"
-                    />
-                    <div className="absolute inset-0 flex items-center justify-center" style={{ background: "rgba(0,0,0,0.25)" }}>
-                      <span
-                        className="w-10 h-10 rounded-full flex items-center justify-center"
-                        style={{ background: "rgba(255,255,255,0.9)", color: "#000", fontSize: 14 }}
-                      >
-                        ▶
-                      </span>
-                    </div>
-                  </div>
+                  {playingDone ? (
+                    // Real, playable player once tapped
+                    <VideoSlot url={value} label={label} />
+                  ) : (
+                    // Tap the poster to expand into the player
+                    <button
+                      type="button"
+                      onClick={() => setPlayingDone(true)}
+                      className="block w-full text-left transition-opacity hover:opacity-90"
+                      aria-label="Play video"
+                    >
+                      <VideoThumb url={value} label={label} />
+                    </button>
+                  )}
                   <div className="flex items-center justify-between px-3 pb-2">
                     <p className="font-display text-[8px] tracking-widest" style={{ color: accentColor }}>
                       Cloudflare Stream ✓
@@ -381,6 +411,35 @@ export function VideoUploader({
                     Cancel
                   </button>
                 </motion.div>
+              )}
+            </motion.div>
+          )}
+
+          {/* ── Library tab ── */}
+          {tab === "library" && studentId && (
+            <motion.div key="library" initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -4 }} transition={{ duration: 0.15 }}>
+              {uploadState === "done" && value ? (
+                <div className="flex flex-col gap-2 rounded-xl p-3" style={{ background: "var(--glass)", border: `1px solid ${accentBorder}` }}>
+                  <VideoThumb url={value} label={label} />
+                  <div className="flex items-center justify-between">
+                    <p className="font-display text-[8px] tracking-widest" style={{ color: accentColor }}>From library ✓</p>
+                    <button type="button" onClick={handleReplace} className="font-display text-[9px] tracking-widest text-coral">
+                      Replace
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <button
+                  type="button"
+                  onClick={() => setLibraryOpen(true)}
+                  className="flex flex-col items-center justify-center gap-2 w-full rounded-xl p-5 cursor-pointer transition-colors select-none"
+                  style={{ border: `1px dashed var(--glass-edge)`, background: "var(--depth)" }}
+                >
+                  <span className="text-2xl">🎞️</span>
+                  <p className="font-display text-[10px] tracking-widest text-ink-faint text-center">
+                    Choose an existing clip
+                  </p>
+                </button>
               )}
             </motion.div>
           )}

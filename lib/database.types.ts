@@ -1,5 +1,29 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
+/** How a stored video URL should be resolved/rendered. Kept in sync with lib/video.ts detectProvider(). */
+export type VideoProvider =
+  | "cloudflare" // Cloudflare Stream (HLS)
+  | "youtube"
+  | "vimeo"
+  | "drive"
+  | "gif" // animated image, rendered as <img>
+  | "direct" // native <video> (mp4/mov/webm incl. Supabase Storage)
+  | "link"; // unknown → external anchor
+
+/** Where in the app a library video originated — used to tag & filter the library. */
+export type VideoSourceType =
+  | "debrief_block"
+  | "session"
+  | "strategy_node"
+  | "back_home"
+  | "reply"
+  | "reference"
+  | "student_clip"
+  | "manual";
+
+export type VideoKind = "session" | "node" | "reference";
+export type VideoStatus = "uploading" | "processing" | "ready" | "error";
+
 export interface Database {
   rca: {
     Tables: {
@@ -168,6 +192,7 @@ export interface Database {
           video_url: string | null;
           video_url_secondary: string | null;
           created_at: string;
+          movement_id: string | null;
         };
         Insert: {
           debrief_id: string;
@@ -181,6 +206,7 @@ export interface Database {
           why_it_happened?: string | null;
           video_url?: string | null;
           video_url_secondary?: string | null;
+          movement_id?: string | null;
         };
         Update: {
           type?: "mistake" | "correction" | "improvement" | "goal" | "next_step";
@@ -193,6 +219,7 @@ export interface Database {
           why_it_happened?: string | null;
           video_url?: string | null;
           video_url_secondary?: string | null;
+          movement_id?: string | null;
         };
         Relationships: [];
       };
@@ -291,24 +318,75 @@ export interface Database {
           video_url: string;
           label: string;
           day_number: number | null;
-          kind: "session" | "node" | "reference";
+          kind: VideoKind;
           debrief_id: string | null;
           created_at: string;
+          // phase0 analysis columns
+          movement_id: string | null;
+          wave_type: string | null;
+          is_best: boolean;
+          analysis: Json | null;
+          // video-library columns
+          provider: VideoProvider | null;
+          stream_uid: string | null;
+          poster_url: string | null;
+          duration_s: number | null;
+          size_bytes: number | null;
+          mime_type: string | null;
+          original_filename: string | null;
+          tags: string[];
+          source_type: VideoSourceType | null;
+          source_id: string | null;
+          status: VideoStatus;
+          checksum: string | null;
+          updated_at: string;
         };
         Insert: {
           student_id: string;
           video_url: string;
           label?: string;
           day_number?: number | null;
-          kind?: "session" | "node" | "reference";
+          kind?: VideoKind;
           debrief_id?: string | null;
+          movement_id?: string | null;
+          wave_type?: string | null;
+          is_best?: boolean;
+          analysis?: Json | null;
+          provider?: VideoProvider | null;
+          stream_uid?: string | null;
+          poster_url?: string | null;
+          duration_s?: number | null;
+          size_bytes?: number | null;
+          mime_type?: string | null;
+          original_filename?: string | null;
+          tags?: string[];
+          source_type?: VideoSourceType | null;
+          source_id?: string | null;
+          status?: VideoStatus;
+          checksum?: string | null;
         };
         Update: {
           video_url?: string;
           label?: string;
           day_number?: number | null;
-          kind?: "session" | "node" | "reference";
+          kind?: VideoKind;
           debrief_id?: string | null;
+          movement_id?: string | null;
+          wave_type?: string | null;
+          is_best?: boolean;
+          analysis?: Json | null;
+          provider?: VideoProvider | null;
+          stream_uid?: string | null;
+          poster_url?: string | null;
+          duration_s?: number | null;
+          size_bytes?: number | null;
+          mime_type?: string | null;
+          original_filename?: string | null;
+          tags?: string[];
+          source_type?: VideoSourceType | null;
+          source_id?: string | null;
+          status?: VideoStatus;
+          checksum?: string | null;
         };
         Relationships: [];
       };
@@ -329,3 +407,9 @@ export type Translation  = Database["rca"]["Tables"]["translations"]["Row"];
 export type Thread       = Database["rca"]["Tables"]["threads"]["Row"];
 export type Tag          = Database["rca"]["Tables"]["tags"]["Row"];
 export type HabitLogRow  = Database["rca"]["Tables"]["habit_logs"]["Row"];
+export type StudentVideo = Database["rca"]["Tables"]["student_videos"]["Row"];
+/** A video-library item joined with its student's display fields (as returned by the library API). */
+export type LibraryVideo = StudentVideo & {
+  student_name?: string | null;
+  student_slug?: string | null;
+};

@@ -401,17 +401,20 @@ function StrategyCanvas({ studentId, studentSlug, studentName }: StrategyCanvasP
         onEdgeContextMenu={onEdgeContextMenu}
         onDoubleClick={onPaneDoubleClick}
         fitView
-        fitViewOptions={{ padding: 0.2 }}
+        fitViewOptions={{ maxZoom: 1, padding: 0.1 }}
+        zoomOnDoubleClick={false}
         deleteKeyCode="Delete"
         proOptions={{ hideAttribution: true }}
         style={{ background: "var(--abyss)" }}
       >
         <Background variant={BackgroundVariant.Dots} gap={20} size={1} color="rgba(255,255,255,0.06)" />
         <Controls
+          className="hidden md:flex"
           style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}
           showInteractive={false}
         />
         <MiniMap
+          className="hidden md:block"
           style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}
           nodeColor={(n) => {
             const colors: Record<string, string> = { context: "#8b5cf6", goal: "#3b82f6", factor: "#2fd6c0", step: "#e0b64f", media: "#6b7280", section: "#374151" };
@@ -482,10 +485,20 @@ function NodeTypePicker({ x, y, onPick, onClose }: { x: number; y: number; onPic
     return () => window.removeEventListener("keydown", handler);
   }, [onClose]);
 
+  // Clamp so the menu (centered on the tap point) never renders off-screen
+  const MENU_W = 160;
+  const MENU_H = 250;
+  const clampedX = typeof window !== "undefined"
+    ? Math.min(Math.max(8 + MENU_W / 2, x), window.innerWidth - MENU_W / 2 - 8)
+    : x;
+  const clampedY = typeof window !== "undefined"
+    ? Math.min(Math.max(8 + MENU_H / 2, y), window.innerHeight - MENU_H / 2 - 8)
+    : y;
+
   return (
     <div
-      className="fixed z-50 rounded-2xl p-2 flex flex-col gap-1 shadow-2xl"
-      style={{ left: x, top: y, transform: "translate(-50%, -50%)", background: "var(--depth)", border: "1px solid var(--glass-edge)", minWidth: 160 }}
+      className="fixed z-50 rounded-2xl p-2 flex flex-col gap-1 shadow-2xl max-h-[70dvh] overflow-y-auto"
+      style={{ left: clampedX, top: clampedY, transform: "translate(-50%, -50%)", background: "var(--depth)", border: "1px solid var(--glass-edge)", minWidth: 160 }}
     >
       <p className="font-display text-[8px] tracking-[0.2em] text-ink-faint px-2 pt-1">ADD NODE</p>
       {NODE_TYPES.map(({ type, label, color }) => (
@@ -506,7 +519,7 @@ function NodeTypePicker({ x, y, onPick, onClose }: { x: number; y: number; onPic
 export function StrategyBuilder({ studentId, studentSlug, studentName }: { studentId: string; studentSlug: string; studentName: string }) {
   return (
     <ReactFlowProvider>
-      <div style={{ height: "calc(100vh - 200px)", minHeight: 480 }}>
+      <div style={{ height: "calc(100dvh - 200px)", minHeight: 480 }}>
         <StrategyCanvas studentId={studentId} studentSlug={studentSlug} studentName={studentName} />
       </div>
     </ReactFlowProvider>

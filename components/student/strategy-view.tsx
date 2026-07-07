@@ -2,6 +2,8 @@
 
 import { motion } from "motion/react";
 import { useLanguage } from "@/lib/language-context";
+import { VideoSlot } from "@/components/ui/video-slot";
+import { VideoThumb } from "@/components/ui/video-thumb";
 
 export interface StrategyNode {
   id: string;
@@ -41,21 +43,17 @@ function getYoutubeThumbnail(url: string): string | null {
 }
 
 function isImageUrl(url: string) {
-  return /\.(gif|jpe?g|png|webp|svg)(\?|$)/i.test(url);
-}
-
-function isVideoUrl(url: string) {
-  return /\.(mp4|webm|mov|avi)(\?|$)/i.test(url);
+  return /\.(jpe?g|png|webp|svg)(\?|$)/i.test(url);
 }
 
 function NodeMedia({ url, caption }: { url: string; caption?: string }) {
-  const thumb = getYoutubeThumbnail(url) ?? (isImageUrl(url) ? url : null);
-  if (thumb) {
+  // Still images link out to the full asset.
+  if (isImageUrl(url)) {
     return (
       <a href={url} target="_blank" rel="noopener noreferrer" className="block mt-2">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
-          src={thumb}
+          src={url}
           alt={caption ?? "media"}
           className="w-full rounded-lg object-cover"
           style={{ maxHeight: 140 }}
@@ -66,18 +64,16 @@ function NodeMedia({ url, caption }: { url: string; caption?: string }) {
       </a>
     );
   }
-  if (isVideoUrl(url)) {
-    return (
-      <div className="mt-2">
-        {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-        <video src={url} controls className="w-full rounded-lg" style={{ maxHeight: 180 }} />
-        {caption && (
-          <p className="font-display text-[8px] text-ink-faint mt-0.5 text-center">{caption}</p>
-        )}
-      </div>
-    );
-  }
-  return null;
+  // Everything playable (Cloudflare, direct/Supabase mp4, .m3u8, YouTube/Vimeo,
+  // gif, external link) goes through the one consistent VideoSlot path.
+  return (
+    <div className="mt-2">
+      <VideoSlot url={url} label={caption} />
+      {caption && (
+        <p className="font-display text-[8px] text-ink-faint mt-0.5 text-center">{caption}</p>
+      )}
+    </div>
+  );
 }
 
 export function StrategyView({ strategy }: Props) {
@@ -195,7 +191,7 @@ export function StrategyView({ strategy }: Props) {
               >
                 {f.data.label}
                 {f.data.why && f.data.whyVisible && (
-                  <span className="ml-1 opacity-60" style={{ fontStyle: "italic" }}>· {f.data.why}</span>
+                  <span className="ms-1 opacity-60" style={{ fontStyle: "italic" }}>· {f.data.why}</span>
                 )}
               </span>
             ))}
@@ -261,28 +257,30 @@ export function StrategyView({ strategy }: Props) {
           <div className="flex gap-2 flex-wrap">
             {medias.map((m) => {
               if (!m.data.url) return null;
-              const thumb = m.data.url
-                ? (getYoutubeThumbnail(m.data.url) ?? (isImageUrl(m.data.url) ? m.data.url : null))
-                : null;
-              if (thumb) {
+              // Still images: link out to the full-size asset.
+              if (isImageUrl(m.data.url)) {
                 return (
                   <a key={m.id} href={m.data.url} target="_blank" rel="noopener noreferrer" className="flex flex-col gap-1">
                     {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img src={thumb} alt={m.data.caption ?? "media"} className="w-24 h-16 object-cover rounded-lg" />
+                    <img src={m.data.url} alt={m.data.caption ?? "media"} className="w-24 h-16 object-cover rounded-lg" />
                     {m.data.caption && <p className="font-display text-[8px] text-ink-faint text-center">{m.data.caption}</p>}
                   </a>
                 );
               }
-              if (isVideoUrl(m.data.url)) {
-                return (
-                  <div key={m.id} className="flex flex-col gap-1">
-                    {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-                    <video src={m.data.url} controls className="w-40 rounded-lg" style={{ maxHeight: 90 }} />
-                    {m.data.caption && <p className="font-display text-[8px] text-ink-faint text-center">{m.data.caption}</p>}
-                  </div>
-                );
-              }
-              return null;
+              // Playable media: a VideoThumb preview that links out. YouTube gets
+              // its own still via the call-site helper (lib/video has no YT thumb).
+              return (
+                <a key={m.id} href={m.data.url} target="_blank" rel="noopener noreferrer" className="flex flex-col gap-1">
+                  <VideoThumb
+                    url={m.data.url}
+                    posterUrl={getYoutubeThumbnail(m.data.url)}
+                    label={m.data.caption}
+                    height={120}
+                    className="w-40 rounded-lg"
+                  />
+                  {m.data.caption && <p className="font-display text-[8px] text-ink-faint text-center">{m.data.caption}</p>}
+                </a>
+              );
             })}
           </div>
         )}

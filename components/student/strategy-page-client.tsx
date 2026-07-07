@@ -12,7 +12,7 @@ export function StrategyPageClient({ studentName, strategy }: Props) {
   const { t } = useLanguage();
 
   return (
-    <main className="flex flex-col px-5 pt-10 pb-28 gap-6 max-w-lg mx-auto">
+    <main className="flex flex-col px-5 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-nav gap-6 max-w-lg mx-auto">
       <div
         className="pointer-events-none fixed inset-0 -z-10"
         style={{ background: "radial-gradient(ellipse 700px 350px at 50% 0%, rgba(139,92,246,0.06), transparent 65%)" }}

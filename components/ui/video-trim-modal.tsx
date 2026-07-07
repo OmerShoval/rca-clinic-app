@@ -32,6 +32,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
   const [progress, setProgress] = useState(0);
   const [error, setError] = useState<string | null>(null);
   const cancelRef = useRef(false);
+  const lastSeekRef = useRef(0);
 
   useEffect(() => {
     return () => URL.revokeObjectURL(objectUrl);
@@ -69,27 +70,33 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
 
   useEffect(() => {
     if (!dragging) return;
-    function onMove(e: MouseEvent | TouchEvent) {
-      const x = "touches" in e ? e.touches[0].clientX : e.clientX;
-      const pct = getPct(x);
+    function onMove(e: PointerEvent) {
+      const pct = getPct(e.clientX);
       if (dragging === "start") {
         setStartPct(Math.min(pct, endPct - 0.02));
-        if (videoRef.current && duration) videoRef.current.currentTime = pct * duration;
       } else {
         setEndPct(Math.max(pct, startPct + 0.02));
-        if (videoRef.current && duration) videoRef.current.currentTime = pct * duration;
+      }
+      // Throttle live preview seeks during drag (per-move seeking stutters on mobile)
+      const now = Date.now();
+      if (videoRef.current && duration && now - lastSeekRef.current > 150) {
+        lastSeekRef.current = now;
+        videoRef.current.currentTime = pct * duration;
       }
     }
-    function onUp() { setDragging(null); }
-    window.addEventListener("mousemove", onMove);
-    window.addEventListener("mouseup", onUp);
-    window.addEventListener("touchmove", onMove);
-    window.addEventListener("touchend", onUp);
+    function onUp(e: PointerEvent) {
+      if (videoRef.current && duration) {
+        videoRef.current.currentTime = getPct(e.clientX) * duration;
+      }
+      setDragging(null);
+    }
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onUp);
     return () => {
-      window.removeEventListener("mousemove", onMove);
-      window.removeEventListener("mouseup", onUp);
-      window.removeEventListener("touchmove", onMove);
-      window.removeEventListener("touchend", onUp);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+      window.removeEventListener("pointercancel", onUp);
     };
   }, [dragging, startPct, endPct, duration, getPct]);
 
@@ -162,6 +169,16 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
   const busy = phase === "loading_engine" || phase === "trimming";
   const [minimized, setMinimized] = useState(false);
 
+  // Lock body scroll while the full modal is open
+  useEffect(() => {
+    if (minimized) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = prev;
+    };
+  }, [minimized]);
+
   // ── Minimized floating pill ────────────────────────────────────────────────
   if (minimized) {
     return (
@@ -170,8 +187,8 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
         animate={{ opacity: 1, y: 0, scale: 1 }}
         style={{
           position: "fixed",
-          bottom: 20,
-          right: 20,
+          bottom: "calc(20px + env(safe-area-inset-bottom))",
+          insetInlineEnd: 20,
           zIndex: 50,
           width: 280,
           borderRadius: 16,
@@ -198,7 +215,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
           <div className="flex items-center gap-1.5">
             <button
               onClick={() => setMinimized(false)}
-              className="w-6 h-6 rounded-lg flex items-center justify-center transition-opacity hover:opacity-80"
+              className="relative w-6 h-6 rounded-lg flex items-center justify-center transition-opacity hover:opacity-80 after:absolute after:-inset-2.5"
               style={{ background: "rgba(255,255,255,0.07)", fontSize: 11, color: "var(--ink-faint)" }}
               title="Restore"
             >
@@ -206,7 +223,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
             </button>
             <button
               onClick={cancel}
-              className="w-6 h-6 rounded-lg flex items-center justify-center transition-opacity hover:opacity-80"
+              className="relative w-6 h-6 rounded-lg flex items-center justify-center transition-opacity hover:opacity-80 after:absolute after:-inset-2.5"
               style={{ background: "rgba(255,80,60,0.12)", fontSize: 10, color: "var(--coral)" }}
               title="Cancel"
             >
@@ -232,14 +249,19 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      style={{ background: "rgba(0,0,0,0.82)", backdropFilter: "blur(6px)" }}
+      style={{
+        background: "rgba(0,0,0,0.82)",
+        backdropFilter: "blur(6px)",
+        paddingTop: "max(1rem, env(safe-area-inset-top))",
+        paddingBottom: "max(1rem, env(safe-area-inset-bottom))",
+      }}
     >
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.95 }}
         transition={{ duration: 0.18 }}
-        className="flex flex-col gap-4 rounded-2xl p-5 w-full max-w-lg"
+        className="flex flex-col gap-4 rounded-2xl p-5 w-full max-w-lg max-h-[85dvh] overflow-y-auto"
         style={{ background: "var(--depth)", border: "1px solid var(--glass-edge)" }}
       >
         <div className="flex items-center justify-between">
@@ -271,7 +293,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
             {/* Track */}
             <div
               ref={timelineRef}
-              className="relative h-8 rounded-lg select-none"
+              className="relative h-8 rounded-lg select-none touch-none"
               style={{ background: "rgba(255,255,255,0.06)", border: "1px solid var(--glass-edge)" }}
             >
               {/* Gold fill between handles */}
@@ -288,20 +310,24 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
 
               {/* Start handle */}
               <div
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full cursor-ew-resize flex items-center justify-center shadow-lg"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full cursor-ew-resize flex items-center justify-center shadow-lg touch-none after:absolute after:-inset-3.5"
                 style={{ left: `${startPct * 100}%`, background: "var(--gold)", zIndex: 2 }}
-                onMouseDown={(e) => { e.preventDefault(); setDragging("start"); }}
-                onTouchStart={(e) => { e.preventDefault(); setDragging("start"); }}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  setDragging("start");
+                }}
               >
                 <span style={{ fontSize: 8, color: "var(--abyss)", fontWeight: 700 }}>◀</span>
               </div>
 
               {/* End handle */}
               <div
-                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full cursor-ew-resize flex items-center justify-center shadow-lg"
+                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 w-5 h-5 rounded-full cursor-ew-resize flex items-center justify-center shadow-lg touch-none after:absolute after:-inset-3.5"
                 style={{ left: `${endPct * 100}%`, background: "var(--gold)", zIndex: 2 }}
-                onMouseDown={(e) => { e.preventDefault(); setDragging("end"); }}
-                onTouchStart={(e) => { e.preventDefault(); setDragging("end"); }}
+                onPointerDown={(e) => {
+                  e.currentTarget.setPointerCapture(e.pointerId);
+                  setDragging("end");
+                }}
               >
                 <span style={{ fontSize: 8, color: "var(--abyss)", fontWeight: 700 }}>▶</span>
               </div>
@@ -350,7 +376,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
           <button
             onClick={trimAndCompress}
             disabled={busy || duration === 0}
-            className="flex-1 rounded-xl py-2.5 font-display text-[11px] tracking-widest text-abyss transition-opacity"
+            className="flex-1 rounded-xl py-2.5 min-h-11 font-display text-[11px] tracking-widest text-abyss transition-opacity"
             style={{ background: "var(--gold)", opacity: busy || duration === 0 ? 0.5 : 1 }}
           >
             {busy ? "Processing…" : "Trim & Compress"}
@@ -358,7 +384,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
           {busy && (
             <button
               onClick={() => setMinimized(true)}
-              className="rounded-xl px-3 py-2.5 font-display text-[10px] tracking-widest"
+              className="rounded-xl px-3 py-2.5 min-h-11 font-display text-[10px] tracking-widest"
               style={{ border: "1px solid rgba(224,182,79,0.3)", background: "rgba(224,182,79,0.07)", color: "var(--gold)" }}
               title="Run in background"
             >
@@ -368,7 +394,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
           {onSkipTrim && (
             <button
               onClick={() => { cancelRef.current = true; onSkipTrim(file); }}
-              className="rounded-xl px-3 py-2.5 font-display text-[10px] tracking-widest text-teal"
+              className="rounded-xl px-3 py-2.5 min-h-11 font-display text-[10px] tracking-widest text-teal"
               style={{ border: "1px solid rgba(47,214,192,0.3)", background: "rgba(47,214,192,0.07)" }}
               title="Upload the original file without trimming or compressing"
             >
@@ -377,7 +403,7 @@ export function VideoTrimModal({ file, onConfirm, onCancel, onSkipTrim }: Props)
           )}
           <button
             onClick={cancel}
-            className="rounded-xl px-4 py-2.5 font-display text-[11px] tracking-widest text-ink-faint"
+            className="rounded-xl px-4 py-2.5 min-h-11 font-display text-[11px] tracking-widest text-ink-faint"
             style={{ border: "1px solid var(--glass-edge)" }}
           >
             Cancel

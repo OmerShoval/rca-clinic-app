@@ -1,31 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireCoachAuth } from "@/lib/coach-auth";
 import { createServerClient } from "@/lib/supabase";
+import {
+  extForMime,
+  VIDEO_MIME_TYPES,
+  IMAGE_MIME_TYPES,
+  AUDIO_MIME_TYPES,
+} from "@/lib/video";
 
-const AUDIO_TYPES = ["audio/webm", "audio/mp4", "audio/mpeg", "audio/ogg", "audio/wav"];
-const VIDEO_TYPES = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
-const IMAGE_TYPES = ["image/gif", "image/jpeg", "image/png", "image/webp", "image/heic"];
-const ALL_TYPES = [...AUDIO_TYPES, ...VIDEO_TYPES, ...IMAGE_TYPES];
+export const runtime = "nodejs";
+export const maxDuration = 60;
 
-function getExtension(mimeType: string): string {
-  const map: Record<string, string> = {
-    "video/mp4": "mp4",
-    "video/webm": "webm",
-    "video/quicktime": "mov",
-    "video/x-msvideo": "avi",
-    "image/gif": "gif",
-    "image/jpeg": "jpg",
-    "image/png": "png",
-    "image/webp": "webp",
-    "image/heic": "heic",
-    "audio/webm": "webm",
-    "audio/mp4": "m4a",
-    "audio/mpeg": "mp3",
-    "audio/ogg": "ogg",
-    "audio/wav": "wav",
-  };
-  return map[mimeType] ?? "bin";
-}
+const ALL_TYPES = [
+  ...AUDIO_MIME_TYPES,
+  ...VIDEO_MIME_TYPES,
+  ...IMAGE_MIME_TYPES,
+] as string[];
 
 export async function POST(req: NextRequest) {
   const deny = await requireCoachAuth();
@@ -55,7 +45,7 @@ export async function POST(req: NextRequest) {
     fileSizeLimit: 100 * 1024 * 1024, // 100 MB
   });
 
-  const ext = getExtension(file.type);
+  const ext = extForMime(file.type);
   const folder = kind === "cover" ? "cover-photos" : kind === "node" ? "node-media" : kind === "video" ? "coach-clips" : "coach-notes";
   const path = `${folder}/${studentSlug}/${Date.now()}.${ext}`;
 

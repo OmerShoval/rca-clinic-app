@@ -6,10 +6,11 @@ const FFMPEG_CORE_URL = "/ffmpeg/ffmpeg-core.js";
 const FFMPEG_WASM_URL = "/ffmpeg/ffmpeg-core.wasm";
 
 let instance: FFmpeg | null = null;
+// Cache the in-flight load Promise (not just the resolved instance) so two
+// simultaneous callers share a single WASM load / one FFmpeg instance.
+let loadPromise: Promise<FFmpeg> | null = null;
 
-export async function loadFFmpeg(onProgress?: (progress: number) => void): Promise<FFmpeg> {
-  if (instance) return instance;
-
+async function doLoad(onProgress?: (progress: number) => void): Promise<FFmpeg> {
   const { FFmpeg } = await import("@ffmpeg/ffmpeg");
   const { toBlobURL } = await import("@ffmpeg/util");
 
@@ -29,9 +30,22 @@ export async function loadFFmpeg(onProgress?: (progress: number) => void): Promi
   return ff;
 }
 
+export async function loadFFmpeg(onProgress?: (progress: number) => void): Promise<FFmpeg> {
+  if (instance) return instance;
+  if (loadPromise) return loadPromise;
+
+  loadPromise = doLoad(onProgress).catch((err) => {
+    // Allow a retry after a failed load rather than caching the rejection forever.
+    loadPromise = null;
+    throw err;
+  });
+  return loadPromise;
+}
+
 export function clearFFmpegInstance() {
   if (instance) {
     instance.terminate();
     instance = null;
   }
+  loadPromise = null;
 }

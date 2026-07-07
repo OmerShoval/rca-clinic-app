@@ -128,6 +128,9 @@ export function BlockEditor({ block, studentSlug, studentName, studentId, debrie
                       accentColor={meta.color}
                       accentBg={meta.bg}
                       accentBorder={meta.border}
+                      sourceType="debrief_block"
+                      sourceId={block.id}
+                      tags={[block.type]}
                       onChange={(url) => onChange(block.id, field, url)}
                     />
                   );

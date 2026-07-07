@@ -32,14 +32,17 @@ export default async function StudentLayout({ children, params }: Props) {
 
   return (
     <LanguageProvider>
-      <div className="min-h-screen bg-abyss flex flex-col">
+      <div className="min-h-dvh bg-abyss flex flex-col">
         {/* Language toggle — top-LEFT, own corner, always visible */}
-        <div className="fixed top-4 left-4 z-50" dir="ltr">
+        <div
+          className="fixed left-4 z-50 top-[max(1rem,env(safe-area-inset-top))]"
+          dir="ltr"
+        >
           <LanguageToggle />
         </div>
 
         {/* Logout — top-RIGHT, own corner */}
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed right-4 z-50 top-[max(1rem,env(safe-area-inset-top))]">
           <LogoutButton />
         </div>
 

@@ -41,7 +41,7 @@ export default async function HomeBasePage({ params }: Props) {
   const wavePool = list.find((t) => t.environment === "wave_pool") as Translation | null ?? null;
 
   return (
-    <main className="flex flex-col px-5 pt-10 pb-28 gap-6">
+    <main className="flex flex-col px-5 pt-[calc(env(safe-area-inset-top)+3.5rem)] pb-nav gap-6">
       {/* Radial glow */}
       <div
         className="pointer-events-none fixed inset-0 -z-10"

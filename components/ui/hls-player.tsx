@@ -3,9 +3,15 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "motion/react";
 import { cn } from "@/lib/utils";
+import { cfManifestUrl, cfThumbnailUrl } from "@/lib/video";
 
 interface HlsPlayerProps {
-  uid: string;
+  /** Cloudflare Stream uid — manifest + poster are derived from it. */
+  uid?: string;
+  /** Arbitrary HLS manifest URL (used when no `uid` is given). */
+  manifestUrl?: string;
+  /** Poster/still image URL (used when no `uid` is given; may be undefined). */
+  posterUrl?: string;
   label?: string;
   className?: string;
 }
@@ -20,13 +26,15 @@ function fmtTime(s: number): string {
   return `${m}:${String(sec).padStart(2, "0")}`;
 }
 
-export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
+export function HlsPlayer({ uid, manifestUrl, posterUrl, label, className }: HlsPlayerProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const hideTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [started, setStarted] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [buffering, setBuffering] = useState(false);
+  const [posterError, setPosterError] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(0);
   const [bufferedPct, setBufferedPct] = useState(0);
@@ -35,13 +43,18 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const hlsUrl = `https://videodelivery.net/${uid}/manifest/video.m3u8`;
-  const thumbUrl = `https://videodelivery.net/${uid}/thumbnails/thumbnail.jpg?time=1s&height=400`;
+  // Manifest + poster resolve from a CF uid when given, else the explicit props.
+  const hlsUrl = uid ? cfManifestUrl(uid) : manifestUrl ?? null;
+  const thumbUrl = uid ? cfThumbnailUrl(uid) : posterUrl ?? null;
 
   // Load hls.js dynamically and attach to the video element
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
+    if (!hlsUrl) {
+      setError("Video unavailable.");
+      return;
+    }
 
     let hlsInstance: import("hls.js").default | null = null;
     let cancelled = false;
@@ -70,7 +83,7 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
       cancelled = true;
       hlsInstance?.destroy();
     };
-  }, [uid, hlsUrl]);
+  }, [hlsUrl]);
 
   // Sync video events to state
   useEffect(() => {
@@ -85,6 +98,8 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
     };
     const onDurationChange = () => setDuration(isFinite(v.duration) ? v.duration : 0);
     const onPlay = () => setPlaying(true);
+    const onPlaying = () => { setPlaying(true); setBuffering(false); };
+    const onWaiting = () => setBuffering(true);
     const onPause = () => { setPlaying(false); setControlsVisible(true); };
     const onEnded = () => { setPlaying(false); setControlsVisible(true); };
     const onFsChange = () => setIsFullscreen(!!document.fullscreenElement);
@@ -92,6 +107,8 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
     v.addEventListener("timeupdate", onTimeUpdate);
     v.addEventListener("durationchange", onDurationChange);
     v.addEventListener("play", onPlay);
+    v.addEventListener("playing", onPlaying);
+    v.addEventListener("waiting", onWaiting);
     v.addEventListener("pause", onPause);
     v.addEventListener("ended", onEnded);
     document.addEventListener("fullscreenchange", onFsChange);
@@ -100,6 +117,8 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
       v.removeEventListener("timeupdate", onTimeUpdate);
       v.removeEventListener("durationchange", onDurationChange);
       v.removeEventListener("play", onPlay);
+      v.removeEventListener("playing", onPlaying);
+      v.removeEventListener("waiting", onWaiting);
       v.removeEventListener("pause", onPause);
       v.removeEventListener("ended", onEnded);
       document.removeEventListener("fullscreenchange", onFsChange);
@@ -123,17 +142,22 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
     }, HIDE_DELAY);
   }, []);
 
-  function togglePlay() {
+  async function togglePlay() {
     const v = videoRef.current;
     if (!v) return;
     if (!started) {
       setStarted(true);
-      v.play();
+      setBuffering(true);
+      await v.play().catch(() => {});
       flashControls();
       return;
     }
-    if (v.paused) { v.play(); flashControls(); }
-    else { v.pause(); }
+    if (v.paused) {
+      await v.play().catch(() => {});
+      flashControls();
+    } else {
+      v.pause();
+    }
   }
 
   function handleSeek(e: React.ChangeEvent<HTMLInputElement>) {
@@ -152,13 +176,23 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
 
   async function toggleFullscreen() {
     if (!document.fullscreenElement) {
-      await containerRef.current?.requestFullscreen();
+      // iPhone Safari has no Element.requestFullscreen — fall back to the
+      // video element's native webkitEnterFullscreen.
+      const v = videoRef.current as
+        | (HTMLVideoElement & { webkitEnterFullscreen?: () => void })
+        | null;
+      if (containerRef.current?.requestFullscreen && document.fullscreenEnabled) {
+        await containerRef.current.requestFullscreen();
+      } else {
+        v?.webkitEnterFullscreen?.();
+      }
     } else {
       await document.exitFullscreen();
     }
   }
 
   const progress = duration > 0 ? (currentTime / duration) * 100 : 0;
+  const showPoster = !!thumbUrl && !posterError && !started;
 
   return (
     <div
@@ -168,17 +202,44 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
       onMouseMove={() => { if (started && playing) flashControls(); }}
       onTouchStart={() => { if (started && playing) flashControls(); }}
     >
-      {/* ── Video element ── */}
+      {/* ── Video element (no native poster — we render a resilient one below) ── */}
       {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
       <video
         ref={videoRef}
         className="absolute inset-0 w-full h-full object-contain"
         playsInline
         preload="metadata"
-        poster={thumbUrl}
         onClick={togglePlay}
         style={{ cursor: "pointer" }}
       />
+
+      {/* ── Poster still (falls back to a black frame if it 404s while transcoding) ── */}
+      {showPoster && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={thumbUrl!}
+          alt={label ?? "video poster"}
+          className="absolute inset-0 w-full h-full object-contain pointer-events-none"
+          onError={() => setPosterError(true)}
+        />
+      )}
+
+      {/* ── Buffering spinner (between play-tap and playback start / mid-stall) ── */}
+      {started && buffering && (
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+          <motion.div
+            className="rounded-full"
+            style={{
+              width: 40,
+              height: 40,
+              border: "3px solid rgba(255,255,255,0.25)",
+              borderTopColor: "var(--teal)",
+            }}
+            animate={{ rotate: 360 }}
+            transition={{ duration: 0.8, repeat: Infinity, ease: "linear" }}
+          />
+        </div>
+      )}
 
       {/* ── Before play: big play button over thumbnail ── */}
       <AnimatePresence>
@@ -217,13 +278,14 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
+            dir="ltr"
             className="absolute bottom-0 left-0 right-0 px-3 pt-10 pb-3 flex flex-col gap-2.5"
             style={{
               background: "linear-gradient(to top, rgba(0,0,0,0.85) 0%, transparent 100%)",
             }}
           >
             {/* ── Scrubber ── */}
-            <div className="relative h-4 flex items-center">
+            <div className="relative h-11 flex items-center" style={{ touchAction: "none" }}>
               {/* Track backgrounds */}
               <div
                 className="absolute rounded-full pointer-events-none"
@@ -263,7 +325,7 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
               <button
                 type="button"
                 onClick={togglePlay}
-                className="w-7 h-7 flex items-center justify-center flex-shrink-0 text-white"
+                className="w-11 h-11 -m-2 flex items-center justify-center flex-shrink-0 text-white"
                 aria-label={playing ? "Pause" : "Play"}
               >
                 <span style={{ fontSize: 15 }}>{playing ? "⏸" : "▶"}</span>
@@ -282,7 +344,7 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
                   key={rate}
                   type="button"
                   onClick={() => applySpeed(rate)}
-                  className="font-display text-[9px] tracking-wide px-2 py-0.5 rounded transition-colors flex-shrink-0"
+                  className="font-display text-[9px] tracking-wide px-3 py-2.5 rounded transition-colors flex-shrink-0"
                   style={
                     speed === rate
                       ? { background: "var(--teal)", color: "var(--abyss)" }
@@ -298,7 +360,7 @@ export function HlsPlayer({ uid, label, className }: HlsPlayerProps) {
               <button
                 type="button"
                 onClick={toggleFullscreen}
-                className="w-7 h-7 flex items-center justify-center flex-shrink-0 text-white/75"
+                className="w-11 h-11 -m-2 flex items-center justify-center flex-shrink-0 text-white/75"
                 aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
               >
                 <span style={{ fontSize: 13 }}>{isFullscreen ? "⊡" : "⛶"}</span>
