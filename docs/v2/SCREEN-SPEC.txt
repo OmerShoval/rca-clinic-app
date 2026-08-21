@@ -1,0 +1,592 @@
+======================================================================
+SUMMARY: Four coach-facing surfaces plus one shared feedback layer, all inside the single 390px artboard, switched by opacity/visibility flags (full screens) or translateY(105%) (bottom sheets).
+
+THE SHAPE OF THE COACH SIDE: it is a two-stroke engine. The Session Tagger (tgS) is intake — one clip bound to athlete × movement-stage × voice note, filed straight into an open chapter draft from the beach. The Composer (composerS) is output — that draft turned into student-readable prose and published. The Coach Desk (coachS) is the debt dashboard between them (2 drafts, 2 inbox, 128 clips, 71% habits, 6/11 path steps), and the Athlete Sheet (athS) is the 5-second briefing before speaking to a person. Role switching is a single pill in the same position on both sides: "Coach ▾" → student library, "Student ▾" → coach desk.
+
+(a) THE QUICK-GLANCE CARD (athS) has exactly seven fields, and four of them have nowhere to live today: athIni (derived initials), athName (students.full_name ✓), athMeta = clinic · location · STANCE ('goofy'/'regular' — no column), athDrafts = '1 IN DRAFT' | 'UP TO DATE' (derived draft count, and the design wrongly paints both states in error-red), athCue = a structured pair 'movement — "quoted cue"' where students.focus_skill is one free-text field (needs focus_movement_id + priority_cue), athPsych = a coaching-psychology note like 'Responds to external-focus cues. One cue max in the water; reset with breath, not analysis.' (NO column anywhere), and athTags = 'Late back
+
+--- [coach] coachS  ·  Coach Desk (coach home)
+    PURPOSE: The coach's single landing surface during a live clinic day. It answers four questions in one screen: what needs tagging right now, what is sitting unpublished, what the students are asking, and who is falling behind. Every element is either a counter with a debt attached to it or a doorway into one of the three coach workflows (tag, compose, inspect athlete).
+    STRUCTURE: FULL SCREEN (not a sheet). Root: position:absolute;inset:0;flex column;background:var(--bg);opacity/visibility crossfade on {{coachS}}. Inner scroller flex:1;overflow-y:auto;overscroll-behavior:contain.
+
+1. STATUS BAR — row, space-between, padding 14px 24px 0, system font 13px/600: left "9:41", right "●●●" (11px, letter-spacing 2px). Prototype chrome only.
+
+2. HEADER — position:relative, centered column, gap 6px, padding 24px 24px 6px:
+   • Logo <img src="430c62f9-…"> 30x30, filter:var(--logoflt) (inverts + brightens in dark theme).
+   • Wordmark "Coach Desk" — 13px, letter-spacing 4px, uppercase, weight 500.
+   • Live-status line — 11px italic, color var(--mut), preceded by a 6px gold dot (var(--goldx)): "Day 9 · Luanda — morning session live · {{tagN}} clips". tagN initialises to 14 and increments by 1 every time a clip is filed from the tagger.
+   • ROLE SWITCH PILL — absolutely positioned right:20px;top:26px. 1px border, radius 100px, padding 6px 11px, system 11px/600, muted, card background, hover→ink. Label "Coach ▾", on-click {{goLibrary}}. It is the exact mirror of the pill on the student library screen, which reads "Student ▾" and fires {{goCoach}} — one shared component, two labels, a role toggle.
+
+3. DIVIDER — 1px var(--line), margin 14px 24px 16px.
+
+4. ACTION GRID — padding 0 24px, display:grid, grid-template-columns:1fr 1fr, gap 12px. Five tiles:
+   a. SESSION TAGGER (grid-column:1/-1, full width) — accent-filled card (background var(--accent), color var(--acct)), radius 8px, padding 18px, row space-between, box-shadow 0 10px 24px rgba(14,42,58,.22), hover translateY(-1px). on-click {{openTagger}}.
+      – Title "Session Tagger" (18px/500)
+      – Subtitle, 12px italic, opacity .65: "clip → movement tag → voice note → chapter draft"  ← this string is the whole product thesis for the coach side
+      – Right: 52px circle, inverted colours (bg var(--acct), text var(--accent)), glyph "＋" 26px/600.
+   b. DRAFT REVIEW — card (var(--card), 1px var(--line), radius 8, padding 16, column, gap 16), hover border→mut, on-click {{goComposer}}.
+      – Title, 15px/600, hard line break: "Draft<br>Review"
+      – Red count badge: min-width 20px, radius 10, background var(--err), white text, system 11px/700, content "2"
+      – Footer, 12px italic muted: "Noy — Day 3 Afternoon · Tal — Day 3"
+   c. CLIP VAULT — same card shell, NO click handler in the design (dead tile).
+      – Title "Clip<br>Vault"; right-hand count is NOT a badge but mono 11px/600 muted: "128"
+      – Footer: "14 today · 6 ★ best · by movement"
+   d. INBOX — same card shell, NO click handler (dead tile).
+      – Title "Inbox"; red badge "2"
+      – Footer: "Noy asked about Ch.3 · Correction — answer by Monday"
+   e. ANALYTICS — same card shell, gap 12px, no handler. Title "Analytics" (15px/600), then a mono 9.5px muted metric stack (gap 6px):
+      – row "HABITS WK" / "71%" (value in var(--cor) green) followed by a 3px track (var(--line), radius 2) with a 71%-wide green fill
+      – row "PATH STEPS" / "6/11" (value in var(--goldx) gold) followed by a 3px track with a 55%-wide gold fill. Note the deliberate mismatch: the label says 6/11 (54.5%) and the bar is hard-coded to 55%.
+
+5. ROSTER — padding 22px 24px 120px (the 120px bottom pad clears the floating dock), column, gap 8px:
+   • Header row, baseline: left "Roster · Clinic 3" (11px, letter-spacing 2px, uppercase, muted); right "+ add student" (10.5px italic muted, plain text — no handler wired).
+   • Horizontal strip: display:flex, gap 14px, overflow-x:auto, padding-bottom 4px. Four avatar cells, each column/center/gap 5px/flex:none/cursor pointer — 48px circle, background var(--line), system 14px/700 muted initials, then an 11px italic first name:
+     – "NB" / "Noy" — this circle alone carries `border:2px solid var(--err)`, the needs-attention ring. on-click {{openNoy}}
+     – "TA" / "Tal" — on-click {{openTal}}
+     – "MR" / "Maya" — on-click {{openMaya}}
+     – "IK" / "Ido" — on-click {{openIdo}}
+     (Inconsistency to resolve in build: Tal is also '1 IN DRAFT' in the data map but gets no red ring.)
+
+6. FLOATING DOCK PILL — position:absolute, left 50% translateX(-50%), bottom 22px. Background var(--dock) with backdrop-filter blur(8px), color var(--dockink), radius 100px, padding 12px 20px, system 13px/600, shadow 0 10px 26px rgba(0,0,0,.22), hover scale(1.03). Label "‹ Student library", on-click {{goLibrary}}.
+
+ENTRY POINT: the coach screen is reached from the student library's "Student ▾" pill ({{goCoach}}), and startScreen prop offers 'library' | 'reader' | 'coach' (default 'library').
+    COMPONENTS: RoleSwitchPill (Coach ▾ / Student ▾ — one component, label + target swap), CoachHeader (logo + spaced wordmark + gold-dot live status line), CoachTile (card shell: title, right-hand count slot, italic footer, optional onClick + hover border), CountBadge (red pill, min-width 20px) — extend components/ui/badge.tsx, MonoCount (muted mono number, non-alarming variant of the badge), AccentCTACard (full-bleed accent card with circular ＋ affordance), MetricBar (mono label / coloured value / 3px track) — extend components/ui/progress.tsx, RosterStrip + AvatarCircle (initials, optional alert ring, caption), DockPill (floating blurred navigation pill), StatusBar (9:41 / ●●● prototype chrome — drop in production)
+    DATA: HAVE: rca.clinics(number,name,location,status) → 'Clinic 3', 'Luanda'. rca.students(id,full_name,clinic_id,slug) → roster; initials derived client-side. rca.debriefs where status='draft' → Draft Review count + the 'Noy — Day 3 Afternoon · Tal — Day 3' list (student full_name + day_number). rca.student_videos → Clip Vault total (128), today's count (created_at::date = today → 14), is_best=true count (6 ★), movement_id for 'by movement'. rca.threads where status in ('new','in_review') → Inbox count + preview from question_text/step_ref. rca.habit_logs.completed_habits + rca.students.build_strategy(jsonb) as raw inputs for Analytics.
+
+SCHEMA CANNOT SUPPLY: (1) 'Day 9' — no clinic-day counter; clinics.start_date exists but there is no training-day or session entity (rca.sessions is a device-auth token table, not a training session). (2) 'morning session live' — no AM/PM session half and no live flag anywhere. (3) 'HABITS WK 71%' — habit_logs.completed_habits is a bare text[] with no habit-definition table, so there is no denominator to compute a percentage against. (4) 'PATH STEPS 6/11' — students.build_strategy is opaque jsonb with no per-node completion state; needs a path_steps table or a done flag per node. (5) The red attention ring on an avatar — needs a derived has_open_draft / needs_reply flag per student. (6) 'Coach ▾' cannot name a coach: auth is a shared `oa_coach` cookie and there is no coaches table (rca.people exists but carries only full_name, no role and no auth). (7) '6 ★ best' is fine (is_best) but 'by movement' grouping needs movements joined and only 4 of 5 stages are ever shown.
+
+--- [coach] athS  ·  Athlete Quick-Glance Sheet
+    PURPOSE: The 5-second pre-water briefing. The coach taps a roster face and gets exactly what he must remember before speaking to that athlete: who they are, whether he owes them a chapter, the one cue for today, how this person psychologically takes feedback, and their recurring error pattern. Deliberately capped at one screenful with no scroll and no editing — it is a read surface, not a profile editor.
+    STRUCTURE: BOTTOM SHEET. Root: position:absolute;left/right 0;bottom 0;background var(--bg);border-radius 16px 16px 0 0;box-shadow 0 -12px 40px rgba(0,0,0,.25);padding 14px 24px 30px;flex column;gap 14px;transform:translateY(105%) → translateY(0) via {{athS}};transition cubic-bezier(.32,.72,0,1) .45s;z-index 11. Behind it, a shared SCRIM (rgba(20,18,14,.45), z-index 10, {{scrimS}}) fades in and dismisses on tap ({{closeSheets}}).
+
+1. GRABBER — 36×4px, radius 2, var(--line), align-self center.
+
+2. IDENTITY ROW — flex, gap 14px, align center:
+   • AVATAR — 52px circle, background var(--line), system 16px/700 muted, content {{athIni}} (values: 'NB' | 'TA' | 'MR' | 'IK'). Derived initials, flex:none.
+   • NAME COLUMN — flex:1, gap 2px:
+     – {{athName}} at 19px/600 → 'Noy Bar Lev' | 'Tal Amir' | 'Maya Ron' | 'Ido Katz'
+     – {{athMeta}} at 12px italic muted → 'Clinic 3 · Luanda · goofy' | 'Clinic 3 · Luanda · regular' | 'Clinic 3 · Luanda · regular' | 'Clinic 3 · Luanda · goofy'. Three facts joined by ' · ': clinic, location, stance.
+   • DRAFT-DEBT CHIP — flex:none, mono 9.5px, letter-spacing 1px, colour var(--err), 1px var(--err) border, radius 3px, padding 4px 7px. {{athDrafts}} → '1 IN DRAFT' (Noy, Tal) | 'UP TO DATE' (Maya, Ido). Note the design paints 'UP TO DATE' in the SAME error red as '1 IN DRAFT' — a state colour bug to fix in build (up-to-date should be var(--cor) or muted).
+
+3. HAIRLINE — 1px var(--line).
+
+4. FOCUS SKILL BLOCK — column, gap 5px:
+   • Eyebrow, mono 9px, letter-spacing 2px, gold var(--goldx): "FOCUS SKILL · PRIORITY CUE"
+   • {{athCue}} at 17px italic, line-height 1.45. Verbatim values — note every one is 'movement em-dash quoted-cue':
+     – Noy: 'Bottom turn — “Foot first, then look down the line.”'
+     – Tal: 'Trimming — “Hold the high line one beat longer.”'
+     – Maya: 'Wave reading — “Pick the peak before you paddle.”'
+     – Ido: 'Pop up — “Chest up before feet move.”'
+
+5. COACH NOTE BLOCK — column, gap 5px:
+   • Eyebrow, mono 9px, letter-spacing 2px, muted: "COACH NOTE"
+   • {{athPsych}} at 13.5px, line-height 1.55, colour var(--mut). Verbatim values — all four are coaching-psychology instructions, not technique:
+     – Noy: 'Responds to external-focus cues. One cue max in the water; reset with breath, not analysis.'
+     – Tal: 'Over-corrects after feedback — give one change per session.'
+     – Maya: 'Strong self-talk; can handle layered feedback.'
+     – Ido: 'Rushes when watched — film from the water, not the beach.'
+
+6. ERROR TAGS BLOCK — column, gap 8px:
+   • Eyebrow, mono 9px, letter-spacing 2px, muted: "ERROR TAGS · LAST 7 DAYS"
+   • <sc-for list="{{athTags}}" as="tg" hint-placeholder-count="3"> over a wrapping flex (gap 6px). Each chip: system 11.5px/600, padding 6px 11px, radius 100px, background var(--card), 1px var(--line), muted text, content {{tg}}. Verbatim arrays — every entry is 'error name ×count':
+     – Noy: 'Late back foot ×4', 'Eyes down ×2', 'Short arc ×1'
+     – Tal: 'Drops to flats ×3', 'Stiff arms ×2'
+     – Maya: 'Late positioning ×2'
+     – Ido: 'Knee drag ×3', 'Rushed pop ×2'
+
+7. ACTION ROW — flex, gap 8px:
+   • "WhatsApp" — flex:1, outline button (1px var(--line), radius 8, padding 12, centred, system 12px/600, ink), hover fills var(--card). No handler wired in the prototype.
+   • "Preview as student ↗" — flex:1.4 (deliberately the wider, primary action), accent-filled (var(--accent)/var(--acct)), radius 8, padding 12, system 12px/600, hover translateY(-1px). on-click {{previewAsStudent}}.
+
+ACTIONS: openNoy/openTal/openMaya/openIdo all do the same thing — set athOpen:true and athKey to 'noy'|'tal'|'maya'|'ido'; the sheet is one component driven by an ATH lookup map. previewAsStudent closes the sheet and calls go('library') — i.e. the prototype drops into the generic student library shell WITHOUT carrying athKey. In the real build this must route to /s/[slug] for the selected student (students.slug exists) and ideally set a 'previewing as' banner so the coach knows he is impersonating.
+    COMPONENTS: BottomSheet (grabber + translateY(105%) slide + scrim + closeSheets) — components/ui/sheet.tsx, Scrim (shared: rgba(20,18,14,.45), dismisses every open sheet), AthleteIdentityRow (avatar + name + meta + status chip), StatusChip (outlined mono chip — needs a colour variant per state), LabelledBlock (mono letter-spaced eyebrow + body; gold variant for the cue, muted for the note), TagChipList (wrapping pill list) — components/ui/tag.tsx, SplitActionRow (secondary outline + weighted primary), AvatarCircle (shared with the roster strip)
+    DATA: HAVE: athName ← rca.students.full_name. WhatsApp ← rca.students.whatsapp_number. previewAsStudent target ← rca.students.slug. Clinic + location half of athMeta ← rca.clinics.number/location via students.clinic_id.
+
+SCHEMA CANNOT SUPPLY — this card is the biggest gap in the whole coach side:
+(1) athIni — no initials column; derive from full_name (fine, but note Hebrew names need a rule).
+(2) athMeta stance — 'goofy'/'regular' has NO column on rca.students. Add students.stance text.
+(3) athDrafts — '1 IN DRAFT' / 'UP TO DATE' is derived: count(rca.debriefs where student_id=? and status='draft'). Computable today, but there is no column and no index for it; it needs its own state enum (0 → UP TO DATE) plus a colour token per state.
+(4) athCue — students.focus_skill is a single free-text column, but the design renders a STRUCTURED pair: movement name + quoted priority cue. Needs students.focus_movement_id (FK → rca.movements) + students.priority_cue text. Parsing the em-dash out of focus_skill is fragile.
+(5) athPsych — NO column anywhere. This is a distinct field (how the athlete receives feedback), not technique. Add students.coach_note text (or a coach_notes table if it should be versioned per day).
+(6) athTags — NO table can produce this. The design needs an error-tag taxonomy with per-occurrence timestamps so 'LAST 7 DAYS' and the ×N counts are real. Today: rca.tags exists but is orphaned (no join table to blocks, videos or students, and no occurrence rows); rca.debriefs.tag is free text; rca.debrief_blocks type='mistake' carries free-text title/body with no controlled vocabulary. Needs either error_tags(id,name) + student_error_tags(student_id, tag_id, occurred_at, source_block_id), or student_videos.tags[] populated from a controlled list and aggregated with created_at >= now()-7d.
+(7) There is no coach-visible read/unread or last-viewed state, so 'needs attention' cannot be dismissed.
+
+--- [coach] tgS  ·  Session Tagger
+    PURPOSE: The beach-side capture loop, designed to be completed one-handed between waves. A single clip is bound to (athlete × movement × voice note) and appended straight into that athlete's open chapter draft — the coach never opens an editor while the session is live. This is the intake half of the coach system; the composer is the output half.
+    STRUCTURE: BOTTOM SHEET, same chrome as the athlete sheet (radius 16px 16px 0 0, shadow 0 -12px 40px, padding 14px 24px 30px, gap 14px, translateY(105%)→0 on {{tgS}}, z-index 11, shared scrim behind at z-index 10). Opened from the Coach Desk's Session Tagger card ({{openTagger}}).
+
+1. GRABBER — 36×4px bar, centred.
+
+2. TITLE ROW — baseline space-between:
+   • "Tag a clip" — 17px/600
+   • "FILES TO CHAPTER DRAFT" — mono 9.5px, letter-spacing 1.5px, muted. States the destination up front.
+
+3. DROPZONE — height 80px, 1.5px DASHED var(--line), radius 8, background var(--card), centred column gap 4px:
+   • "⇡" glyph, 20px, muted
+   • "DROP CLIP · WAVE 8 · 0:19 · TRIM" — mono 9.5px, letter-spacing 1px, muted. Four facts in one line: action, wave number, duration, and an inline trim affordance.
+
+4. ATHLETE SELECT — column gap 8px:
+   • Section label "Athlete" — 10.5px, letter-spacing 1.5px, uppercase, muted
+   • Wrapping chip row, gap 6px. Each chip: system 12px/600, padding 7px 12px, radius 100px, 1px var(--line), muted, cursor pointer; the active one gets `background:{accent};border-color:{accent};color:{acct}` injected via its S-flag.
+     – "Noy B." → {{tgAthNoy}} / {{tgAthNoyS}}
+     – "Tal A." → {{tgAthTal}} / {{tgAthTalS}}
+     – "Maya R." → {{tgAthMaya}} / {{tgAthMayaS}}
+     Single-select, state.tgAth default 'noy'. NOTE: only 3 of the 4 roster athletes appear — Ido has no chip. In the real build this list must be the full clinic roster, scrollable.
+
+5. MOVEMENT SELECT — column gap 8px:
+   • Section label "Movement · stage taxonomy" — same styling. The words 'stage taxonomy' are the tell: these are not free tags, they are the fixed movement ladder.
+   • Wrapping chip row, identical chip styling, single-select, state.tgSk default 3:
+     – "Pop up & stance" → {{tgSk1}} / {{tgSk1S}}
+     – "Wave reading" → {{tgSk2}} / {{tgSk2S}}
+     – "Turn entry & back foot" → {{tgSk3}} / {{tgSk3S}}
+     – "Wall stick & release" → {{tgSk4}} / {{tgSk4S}}
+   The script also holds the array SK = ['', 'Pop up & stance', 'Wave reading', 'Turn entry & back foot', 'Wall stick & release'] — 1-indexed, confirming these are stages 1–4. Stage 5 ('Advanced movements' in the DB seed) is intentionally absent from the beach UI.
+
+6. VOICE NOTE ROW — card (var(--card), 1px var(--line), radius 8, padding 12), flex, gap 12px, align center:
+   • Record button — 34px circle, background var(--err), white "●" glyph, flex:none
+   • Middle column gap 3px: a 7-bar waveform (each bar 2.5px wide, heights 50% / 80% / 40% / 95% / 60% / 30% / 70%, colour var(--mut), aligned flex-end in a 12px-tall row), then the transcript at 12.5px italic muted: "“foot on time this wave — this goes in the correction section…”"  ← the transcript itself names the destination BLOCK TYPE, so the voice note is expected to route content into a specific debrief block, not just attach as audio.
+   • Right: mono 9px muted duration "0:07", flex:none
+
+7. PRIMARY CTA — accent filled (var(--accent)/var(--acct)), radius 8, padding 15, centred, system 14px/600, shadow 0 8px 20px rgba(14,42,58,.22), hover translateY(-1px). Label is dynamic: {{fileLabel}} = `File to ${firstName}'s chapter draft ▸`, e.g. "File to Noy's chapter draft ▸", "File to Tal's chapter draft ▸", "File to Maya's chapter draft ▸". on-click {{fileClip}}.
+
+fileClip BEHAVIOUR (from the script): closes the sheet (tgOpen:false), increments state.tagN by 1 (the Coach Desk header clip counter ticks up live), and raises a toast `Filed to ${firstName} — Day 3 Afternoon draft`, auto-clearing after 2400ms.
+
+WHAT IS ACTUALLY BEING TAGGED: one video clip, with exactly three required bindings — athlete (who), movement stage 1–4 (the taxonomy axis, which is the same ladder the student's Patterns/path uses), and a voice note (the coach's spoken observation, transcribed). Everything else — wave number, duration, trim — comes off the clip itself. The output is not a library row, it is an appended block inside that athlete's open chapter draft.
+    COMPONENTS: BottomSheet (shared with athS), ClipDropzone (dashed drop target with clip metadata line) — extend components/coach/upload-panel.tsx + video-uploader.tsx; trim already exists as components/ui/video-trim-modal.tsx, ChipSingleSelect (label + wrapping single-select chip row with accent-fill active state) — reuse for both athlete and movement, VoiceNoteRow (record circle + waveform + live transcript + duration) — extend components/coach/voice-recorder.tsx, PrimaryCTA (accent button with dynamic label), Toast (shared bottom pill)
+    DATA: HAVE: athlete chips ← rca.students filtered by clinic_id. Movement chips ← rca.movements where stage between 1 and 4, order by sort — the seeded names map 1:1 to the design labels but are longer: 'Pop up and stance'→'Pop up & stance', 'Wave reading and positioning'→'Wave reading', 'Turn entry and back foot pressure'→'Turn entry & back foot', 'Wall stick and hand release'→'Wall stick & release'. The clip row itself ← rca.student_videos (video_url, stream_uid, provider, duration_s, poster_url, movement_id, day_number, label, tags[], source_type, source_id, is_best, status uploading|processing|ready|error, checksum dedup). Cloudflare upload URL route already exists at app/api/coach/cf-upload-url/route.ts.
+
+SCHEMA CANNOT SUPPLY:
+(1) movements has no short_label / display_label column — the beach chips need the shortened forms; either add movements.short_label or hard-truncate client-side (fragile with i18n/Hebrew).
+(2) 'WAVE 8' — no wave-number column on student_videos. debriefs.wave_label is free text on the debrief, not on the clip. Add student_videos.wave_number int.
+(3) 'TRIM' — the trim modal exists in the UI but there is nowhere to persist in/out points. Add student_videos.trim_start_s / trim_end_s, or store the trimmed derivative as its own row.
+(4) VOICE NOTE — nothing in the schema stores it. debrief_blocks has no audio field; student_videos has no audio field; threads.reply_url + reply_type='voice' exists but is for answering student questions, not for tagging. Add voice_note_url + voice_note_transcript + voice_note_duration_s on the tag/clip (or a clip_notes table).
+(5) 'Day 3 Afternoon draft' — there is no session-half concept. debriefs.day_number is a bare int with no AM/PM, so 'file into the OPEN draft for this athlete, this day, this half' cannot be expressed. Add debriefs.session_part ('morning'|'afternoon') or a proper sessions table (the existing rca.sessions is device auth, so it needs a different name — e.g. clinic_sessions).
+(6) The file action itself needs a transaction: find-or-create the open draft debrief for (student_id, day_number, session_part), then insert a debrief_blocks row with movement_id + video_url + the voice transcript routed by the block type the coach spoke ('this goes in the correction section' → type='correction'). No API route does find-or-create today; app/api/coach/debriefs/[id]/blocks/route.ts assumes the debrief already exists.
+
+--- [coach] composerS  ·  Chapter Draft Composer
+    PURPOSE: Where a tagged session becomes a published chapter in the student's book. The coach edits in coach language (MISTAKE / CORRECTION, with wave position and timestamp metadata) and sees, on the same scroll, the exact prose the student will read — so the translation from diagnosis to teachable narrative is never blind. Publishing is the single moment content becomes visible to the student.
+    STRUCTURE: FULL SCREEN (position:absolute;inset:0;flex column;background var(--bg); crossfade on {{composerS}}). Reached only from the Coach Desk 'Draft Review' tile ({{goComposer}}).
+
+A. FIXED HEADER — flex:none, border-bottom 1px var(--line):
+   1. Status bar row: "9:41" / "●●●".
+   2. Nav row, flex, gap 10px, padding 8px 14px 12px:
+      • Back chevron "‹" — 34×34 tap target, 24px glyph, muted, on-click {{goCoach}}
+      • Centre title, flex:1, centred, 11.5px, letter-spacing 2px, uppercase, muted: "Ch.4 Draft — Noy · Day 3 PM"  ← four facts: chapter ordinal, draft state, athlete, day + session half
+      • Right state flag, mono 9px, gold var(--goldx), padding-right 6px: "DRAFT"
+
+B. SCROLLING BODY — flex:1, overflow-y auto, padding 20px 24px 60px, column, gap 16px:
+
+   1. MISTAKE BLOCK — column gap 8px:
+      • Eyebrow, mono 9px, letter-spacing 2px, colour var(--err): "MISTAKE — WRITE IT"
+      • Body card (var(--card), 1px var(--line), radius 8, padding 12, 14px/1.6, ink): "Back foot still late on the backside waves — same signature as the morning, mirrored."
+      • Metadata chip row, gap 6px, all mono 9px letter-spacing 1px, radius 100px, padding 5px 10px:
+        – "📍 MID-FACE" (1px var(--line), muted) — where on the wave
+        – "⏱ 1:12" (1px var(--line), muted) — timestamp marker
+        – "+ CLIP FROM VAULT" (1px var(--cor) GREEN border, green text) — the one actionable chip: opens a picker over the clip vault
+
+   2. CORRECTION BLOCK — column gap 8px:
+      • Eyebrow, mono 9px, letter-spacing 2px, colour var(--cor) green: "CORRECTION — THE CUE"
+      • Body card, same shell but 14px ITALIC: "Heel pressure before the shoulders turn."
+      • Two side-by-side video slots, flex gap 8px, each flex:1, height 56px, radius 6, 1px var(--line), filled with a 45° repeating-linear-gradient placeholder (var(--ph1)/var(--ph2), 8px stripes), centred mono 8px muted labels:
+        – "BEFORE · W3"
+        – "AFTER · W9"
+
+   3. LIVE STUDENT PREVIEW — column gap 8px:
+      • Header row, baseline space-between: left "LIVE STUDENT PREVIEW" (mono 9px, letter-spacing 2px, muted); right "what Noy will read" (10.5px italic muted)
+      • Preview card — var(--card), TWO-px var(--line) border (heavier than every other card, so it reads as a device inside the device), radius 10, padding 16, column gap 12, shadow 0 6px 16px rgba(0,0,0,.08):
+        – Prose paragraph, 14.5px, line-height 1.75, text-wrap:pretty: "On the backside waves, the back foot landed late again — the same signature, mirrored." The clause "the back foot landed late again — the same signature, mirrored" is wrapped in a highlight <span> (background var(--errS) rgba(184,69,47,.10), border-bottom 2px solid var(--err), radius 2, padding 0 1px) — i.e. the mistake text is rendered as a marked range inside the student's sentence, NOT as a separate block.
+        – Pull-quote, bounded top and bottom by 1px var(--line) hairlines, padding 10px 4px, centred, italic 15px, colour var(--cor) green: "“Heel pressure before the shoulders turn.”"
+      • The rewrite is the point: the coach's clipped note becomes second-person narrative prose, and the cue becomes a green pull-quote. Both derive from the two blocks above.
+
+   4. PUBLISH CTA — accent filled, radius 8, padding 15, centred, system 14px/600, shadow 0 8px 20px rgba(14,42,58,.22), hover translateY(-1px): "Publish to Noy's book ▸". on-click {{publish}}.
+
+   5. FOOTNOTE — 11px italic, muted, centred: "Draft autosaves — Noy only sees published chapters"  ← states the visibility contract explicitly.
+
+publish BEHAVIOUR (script): go('coach') — returns to the Coach Desk — then raises the toast "Published — live in Noy's book", auto-clearing after 2400ms. There is no confirm step, no undo, and the Draft Review badge is not decremented in the prototype (it stays '2').
+    COMPONENTS: ComposerHeader (back chevron + uppercase context title + state flag), CoachBlockCard (coloured eyebrow + editable body + metadata chip row) — components/coach/block-editor.tsx already implements exactly these field sets, MetaChip (mono outlined chip, muted vs actionable-green variants), ClipPickerChip ('+ CLIP FROM VAULT') — components/coach/video-library-picker.tsx exists, BeforeAfterSlots (paired video placeholders with mono captions) — components/ui/video-slot.tsx, StudentPreviewCard (heavier-bordered render of the published prose + highlight span + green pull-quote) — should reuse components/student/block-card.tsx so preview and reality cannot drift, HighlightSpan (marked range: soft error background + 2px underline), PullQuote (hairline-bounded centred italic quote), PrimaryCTA + Toast (shared)
+    DATA: HAVE (this screen maps almost 1:1 onto the existing block editor): rca.debriefs(id, student_id, day_number, status 'draft'|'published', published_at, wave_label). rca.debrief_blocks(type 'mistake'|'correction'|'improvement'|'goal'|'next_step', sort, title, body, felt_sense_quote, timestamp_marker, where_on_wave, why_it_happened, video_url, video_url_secondary, movement_id). The MISTAKE card body ← blocks.body; '📍 MID-FACE' ← blocks.where_on_wave; '⏱ 1:12' ← blocks.timestamp_marker. The CORRECTION cue ← blocks.body / felt_sense_quote. Publish ← update debriefs set status='published', published_at=now(). '+ CLIP FROM VAULT' ← rca.student_videos via the existing library picker. components/coach/block-editor.tsx already declares FIELDS.mistake = [title, body, felt_sense_quote, where_on_wave, why_it_happened, timestamp_marker, video_url] and FIELDS.correction = [title, body, felt_sense_quote, video_url, video_url_secondary].
+
+SCHEMA CANNOT SUPPLY:
+(1) 'Ch.4' — no chapter number on debriefs. It would be the ordinal of published debriefs for that student; needs either a materialised chapter_number or a stable ordering column (created_at ordering breaks if a coach backfills a day).
+(2) 'Day 3 PM' — again no session half. Add debriefs.session_part.
+(3) The LIVE STUDENT PREVIEW prose is a SECOND, differently-worded text from the coach's note — the schema has one `body` per block. Either add debrief_blocks.student_body (the published narrative) alongside body (the coach's diagnosis), or accept that the preview is a pure render of body and drop the rewrite from the design.
+(4) The highlighted clause inside the student sentence has no representation: body is plain text with no annotation model. Needs either a marked-range array (offsets + kind) or storing the student prose as light markup.
+(5) 'BEFORE · W3' / 'AFTER · W9' — the two slots fit debrief_blocks.video_url + video_url_secondary, BUT the current app assigns those two fields differently per type: for type='correction' the labels are 'First-Person View (FPV)' and 'Third-Person View (land/water angle)', while Before/After is the type='improvement' semantic. So the design's correction block borrows improvement's field meaning — resolve before building. The wave numbers (W3 / W9) have no column either (see the tagger gap: student_videos.wave_number).
+(6) 'Draft autosaves' — no schema change needed, but there is no autosave/updated_at on debrief_blocks (student_videos has updated_at + a touch trigger; debrief_blocks does not).
+(7) Publish has no audit trail (who published, from which surface) and no way to unpublish cleanly beyond flipping status back.
+
+--- [both] toastS  ·  Toast + Scrim (shared coach feedback layer)
+    PURPOSE: The only confirmation mechanism in the whole coach flow. Every irreversible or semi-irreversible coach action (file a clip, publish a chapter) resolves into a transient pill instead of a modal, so the coach never loses the session rhythm. The scrim is its counterpart for sheets.
+    STRUCTURE: SCRIM — position:absolute;inset:0;background rgba(20,18,14,.45);opacity 0;pointer-events none;transition opacity var(--tr);z-index 10;{{scrimS}}. Becomes 'opacity:1;pointer-events:auto' whenever any sheet is open (aaOpen || askOpen || tgOpen || athOpen). on-click {{closeSheets}} → closes all four sheets at once.
+
+TOAST — position:absolute;left 50% translateX(-50%);bottom 96px (sits just above the dock pill);background var(--dock);color var(--dockink);radius 100px;padding 10px 18px;system 12px/600;white-space nowrap;opacity 0;pointer-events none;z-index 20;{{toastS}} flips it to 'opacity:1'. Content is {{toastMsg}}.
+
+EXACT COACH-SIDE MESSAGES (all auto-clear after 2400ms via a single shared timer `this._tt`, so a second action cancels the first toast):
+  • fileClip → `Filed to ${firstName} — Day 3 Afternoon draft` (e.g. "Filed to Noy — Day 3 Afternoon draft")
+  • publish → "Published — live in Noy's book"
+  • (student-side, same component) sendAsk → "Filed to Omer — answers Monday"
+
+Note the shared vocabulary: 'Filed to X' for capture, 'Published — live in' for release. The student-side toast naming the coach as "Omer" is the only place a coach identity string appears anywhere in the design.
+    COMPONENTS: Toast (single-slot transient pill, shared timer, dock-coloured), Scrim (single overlay that dismisses every open sheet)
+    DATA: No persistence required — pure client state (state.toast string + a 2400ms timeout). If toasts should survive navigation (publish navigates to the Coach Desk WHILE raising a toast), the toast state must live above the screen router, not inside a screen. The one data dependency is the coach's display name ('Omer' is hard-coded in the student toast) — there is no coaches table today, so this needs either a coaches/profile row or a per-clinic coach_name on rca.clinics.
+
+======================================================================
+SUMMARY: The design is ONE 390px mobile artboard with 7 full-screen layers (library, reader, toc, coach, today, backhome, composer) cross-faded via opacity/visibility, plus 4 bottom sheets (aaS reading-settings, askS, tgS tagger, athS athlete) over a shared scrim, plus a toast pill. Student-facing = libS, todayS, readS, tocS, backhomeS, askS; bmS/aaS/olS/dgS/phS are sub-states of the reader/toc, not separate screens. The whole thing is a BOOK metaphor: Literata serif body, IBM Plex Mono for every kicker/label, clinics are "volumes" rendered as physical spines on a shelf, published debriefs are "chapters", and the reader has real e-reader chrome (font stepper, three themes, bookmark, TOC with live %, page-of-N and minutes-left footer). Reading progress is computed live from scroll: onRdScroll → pct = scrollTop/(scrollHeight−clientHeight), rAF-throttled; page = max(1, round(pct×38)), minutes-left = max(1, ceil((1−pct)×16)); the same pct drives the library "currently reading" bar, the reader footer bar, and the TOC chapter row. Font sizes are FS=[15.5,17,18.5,20.5]pt on --fs — and only TWO elements in the entire file consume var(--fs) (the Mistake paragraph and the Improvement paragraph); every heading, quote, card and caption is hard-coded, which is a bug to fix on build. Themes are Paper (#F7F3EA/#211E18, default), Light (#FFFFFF/#1C1A16), Abyss (#070F15/#F1EEE6, accent #2FD6C0). Semantic colors are consistent everywhere: red #B8452F = mistake, green #2E6E5E = correction/improvement/do
+
+--- [student] libS  ·  Library (student home)
+    PURPOSE: The bookshelf home. Answers three questions in one scroll: what am I reading now, what do I do today, and what else exists in my collection. Default screen (startScreen prop = 'library').
+    STRUCTURE: FULL-HEIGHT SCROLLER (flex:1, overscroll-behavior:contain) + one absolutely-positioned floating dock at bottom:22px.
+
+1) STATUS BAR — 14px 24px 0, sans 13px/600, left "9:41", right "●●●" (prototype chrome, drop in prod).
+
+2) MASTHEAD (position:relative, centered column, gap 6px, padding 24px 24px 8px):
+   • 34×34 Ocean Athlete logo img (filter:var(--logoflt) so it inverts in Abyss theme)
+   • "Ocean Athlete" — 13px, letter-spacing 4px, uppercase, weight 500
+   • "Noy's Library · Focus: Bottom turn" — 11px, ls 1.5px, uppercase, --mut
+   • ABSOLUTE left:20px top:26px — pill button (1px --line, radius 100px, 6px 11px, sans 11px/600, --card bg) reading "Ask" followed by a 7×7 round --err dot; the dot carries {{askDotS}} which sets display:none once askSent is true → click = {{openAsk}}
+   • ABSOLUTE right:20px top:26px — identical pill reading "Student ▾" → {{goCoach}} (role switcher; only render when a coach session exists)
+
+3) HAIRLINE — 1px --line, margin 16px 24px.
+
+4) "CURRENTLY READING" (padding 0 24px, gap 14px):
+   • Row: kicker "Currently reading" (11px ls2 uppercase --mut) | right badge: 6px round --err dot + italic 10.5px --err "new chapter"
+   • BOOK ROW → {{goReader}}, display:flex gap 18px:
+     – COVER 118×168, linear-gradient(160deg,#0C3028,#071A15), radius 3px, 2px solid #2FD6C0 top border, box-shadow 0 10px 24px rgba(7,26,21,.35), space-between column, padding 14px 12px: 22px inverted logo → italic 14px #F1EEE6 "Clinic 3 — Luanda" → 9px ls1.5 uppercase #2FD6C0 opacity .85 "Vol. III · Active"
+     – META COLUMN (flex:1, space-between): top group = 18px/500 "Ch.3 — Day 3 Morning" + italic 12.5px --mut "“Foot first, then look down the line.”"; bottom group = 2px progress track (--line) with fill {{pctW}}, then baseline row: 10.5px ls1 uppercase --mut "{{pageShort}}" (renders "Page 12 of 38") | sans 12px/600 --accent "Resume ▸"
+
+5) "TODAY" (padding 26px 24px 0):
+   • Row: kicker "Today — Day 9 · Luanda" | mono 10px --cor "{{habCount}}" → "2/3 TODAY · 5-DAY STREAK"
+   • CARD (--card, 1px --line, radius 8, padding 16, gap 13):
+     – Row: "Rotation + Pop-up speed" 16px/600 + italic 12px --mut "25 min · from your coach's program"; RIGHT = 7 tiny 9×9 radius-2 squares = last-7-days streak strip (full --cor, .45 opacity = partial, --line = missed, --goldx = today)
+     – hairline
+     – 3 habit rows, each 20px CIRCLE checkbox (1.5px --line border, fills solid green when on, glyph {{h1G}}="✓") + label; labels: "Morning breath — 5 min", "Shadow pop-ups ×20", "Visualize 3 waves — eyes through the section". Done state = label goes --mut (NO strike-through here, unlike drills). Handlers togH1/togH2/togH3, state shared with todayS.
+     – hairline
+     – sans 12px/600 --accent link "Open Today — full program & streak ▸" → {{goToday}}
+
+6) "OUTLINE · YOUR PATHS" (padding 24px 24px 0):
+   • kicker "Outline · your paths"
+   • CARD → {{goToc}} (hover border-color --mut), two stacked path groups:
+     – "Own the bottom turn" 14.5px/500 | mono 10px --cor "4 / 6"; 3px track with 66% --cor fill; italic 11.5px --mut "up next — Back foot pressure before the look"
+     – "Read the section early" | mono 10px --mut "2 / 5"; 3px track with 40% --goldx fill (no up-next line)
+
+7) "VAULT" (padding 26px 24px 0) — the physical shelf:
+   • kicker "Vault"
+   • Row of book SPINES, align-items:flex-end, gap 14px, each with the page-edge shadow stack `3px 3px 0 -1px #EFE9DA, 4px 4px 0 0 #D9D0BA, 6px 6px 14px rgba(0,0,0,.18)` and a vertical mono label (writing-mode:vertical-rl; transform:rotate(180deg)):
+     – 60×92, gradient #2D1B00→#170E00, rotate(-1deg) perspective(300px) rotateY(6deg), 2px #E0B64F top: "CLINIC 1 · VOL.I"
+     – 60×100, gradient #0A1A2E→#060F1A, rotateY(5deg), 2px #6BAED6 top: "CLINIC 2 · VOL.II"
+     – 66×110 (tallest = current), gradient #0C3028→#123D33, rotate(1deg) rotateY(-5deg), 2px #2FD6C0 top, 13px inverted logo at the head: "CLINIC 3 · VOL.III" → {{goReader}}
+     – 34×84 thin --card spine, 1px --line, mono 7.5px --mut: "BACK HOME" → {{goBackhome}}
+     – flex:1 italic 12px --mut caption, four <br>-separated lines: "3 volumes" / "11 chapters" / "+ Back Home" / "companion"
+     – hover on every spine: transform:rotate(0deg) perspective(300px) rotateY(0deg) translateY(-4px)
+   • SHELF EDGE: 2px --line bar, radius 1, box-shadow 0 3px 5px rgba(0,0,0,.07)
+
+8) "REFERENCE SHELF" (padding 18px 24px 120px — the 120px reserves room for the dock):
+   • Row: kicker "Reference shelf" | italic 10.5px --mut "picked by Omer"
+   • Horizontal scroller (overflow-x:auto), 3 cards of fixed width 150px, each: 66px 45° repeating-stripe placeholder (ph1/ph2, 10px bands) with a 22px --accent circle + CSS play triangle; body padding 9px 11px: mono 8px ls1.5 kicker then 12.5px/500 title.
+     – gold kicker "★ BEST · TURN ENTRY" / "Your best bottom turn — Day 2"
+     – muted "REFERENCE · POP UP" / "Pop-up timing — slow-mo"
+     – muted "REFERENCE · WAVE READING" / "Positioning lines at Reef"
+
+9) FLOATING DOCK — absolute, left:50% translateX(-50%), bottom:22px, --dock bg (rgba(33,30,24,.92)) + --dockink text, backdrop-filter blur(8px), radius 100px, padding 12px 20px, sans 13px/600, white-space:nowrap, shadow 0 10px 26px: "▸" span + "Continue — Ch.3 Day 3 Morning" → {{goReader}}; hover scales 1.03.
+    COMPONENTS: StatusBar (prototype-only), Masthead + logo + two absolute PillButtons, NotificationDot (askDotS), BookCover (118×168 gradient spine-front), ProgressTrack (2px/3px, pctW fill), SectionKicker (11px ls2 uppercase --mut), Card (--card / 1px --line / radius 8 / padding 16), StreakDots (7×9px squares, 4 states), HabitCheckRow (20px circle, no strike), PathProgressRow (title + mono count + track + up-next), BookSpine (vertical mono label, perspective rotate, page-edge shadow stack), ShelfEdge, VideoPlaceholder (45° stripes + circular play + optional mono caption), ReferenceCard (150px shelf card), FloatingDock pill
+    DATA: HAVE: students.full_name (→ "Noy's Library"), students.focus_skill (→ "Focus: Bottom turn"); clinics.name/number/location/status/start_date (→ "Clinic 3 — Luanda", "Vol. III · Active", "Day 9"); debriefs (status='published', latest by day_number) → wave_label/day_number for "Ch.3 — Day 3 Morning"; debrief_blocks WHERE type='correction' → title for the italic cue line; students.training_program jsonb → .title, .duration_min, .habits[] for the Today card; habit_logs.completed_habits + log_date for the 3 checkboxes, habCount and the 7-day strip; students.build_strategy jsonb via lib/patterns.ts buildPaths() → goal nodes give "Own the bottom turn" 4/6 and the active step for "up next —"; student_videos WHERE kind='reference' (+ is_best for the ★ card) → label, movement_id→movements.name for the kicker, poster_url for the thumb; the cross-volume shelf via people.id → students.person_id → clinics (one students row per clinic per person), chapter count = COUNT(debriefs WHERE status='published').
+CANNOT SUPPLY: reading progress — {{pctW}} and "Page 12 of 38" have no backing store (need reading_progress(student_id, debrief_id, pct, page, updated_at)); the "new chapter" red flag and the Ask red dot need an unread/last-seen marker (debriefs has published_at but nothing records what the student has seen; threads has answered_at but no read receipt); per-volume accent color (#E0B64F/#6BAED6/#2FD6C0) — cover_color_index lives on debriefs, not on clinics/students; "picked by Omer" curation flag beyond is_best; spine height ordering.
+
+--- [student] todayS  ·  Today — full program & streak
+    PURPOSE: The training screen behind the library's Today card: the full workout the coach programmed, the habit check-in, and a month-scale consistency heatmap. Reached only via the "Open Today" link.
+    STRUCTURE: FIXED HEADER (flex:none, border-bottom 1px --line) + SCROLLER (flex:1, padding 20px 24px 60px, column gap 18px). No dock, no sheets.
+
+HEADER: status bar "9:41 / ●●●"; then nav row (padding 8px 14px 12px): 34×34 "‹" (24px, --mut) → {{goLibrary}} | centered 11.5px ls2 uppercase --mut "Today — Day 9 · Luanda" | 34px empty spacer to keep the title optically centered.
+
+CARD 1 — WORKOUT (--card, 1px --line, radius 8, padding 16, gap 12):
+  • Baseline row: "Rotation + Pop-up speed" 16px/600 | mono 10px --mut "25 MIN"
+  • Three numbered exercise rows, each: mono 10px --mut fixed 18px-wide index cell ("01","02","03") + 14px label where the name is normal and the detail is an inline italic --mut <span> starting with an em dash:
+    – "Thoracic openers" + "— 2×10, slow"
+    – "Pop-up ladder" + "— 3×8, tempo up"
+    – "Shadow turns, foot-first call" + "— 3×10"
+
+CARD 2 — HABITS (same card shell):
+  • Baseline row: "Habits check-in" 15px/600 | mono 10px --cor "{{habCount}}" → "2/3 TODAY · 5-DAY STREAK"
+  • Three 20px CIRCLE check rows (identical component + shared state as the library card, handlers togH1/togH2/togH3; on = solid --cor fill with "✓", label turns --mut, no strike-through):
+    – "Morning breath — 5 min"
+    – "Shadow pop-ups ×20"
+    – "Visualize 3 waves"  ← NOTE: shorter than the library's "Visualize 3 waves — eyes through the section". Same underlying habit, two different label lengths in the design.
+
+CARD 3 — CONSISTENCY (same card shell):
+  • Baseline row: "Consistency — August" 15px/600 | mono 10px --cor "71% · 5-DAY STREAK"
+  • HEATMAP: 3 rows × 7 columns, each cell flex:1, height 22px, radius 3px, gap 5px both axes. Four fill states used: solid --cor (all habits), --cor at opacity .45 (partial), --line (missed), --goldx (today, row 3 col 5), --ph1 (future, row 3 cols 6–7).
+  • Legend, italic 11px --mut: "Full = all habits · faded = partial · gold = today"
+    COMPONENTS: BackHeader (‹ + centered uppercase title + 34px spacer), Card, NumberedExerciseRow (mono index gutter + name + italic detail span), HabitCheckRow (shared with libS), MonthHeatmap (3×7, 5 fill states) — components/ui/habit-heatmap.tsx already exists, Legend caption
+    DATA: HAVE: students.training_program jsonb → .title ("Rotation + Pop-up speed"), .duration_min ("25 MIN"), .exercises[] {name, detail} for the three numbered rows (note the jsonb also carries an `icon` field that this design does NOT use), .habits[] for the three check rows; habit_logs (student_id, log_date, completed_habits[]) for today's checkboxes, the habCount string, the 5-day streak, the 71% and the whole month grid.
+CANNOT SUPPLY: nothing structural — every value is derivable. Two caveats: (a) training_program is an untyped Record<string,unknown> in lib/database.types.ts, so the exercise/habit shape is convention-only and needs a zod schema; (b) habit_logs stores completed_habits as a text[] of labels, so renaming a habit in training_program silently orphans history — a stable habit id is needed for the heatmap to stay honest across program edits.
+
+--- [student] readS  ·  Chapter Reader
+    PURPOSE: THE core screen and the one that does not exist in the app today. A published debrief rendered as a book chapter with real e-reader chrome: fixed header with bookmark/Aa/TOC, a scroll-driven progress model, and a footer that reports page-of-N and minutes-left. Everything else in the app orbits this.
+    STRUCTURE: THREE-BAND LAYOUT — flex column: FIXED HEADER (flex:none, z-index 3), SCROLLER (flex:1, ref={{rdRef}}, onScroll={{onRdScroll}}, overscroll-behavior:contain), FIXED FOOTER (flex:none, z-index 3). Only the middle band scrolls; header and footer never move.
+
+══ HEADER ══ background --bg, border-bottom 1px --line:
+  • status bar "9:41 / ●●●"
+  • Nav row (padding 8px 14px 12px, gap 10px): 34×34 "‹" 24px --mut → {{goLibrary}} | flex:1 centered running head 11.5px ls1.5 uppercase --mut, white-space:nowrap + overflow:hidden + text-overflow:ellipsis: "Ch.3 — Day 3 Morning" | right cluster of three 32×32 hit targets:
+    – BOOKMARK: a 13×17 div with clip-path:polygon(0 0,100% 0,100% 100%,50% 70%,0 100%) (a pennant with a notched foot); background --line when off, {{bmS}} overrides to the accent when on; default state bm:true → {{toggleBookmark}}
+    – "Aa" 15px/500 --mut → {{toggleAa}} (opens the aaS sheet)
+    – "☰" 15px --mut → {{goToc}}
+
+══ SCROLLER ══
+(A) CHAPTER HERO — height 120px, linear-gradient(160deg,#0C3028 0%,#071A15 100%), 2px #2FD6C0 rule pinned to the very top, content bottom-aligned (padding 0 28px 16px), three stacked lines:
+    • mono 9px ls3 rgba(47,214,192,.75): "VOL. III · DAY 3 · 5 ENTRIES"
+    • 27px/600 #F1EEE6 line-height 1.15: "Day 3 Morning"
+    • mono 9px ls1.5 rgba(241,238,230,.5): "WEDNESDAY, AUGUST 19 · PUBLISHED BY OMER"
+
+(B) BODY — padding 26px 28px 110px, column gap 22px:
+
+  1. SESSION FILM CARD (--card, 1px --line, radius 8, overflow hidden)
+     • 160px 45° stripe placeholder with a 46px --accent circle + CSS play triangle (shadow 0 6px 14px), and a bottom-left mono 9px --mut caption "[ session video · 4 waves · 2:10 ]"
+     • Meta row (padding 12px 14px): sans 12.5px/600 "Full session — Luanda, morning" | mono 10px --mut "{{mkTime}} / 2:10"
+     • SCRUB TRACK: 3px --line bar; filled sub-bar {{phS}} (transition width .4s); three 1px×7px --mut tick marks absolutely placed at left:9%, 36%, 64%
+     • MARKER BUTTONS: three flex:1 buttons, sans 10.5px/600, padding 7px 0, radius 5, 1px --line, --mut text; the selected one gets `background:accent;border-color:accent;color:acct`. Labels: "0:12 Wave 2" ({{mk0}}), "0:47 Bottom turn" ({{mk1}}, selected by default), "1:24 Best wave" ({{mk2}}). Selecting a marker sets mkTime and slides {{phS}} to 9%/36%/64%.
+
+  2. SESSION SUMMARY (collapsible — see dgS) — border-top + border-bottom 1px --line, padding 12px 2px:
+     • Header row → {{togDigest}}: mono 9.5px ls2.5 --mut "SESSION SUMMARY · OMER + NOY" | 13px --mut chevron "{{dgChev}}" (⌄ closed / ⌃ open)
+     • Collapsed body {{dgS}} — full copy under the dgS entry.
+
+  3. THE MISTAKE
+     • Block heading: 4×16 --err bar (radius 2) + mono 9.5px ls2.5 --err "THE MISTAKE · WHAT HELD YOU BACK"
+     • PROSE at font-size:var(--fs,17px), line-height 1.78, text-wrap:pretty — one of only TWO elements in the whole design that scale with the font stepper: "On every frontside wave this morning, " + an inline <span> highlighted with background var(--errS) + 2px solid --err bottom border + radius 2 reading "the back foot landed after the turn had already started" + ". The tail washed out a half-beat after each section — the board was deciding before you were."
+     • CHIP ROW (mono, flex-wrap, radius 100px, 1px --line, 5px 10px, 9px ls1): "📍 TAKE-OFF ZONE" (static) and "⏱ 0:47 IN SESSION FILM" which is CLICKABLE and fires {{mk1}} — i.e. a prose citation that scrubs the film above.
+     • WHY BLOCK: italic 12.5px --mut, line-height 1.6, 2px --line left border, padding-left 12px: "Why it happened — eyes dropped to the nose at take-off, so the body waited for visual confirmation instead of trusting the feet."
+
+  4. THE CORRECTION
+     • Block heading: 4×16 --cor bar + mono "THE CORRECTION"
+     • PULL-QUOTE: bordered top+bottom, padding 16px 6px, centered: italic 19px --cor "“Foot first, then look down the line.”" then mono 9px ls2 --mut "COACH CUE · SAY IT ON THE PADDLE"
+     • BEFORE/AFTER 2-UP (flex gap 10): two 92px stripe placeholders with 1px --line and radius 6; left has a 26px --err circle play, right a 26px --cor circle play; captions centered mono 8.5px ls1: "BEFORE · THIS MORNING" (--err) and "AFTER · WAVE 7, DONE RIGHT" (--cor)
+     • FELT-SENSE CARD: background var(--corS), 2px --cor left border, radius 6, padding 12px 14px, italic 14px: "Felt sense — “When the foot landed first, the wave got slower. I had time I didn't know existed.”"
+
+  5. IMPROVEMENT
+     • Block heading: 4×16 --cor bar + mono "IMPROVEMENT · PROOF IT'S WORKING"
+     • PROSE at var(--fs) — the second and last stepper-scaled element: "Wave 7 is the keeper. Watch the hips: they open at the trim point while the eyes are still in the pocket — that's the sequence we've been chasing since Day 1."
+     • ANNOTATED STILL — 180px stripe placeholder, radius 6, 1px --line, position:relative, containing five absolutely-positioned overlays: a 10px --cor dot at left34%/top38% with a 4px halo; a 10px --err dot at left58%/top62% with halo; a 1px dashed --mut connector at left37%/top41%, width 24%, rotate(38deg), transform-origin left top; two mono 9px callout chips on --card with 1px --line and radius 3 — "hips open early ✓" at left32%/top24% and "foot: on time" at left54%/top72%; plus bottom-left mono "[ still: wave 7 · trim point ]"
+     • FIGURE CAPTION centered italic 12px --mut: "Fig. 3.1 — Wave 7: the timing you're keeping."
+
+  6. THE GOAL
+     • Block heading: 4×16 --goldx bar + mono "THE GOAL"
+     • CARD: background var(--goldS), 1px solid --goldx, radius 8, padding 18, centered: mono 8.5px ls2 --goldx "BY DAY 6" then 19px/500 italic line-height 1.4 "Three linked turns on one wave — no tail slide."
+
+  7. NEXT STEP
+     • Block heading: 4×16 --goldx bar + mono "NEXT STEP · BEFORE TOMORROW"
+     • CARD (--card, 1px --line, radius 8, padding 16, gap 12):
+       – Baseline row: "Tonight's drills" 15px/600 | mono 10px --mut "{{drCount}}" → "0 of 3 done"
+       – Three SQUARE checkboxes (20px, radius 4 — deliberately different from the round habit checks), 1.5px --line border, glyph "✓", 14.5px labels that get color:--mut + text-decoration:line-through when done (habits do NOT strike through; drills DO):
+         · "Shadow turns — say “foot” out loud at the load, 3×10" ({{togD1}})
+         · "Watch wave 7 twice — once for hips, once for eyes" ({{togD2}})
+         · "Back-home page: “try first” for the wave pool" ({{togD3}})
+       – hairline, then sans 12px/600 --accent link: "Train this at home — Back Home volume ▸"
+
+  8. ASK ROW — centered, cursor pointer → {{openAsk}}: 26px circle with 1px --line and a 12px --mut "?" + italic 13px --mut "Ask Omer about this chapter"
+
+  9. MY NOTES — background var(--goldS), 1px DASHED --goldx, radius 8, padding 14: mono 8.5px ls2 --goldx "MY NOTES · ONLY YOU SEE THIS" then italic 14px line-height 1.6: "Remember: the wave got SLOWER when I did it right. Speed was never the problem."
+
+ 10. END MATTER — centered column, padding-top 8px: a 40×1px --line rule; mono 9px ls2 --mut "END OF CHAPTER THREE"; then a full-width --card box with 1px DASHED --line and radius 8, space-between: left column = mono 9px ls2 --mut "NEXT · LIVE SYNC" + 15px/500 --mut "Ch.4 — publishes after tomorrow's session"; right = 18px "⏳"
+
+══ FOOTER ══ background --bg, border-top 1px --line, padding 10px 24px 18px, gap 8px:
+  • 2px --line track, radius 1, with an --accent fill at {{pctW}} and transition:width .2s
+  • Baseline row: italic 11px --mut "{{pageLabel}}" ("Page 12 of 38") | italic 11px --mut "{{timeLabel}}" ("9 min left in chapter")
+
+══ HOW THE READING MODEL ACTUALLY WORKS ══
+  • {{onRdScroll}} reads e.target.scrollTop / (scrollHeight − clientHeight), clamps to [0,1], and stores it as state.pct — throttled through a single requestAnimationFrame guard (this._raf) so it fires at most once per frame.
+  • Constants in the logic: total = 38 pages, mins = 16. page = Math.max(1, Math.round(pct × 38)); minutesLeft = Math.max(1, Math.ceil((1 − pct) × 16)). Both are DERIVED, not stored — so "38 pages" is a fiction the prototype asserts; a real build must compute it from rendered content height or word count.
+  • The SAME pct feeds three separate bars via {{pctW}}: this footer, the library "currently reading" card, and the TOC chapter-03 mini-bar. It is the single source of "where am I".
+  • {{tocPct}} renders the same number as a percentage string for the TOC.
+  • Font stepping: FS = [15.5, 17, 18.5, 20.5], index clamped 0..3, default 1. {{fsUp}}/{{fsDown}} write --fs on the artboard root. CRITICAL FINDING: only two nodes in the entire 113KB file use var(--fs) — the Mistake paragraph and the Improvement paragraph. Every heading, quote, caption, card and label is hard-coded px. On build, --fs should drive all prose and ideally all body-scale text.
+  • Theming is variable-swap on the root (see aaS); the reader inherits it wholesale, including --logoflt which inverts the logo in Abyss.
+  • Transitions: --tr .35s (fades), --tr2 .45s cubic-bezier(.32,.72,0,1) (sheets and collapses). A reduceMotion prop sets both to 0s.
+    COMPONENTS: ReaderHeader (back + truncating running head + bookmark/Aa/TOC cluster), BookmarkPennant (13×17 clip-path polygon), ChapterHero (120px gradient + teal top rule + 3-line stack), SessionFilmCard (placeholder + meta row + scrub track + marker buttons), ScrubTrack + TickMark, MarkerButton (flex:1, selected = accent fill), CollapsibleSection (mono header + chevron + max-height/opacity body), BlockHeading (4×16 color bar + mono kicker) — err / cor / gold variants, ProseParagraph (var(--fs), line-height 1.78, text-wrap:pretty), InlineHighlight (tinted bg + 2px colored underline), MonoChip (static and click-to-scrub variants), WhyBlock (left-rule italic aside), PullQuote (bordered top/bottom + italic + mono attribution), BeforeAfterPair (2-up placeholders + colored captions), FeltSenseCard (tinted bg + 2px left border), AnnotatedStill (absolutely-positioned dots, dashed connector, callout chips), FigureCaption, GoalCard (goldS bg + gold border + BY-date kicker), DrillCheckRow (20px square, strike-through on done), AskRow, PrivateNoteCard (dashed gold), EndMatter + NextChapterTeaser (dashed, ⏳), ReaderFooter (pctW bar + page label + time label)
+    DATA: HAVE: rca.debriefs → wave_label ("Day 3 Morning"), day_number, published_at (→ "WEDNESDAY, AUGUST 19"), status ('published' gates the chapter; 'draft' powers the end-matter teaser), session_video_url and/or student_videos WHERE debrief_id AND kind='session' (+ duration_s → "2:10", poster_url → the placeholder), summary_went_well/summary_learned/summary_coach_view/summary_felt for the digest; clinics.number → "VOL. III", clinics.location → "Luanda"; COUNT(debrief_blocks) → "5 ENTRIES". rca.debrief_blocks by type: 'mistake' → body (prose), where_on_wave (📍 chip), timestamp_marker (⏱ chip), why_it_happened (Why block); 'correction' → title (the pull-quote cue), video_url (BEFORE), video_url_secondary (AFTER), felt_sense_quote (felt-sense card); 'improvement' → body + video_url (the still); 'goal' → title/body; 'next_step' → body. rca.translations → the "Train this at home" link target. rca.threads → the Ask row.
+CANNOT SUPPLY (this is the gap list for the reader):
+1. READING STATE — no table anywhere holds scroll %, page, last-read-at, or resume position. {{pctW}}, {{pageLabel}}, {{timeLabel}}, {{tocPct}} and the library Resume card all depend on it. NEED reading_progress(student_id, debrief_id, pct numeric, updated_at).
+2. BOOKMARKS/HIGHLIGHTS — {{bmS}} defaults to on and the TOC lists a saved quote, but there is no bookmarks table and no way to anchor a highlight to a block. NEED bookmarks(student_id, debrief_id, block_id, quote text, created_at).
+3. READER PREFERENCES — theme (paper/light/abyss) and font index have no column; localStorage works but won't follow a student across devices. NEED reader_prefs on students or a per-student settings jsonb.
+4. VIDEO CHAPTER MARKERS — the reader needs THREE named markers on one film ("0:12 Wave 2", "0:47 Bottom turn", "1:24 Best wave") plus their percent positions, and prose chips that jump to them. debrief_blocks.timestamp_marker is a single free-text string on a BLOCK, not a marker list on a VIDEO. NEED video_markers(video_id, t_seconds, label, sort) — or a markers jsonb on student_videos.
+5. RICH-TEXT HIGHLIGHT INSIDE PROSE — the Mistake paragraph wraps a specific clause in a red-underlined span. debrief_blocks.body is plain text with no marks. NEED either a marks jsonb (offset/length) or a stored rich-text/markdown body.
+6. PRIVATE STUDENT NOTES — "MY NOTES · ONLY YOU SEE THIS" has no table at all. NEED student_notes(student_id, debrief_id, body, updated_at).
+7. DRILL CHECKLIST + COMPLETION — next_step is ONE body text field, but the design shows three independently checkable drills with {{drCount}} "0 of 3 done". NEED debrief_drills(debrief_id, sort, label) + debrief_drill_logs(student_id, drill_id, done_at). habit_logs cannot carry this (it is date-keyed, not debrief-keyed).
+8. CAPTIONS — "BEFORE · THIS MORNING", "AFTER · WAVE 7, DONE RIGHT", and "Fig. 3.1 — Wave 7: the timing you're keeping." have no columns; debrief_blocks has video_url/video_url_secondary but no matching caption fields.
+9. ON-IMAGE ANNOTATIONS — the two dots, the dashed connector and the "hips open early ✓" / "foot: on time" callouts are pure markup. NEED an annotations jsonb on debrief_blocks: [{x, y, color, label}] plus optional connector geometry.
+10. GOAL DEADLINE — "BY DAY 6" has no column; would have to be smuggled into title.
+11. CHAPTER AUTHOR — "PUBLISHED BY OMER". debriefs has no coach/author FK even though rca.people exists.
+12. ENTRY COUNT SEMANTICS — "5 ENTRIES" and "4 waves" are counts the schema can produce only by counting rows; nothing declares them.
+
+--- [student] tocS  ·  Table of Contents
+    PURPOSE: The book's front matter: every chapter in the current volume with read state and live progress on the one you're in, the goal-path outline, and saved bookmarks. Reached from the reader's ☰; its back arrow returns to the reader, not the library.
+    STRUCTURE: FIXED HEADER (flex:none, NO border) + SCROLLER (flex:1, padding 18px 28px 60px).
+
+HEADER: status bar; nav row (padding 8px 14px 4px): 34×34 "‹" → {{goReader}} | centered 11.5px ls2 uppercase --mut "Contents" | 34px spacer.
+
+VOLUME TITLE BLOCK (centered, gap 4px, padding-bottom 22px):
+  • 21px/600 ITALIC: "Clinic 3 — Luanda"
+  • 11px ls2 uppercase --mut: "Volume III · Active · Day 9 of 21"
+
+CHAPTER LIST (flex column; every row is `display:flex; gap:14px; padding:13px 0` with a 1px --line bottom border except the last):
+  Each row = mono 10px fixed 22px-wide number cell | flex:1 title | right-aligned mono 10px status.
+  • "FM" | "How to read this book" (15px --mut) | "✓" --cor   ← a FRONT-MATTER chapter, not a session
+  • "01" | "Day 1 — First Read" | "✓"
+  • "02" | "Day 2 Afternoon — Trim Lines" | "✓"
+  • "03" (number cell in --accent) | CURRENT CHAPTER, clickable → {{goReader}}, align-items:center, title becomes 16px/600 --ink "Day 3 Morning — Back Foot Timing" with a 2px --line mini progress bar underneath capped at max-width 120px whose fill is {{pctW}} | right shows {{tocPct}} in --accent ("32%")
+  • "04" | "Day 4 — after tomorrow's session" (--mut) | "live sync" (--mut, lowercase — the only non-uppercase status) ← unpublished placeholder, not clickable
+
+"OUTLINE · GOAL PATHS" (margin-top 24px, gap 10px):
+  • kicker "Outline · goal paths"
+  • CARD 1 (--card, 1px --line, radius 8, padding 14px 16px, gap 10) — COLLAPSIBLE:
+    – Header row → {{togOutline}}: "Own the bottom turn" 14.5px/600 flex:1 | mono 10px --cor "4 / 6 STEPS" | 12px --mut "{{olChev}}"
+    – 3px --line track with a hard-coded 66% --cor fill (always visible, not part of the collapse)
+    – Collapsed step list {{olS}} — see the olS entry
+  • CARD 2 — NOT collapsible, simple baseline row: "Read the section early" 14.5px/600 | mono 10px --mut "2 / 5 STEPS"
+
+"BOOKMARKS & HIGHLIGHTS" (margin-top 24px, gap 10px):
+  • kicker "Bookmarks & highlights"
+  • One row card (--card, 1px --line, radius 6, padding 10px 12px, gap 10, align-items center): a 10×14 --accent pennant using the same clip-path as the reader header, then italic 13px --mut: "“Foot first, then look down the line.” — Ch.3, Correction"
+    COMPONENTS: BackHeader (‹ → reader), VolumeTitleBlock, TocRow (mono number gutter | title | mono status) with current-chapter variant carrying an inline ProgressTrack, CollapsiblePathCard (header + chevron + always-on track + collapsing steps), StaticPathRow, BookmarkRow (pennant + italic quote + source ref), SectionKicker
+    DATA: HAVE: clinics.name/location ("Clinic 3 — Luanda"), clinics.number → "Volume III", clinics.status → "Active", clinics.start_date/end_date → "Day 9 of 21"; rca.debriefs ordered by day_number → the numbered rows, with wave_label + the block title composing "Day 3 Morning — Back Foot Timing", and status='draft' rendering as the "live sync" row; students.build_strategy via buildPaths() → path titles, doneCount/totalCount ("4 / 6 STEPS", "2 / 5 STEPS") and the 66% fill; {{pctW}}/{{tocPct}} shared with the reader.
+CANNOT SUPPLY: the per-chapter READ TICK ("✓" on FM/01/02) — nothing records that a student finished a chapter (same reading_progress gap as readS, but needs a completed flag or pct≥threshold); the FRONT-MATTER chapter type — "FM · How to read this book" is not a session debrief and debriefs has no kind/type column to mark static chapters; the BOOKMARKS section — no bookmarks table, and the quote needs a block-level anchor (debrief_blocks.id + the quoted text) to render "— Ch.3, Correction"; the two-line composite chapter title (wave_label is one field, so "Day 3 Morning — Back Foot Timing" must either be stored whole or joined from the active goal step).
+
+--- [student] dgS  ·  Session Summary (collapsible digest, inside readS)
+    PURPOSE: The four-voice recap of the session — what worked, what was learned, what the coach saw, and what it felt like — collapsed by default so the chapter opens on the film, not on a wall of text.
+    STRUCTURE: Lives inside the reader between the film card and the Mistake block. Container has border-top + border-bottom 1px --line and padding 12px 2px.
+
+HEADER ROW → {{togDigest}} (space-between, padding 2px 0, cursor pointer):
+  • mono 9.5px ls2.5 --mut: "SESSION SUMMARY · OMER + NOY"  ← names both coach and student, framing it as a joint record
+  • 13px --mut chevron {{dgChev}}: "⌄" when closed, "⌃" when open
+
+COLLAPSING BODY {{dgS}} — closed state is `overflow:hidden; max-height:0; opacity:0`; open state overrides to `max-height:420px; opacity:1`; transition is `max-height var(--tr2,.45s) cubic-bezier(.32,.72,0,1), opacity var(--tr,.35s)`. Starts with a 4px spacer div, then FOUR label/value rows.
+
+Each row: `display:flex; gap:12px; align-items:baseline` — a FIXED 86px mono 8.5px ls1.5 label gutter (flex:none) and a flex:1 body at 13.5px, line-height 1.6:
+  • "WENT WELL" (--cor) — "Committed on four waves in a row — no pull-backs after the first fifteen minutes."
+  • "LEARNED" (--cor) — "The rail decision has to happen before the look, not with it."
+  • "COACH'S READ" (--goldx) — value is ITALIC: "“Strongest paddle day so far. The back foot is the whole story now — everything else is ready.”"
+  • "FELT" (--mut) — value is ITALIC: "“Like the board finally waited for me.”"
+
+Color grammar: the two green labels are objective/shared observations, gold is the coach's voice, muted is the student's interior voice. The two quoted (italic, curly-quoted) rows are verbatim speech; the two green rows are prose.
+    COMPONENTS: CollapsibleSection (mono header + chevron + max-height/opacity body) — shared with olS, LabelValueRow (86px mono gutter + 13.5px body, optional italic)
+    DATA: HAVE, cleanly, all four: rca.debriefs.summary_went_well → WENT WELL; .summary_learned → LEARNED; .summary_coach_view → COACH'S READ; .summary_felt → FELT.
+NOTES/GAPS: rca.debriefs.summary_grateful EXISTS in the schema but has NO slot in this design — either drop it from the reader or add a fifth row. The coach/student attribution in the header ("OMER + NOY") needs a coach name that debriefs does not carry (no author FK; rca.people is unlinked to debriefs). Nothing marks which rows are verbatim quotes versus prose, so the italic + curly-quote treatment on COACH'S READ and FELT has to be a hard-coded per-field style rule rather than data-driven.
+
+--- [student] olS  ·  Goal-path step list (collapsible outline, inside tocS)
+    PURPOSE: Expands a goal path into its ordered steps with done / active / locked status, so the student sees exactly which rung of the ladder this chapter is working on.
+    STRUCTURE: Lives inside the tocS "Own the bottom turn" card, below its always-visible 66% progress track. Closed state `overflow:hidden; max-height:0; opacity:0`; open overrides to `max-height:220px; opacity:1`; same --tr2 cubic-bezier(.32,.72,0,1) easing as the digest. Container is `display:flex; flex-direction:column; gap:8px; font-size:13px`.
+
+FOUR step rows, each `display:flex; gap:10px; align-items:center`, distinguished ENTIRELY by the 16×16 leading marker and the text treatment:
+  • DONE — 16px circle filled --cor with a white 9px "✓"; label color --mut: "Stance width locked"
+  • DONE — same: "Eyes lead the entry"
+  • ACTIVE — 16px circle, no fill, 2px solid --goldx ring; label at font-weight 600 in full --ink: "Back foot pressure before the look" followed by an inline mono 8.5px --goldx span "· ACTIVE"
+  • LOCKED — 16px circle, no fill, 1.5px solid --line ring; label --mut AND the whole row at opacity .6: "Linking two turns"
+
+So three visual tiers: completed (green, receded), current (gold, bold, badged), not yet reachable (dimmed). Note the path header says "4 / 6 STEPS" but only 4 rows are drawn — the outline is a preview, not the full list, and max-height:220px would clip a longer one.
+    COMPONENTS: OutlineStepRow with three status variants (done / active / locked), StatusMarker (16px circle: filled+✓ / gold ring / grey ring), InlineMonoBadge ("· ACTIVE"), CollapsibleSection (shared with dgS)
+    DATA: HAVE, fully — this is the best-supported region of the whole design. students.build_strategy jsonb → lib/patterns.ts buildPaths() already returns exactly this shape: PatternPath { id, title, steps[], doneCount, totalCount } and PatternStep { id, title, note, videoUrl, status: 'done'|'active'|'locked', number, substeps[] }. The done/active/locked derivation (first not-done step becomes active, everything after is locked) is already implemented and matches the three visual tiers one-for-one. "4 / 6 STEPS" = doneCount/totalCount.
+CANNOT SUPPLY / MISMATCHES: the design draws only 4 rows for a 6-step path and hard-codes max-height:220px, so the real component must either scroll or size to content; PatternStep.note, .videoUrl and .substeps have NO representation in this outline (they surface on /s/[slug]/patterns/[pathId] instead), so opening a step from the TOC is undefined in the design; the 66% fill on the parent track is hard-coded in the markup rather than computed from doneCount/totalCount (4/6 = 66.7%, so it happens to match — wire it to the real ratio).
+
+--- [student] phS  ·  Session-film scrubber position (inside readS)
+    PURPOSE: The mechanism that ties prose to footage. The chapter can cite a moment in the session film and clicking that citation moves the playhead — the reader's one genuinely interactive reading affordance.
+    STRUCTURE: Two coupled parts inside the reader's session-film card, plus one remote trigger in the prose.
+
+TRACK: `position:relative; height:3px; background:var(--line); border-radius:2px`.
+  • FILL: absolutely positioned at left:0, height 100%, background --accent, radius 2, `transition:width .4s`, width driven by {{phS}} which resolves to `width:9%` | `width:36%` | `width:64%` from the mkW array indexed by state.mk.
+  • THREE TICK MARKS: absolutely positioned 1px×7px --mut bars at top:-2px and left:9%, left:36%, left:64% — i.e. the ticks are static and the fill snaps between them. There is no continuous scrubbing; this is a chapter-marker rail, not a timeline.
+
+MARKER BUTTONS (directly below): three flex:1 buttons, sans 10.5px/600, padding 7px 0, radius 5, 1px --line, --mut text. The active one gets `background:accent; border-color:accent; color:acct` via {{mk0S}}/{{mk1S}}/{{mk2S}}.
+  • "0:12 Wave 2" → {{mk0}} → phS 9%, mkTime "0:12"
+  • "0:47 Bottom turn" → {{mk1}} → phS 36%, mkTime "0:47"  ← selected by default (state.mk = 1)
+  • "1:24 Best wave" → {{mk2}} → phS 64%, mkTime "1:24"
+
+READOUT: the card's meta row shows mono 10px --mut "{{mkTime}} / 2:10" — current marker time over total duration.
+
+REMOTE TRIGGER: inside the THE MISTAKE section, the mono chip "⏱ 0:47 IN SESSION FILM" also fires {{mk1}}. So a sentence of coaching prose is a live link into the footage, and the fill animates back up the page. This is the pattern to preserve when wiring a real player.
+
+Note the marker percentages (9/36/64) are NOT derived from the timestamps against the 2:10 runtime (0:12/130 = 9.2%, 0:47/130 = 36.2%, 1:24/130 = 64.6%) — they happen to be correct, but they are stored as literals in the design, so a real build must compute left% = t_seconds / duration_s.
+    COMPONENTS: ScrubTrack (3px rail + animated fill + static tick marks), MarkerButton (flex:1, selected = accent fill), TimeReadout (mono current/total), CiteChip (mono pill in prose that drives the scrubber)
+    DATA: HAVE: rca.student_videos WHERE debrief_id = ? AND kind='session' → video_url / stream_uid (Cloudflare Stream, and lib/video.ts + components/ui/hls-player.tsx already exist to play it), duration_s → the "2:10" denominator and the tick math, poster_url → the placeholder frame.
+CANNOT SUPPLY — this is the single biggest structural gap after reading state: there is NO table for named markers on a video. The reader needs an ordered list of {t_seconds, label} per session film ("0:12 Wave 2", "0:47 Bottom turn", "1:24 Best wave"), and prose blocks need to REFERENCE one by id. What exists is rca.debrief_blocks.timestamp_marker — a single free-text string attached to one block, which can express "this block points at 0:47" but cannot express "this film has three named moments". NEED video_markers(id, student_video_id, t_seconds, label, sort) plus a marker_id column (or a marker ref inside the marks jsonb) on debrief_blocks so the ⏱ chip can resolve. Also missing: student_videos.analysis jsonb holds {time_on_wave, speed_relative, foot_tag} but nothing that maps to "4 waves" in the film caption — that count has to come from counting related clips.
+
+--- [student] bmS  ·  Bookmark toggle (inside readS, surfaced in tocS)
+    PURPOSE: Lets the student flag a chapter to come back to. Tiny surface, but it is the only piece of student-authored state in the reader besides notes and drill checks.
+    STRUCTURE: CONTROL — third-from-left in the reader header's right cluster. A 32×32 centered hit target containing a 13×17 div whose shape comes from `clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 70%, 0 100%)` — a rectangle with a V notched out of the bottom edge, i.e. a classic ribbon/pennant bookmark.
+  • OFF: `background: var(--line,#DDD5C4)` — a pale grey ghost of the shape, so the affordance is always visible.
+  • ON: {{bmS}} overrides to `background:{accent}` (#0E2A3A in Paper/Light, #2FD6C0 in Abyss).
+  • Handler {{toggleBookmark}} flips state.bm, which DEFAULTS TO TRUE — the chapter opens already bookmarked in the prototype.
+  • No label, no confirmation toast, no animation beyond the fill swap.
+
+DOWNSTREAM SURFACE — the tocS "Bookmarks & highlights" section renders the saved item as a card row: a 10×14 --accent pennant using the identical clip-path (so the shape is a reusable component at two sizes), plus italic 13px --mut text "“Foot first, then look down the line.” — Ch.3, Correction".
+
+Note the design conflates two things under one heading: a CHAPTER bookmark (the header toggle, which has no quote) and a HIGHLIGHT (the TOC entry, which quotes a specific line from a specific block). The header toggle cannot produce that TOC row — there is no text-selection or per-quote save gesture anywhere in the design. That is a genuine design gap to resolve before building: either the header toggle saves the chapter's correction cue by convention, or a select-to-highlight interaction needs designing.
+    COMPONENTS: BookmarkPennant (clip-path shape, size + fill props) — used at 13×17 in the header and 10×14 in the TOC, IconButton (32×32 hit target), BookmarkRow (pennant + italic quote + source reference)
+    DATA: CANNOT SUPPLY — nothing in the rca schema stores bookmarks or highlights. NEED a new table, e.g. bookmarks(id, student_id, debrief_id, block_id nullable, quote text nullable, created_at) — block_id + quote are what let the TOC render "— Ch.3, Correction" as a source reference. The chapter title for that reference joins back through debriefs.day_number and debrief_blocks.type.
+HAVE (for the reference string only): debriefs.day_number → "Ch.3", debrief_blocks.type='correction' → "Correction", debrief_blocks.title → the quoted cue. So if the product decision is "bookmarking a chapter saves its correction cue", the quote text can be derived and the new table only needs (student_id, debrief_id, created_at). If free highlights are wanted, the quote must be stored, plus character offsets if it should re-highlight in the prose.
+
+--- [student] aaS  ·  Reading settings (Aa bottom sheet)
+    PURPOSE: The e-reader typography and theme control. Opened from the reader header's "Aa"; this is what makes the app feel like a book app rather than a web page.
+    STRUCTURE: BOTTOM SHEET — `position:absolute; left:0; right:0; bottom:0`, background --bg, `border-radius:16px 16px 0 0`, `box-shadow:0 -12px 40px rgba(0,0,0,.25)`, padding 14px 24px 30px, column gap 16px. Hidden at `transform:translateY(105%)`; {{aaS}} overrides to `transform:translateY(0)`; transition `transform var(--tr2,.45s) cubic-bezier(.32,.72,0,1)`; z-index 11 over a z-index-10 scrim ({{scrimS}}, `rgba(20,18,14,.45)`, fades in and enables pointer-events, click = {{closeSheets}}).
+
+TOP TO BOTTOM:
+1. GRABBER — 36×4 --line bar, radius 2, align-self:center.
+2. TITLE — 11px ls2 uppercase --mut, centered: "Reading settings"
+3. THEME ROW — `display:flex; gap:12px; justify-content:center`, three swatches, each a centered column (gap 6px) of a 52px circle rendering "Aa" in Literata 16px plus an italic 10.5px --mut caption. The circles are HARD-CODED to their theme's real colors so they preview accurately in any current theme:
+   • PAPER → {{thPaper}} — bg #F7F3EA, border 1px #DDD5C4, text #211E18; caption "Paper"  (default)
+   • LIGHT → {{thLight}} — bg #FFFFFF, border 1px #E5E1D8, text #1C1A16; caption "Light"
+   • ABYSS → {{thDark}} — bg #070F15, border 1px #24303A, text #2FD6C0; caption "Abyss"  ← the label is "Abyss", not "Dark"
+   Selected state ({{thPaperS}}/{{thLightS}}/{{thDarkS}}): `box-shadow: 0 0 0 2px var(--bg), 0 0 0 4px {accent}` — a double ring with a background-colored gap, so it reads as a halo rather than a border.
+4. HAIRLINE — 1px --line.
+5. FONT STEPPER — `display:flex; align-items:center; gap:16px`:
+   • "A−" → {{fsDown}} — flex:1, centered, 1px --line, radius 8, padding 10px 0, Literata 13px; hover `background:var(--card)`
+   • {{fsLabel}} — mono 11px --mut, flex:none, renders e.g. "17 pt"
+   • "A+" → {{fsUp}} — same box but Literata 19px (the buttons themselves are typographically sized to preview the direction)
+   Steps: FS = [15.5, 17, 18.5, 20.5]; index clamped Math.max(0,…) / Math.min(3,…), default 1. Writing --fs on the artboard root is the whole mechanism.
+
+THEME SWITCHING MECHANICS: selecting a theme rewrites ~20 CSS custom properties on the root in one string — Abyss sets --bg #070F15, --card #0D1A1F, --ink #F1EEE6, --mut rgba(241,238,230,.55), --line rgba(255,255,255,.10), --accent #2FD6C0, --acct #070F15, --err #FF6B5E, --cor #2FD6C0, --goldx #E0B64F, --ph1 #12222B, --ph2 #0D1A21, --dock rgba(241,238,230,.94), --dockink #0D1A1F and --logoflt `invert(1) brightness(1.9)` so the logo flips. Light only overrides --bg, --card, --ink, --mut, --line, --ph1, --ph2 — it inherits Paper's accents. Note Abyss collapses --accent and --cor onto the same teal, so the accent/correction distinction disappears in dark mode.
+    COMPONENTS: BottomSheet (grabber + rounded top + translateY(105%) → 0 with --tr2 easing), Scrim (shared by all four sheets, click-to-close), SheetTitle (centered uppercase kicker), ThemeSwatch (52px circle with literal theme colors + double-ring selected state + italic caption), FontStepper (A− / mono pt label / A+, buttons sized to preview)
+    DATA: CANNOT SUPPLY — there is no storage for reader preferences anywhere in the rca schema. NEED either reader_prefs columns on rca.students (theme text, font_index int2) or a settings jsonb, so the choice follows the student across devices. localStorage is an acceptable v1 given /s/[slug] is a per-student URL, but it will silently reset on a new phone.
+BUILD NOTES: (1) the three themes must be reconciled with the app's existing Tailwind 4 token layer — this design defines its palette as inline CSS custom properties on one root element, which is exactly how Tailwind 4 @theme vars work, so the port is mechanical; (2) --fs must be widened to drive ALL prose, since only two nodes consume it today; (3) the existing lib/language-context.tsx + RTL support means the sheet also needs the stepper and swatch order mirrored for Hebrew; (4) the reduceMotion prop in the design sets --tr/--tr2 to 0s — wire that to prefers-reduced-motion, and note lib/motion.ts already exists.
+
+--- [student] askS  ·  Ask Omer (bottom sheet)
+    PURPOSE: The student's one channel back to the coach, deliberately asynchronous and expectation-setting. Opened from the library masthead pill and from the "Ask Omer about this chapter" row at the bottom of the reader, which is what supplies the chapter context.
+    STRUCTURE: BOTTOM SHEET — same shell as aaS (absolute bottom, --bg, radius 16px 16px 0 0, shadow 0 -12px 40px, padding 14px 24px 30px, translateY(105%) → {{askS}} translateY(0), --tr2 easing, z-index 11 over the shared scrim), column gap 14px.
+
+TOP TO BOTTOM:
+1. GRABBER — 36×4 --line, centered.
+2. TITLE ROW — space-between, baseline-aligned: "Ask Omer" 17px/600 | mono 9px ls1.5 --mut "REVIEWS SUNDAY · ANSWERS MONDAY"  ← the SLA is stated up front, in the smallest type on the sheet, which is the whole design argument: async by design, no expectation of an instant reply.
+3. CONTEXT CHIP — background var(--corS) (green tint), 1px solid --cor, radius 6, padding 9px 12px, mono 9.5px ls1 --cor: "RE: CH.3 · THE CORRECTION — “FOOT FIRST”" — pre-filled from wherever the sheet was opened, so the coach gets an anchored question rather than a floating one.
+4. COMPOSE FIELD — --card background, 1px --line, radius 8, padding 12, `min-height:84px`, italic 14px --mut, line-height 1.6: "When I say the cue on the paddle, should it be on every wave or just the frontside ones?" (rendered as static text in the prototype; in build this is a textarea whose empty state is a placeholder in the same italic --mut).
+5. ATTACH ROW — 1.5px DASHED --line, radius 8, padding 10px 12px, flex gap 10, mono 9.5px --mut: a 14px "⇡" glyph + "ATTACH A CLIP (OPTIONAL)"
+6. PRIMARY BUTTON → {{sendAsk}} — background --accent, color --acct, radius 8, padding 15, centered, sans 14px/600, `box-shadow:0 8px 20px rgba(14,42,58,.22)`, hover translateY(-1px): "Send to Omer ▸"
+7. ANSWERED ROW (below the button, padding-top 2px, gap 10) — a 22px circle with corS background, 1px --cor border and a 10px --cor "✓", then italic 12px --mut: "Answered — “Wave pool prep” · Omer replied with a voice note"  ← previous threads live UNDER the composer, not in a separate inbox.
+
+SEND BEHAVIOUR: {{sendAsk}} sets askOpen:false, askSent:true and toast:"Filed to Omer — answers Monday", then clears the toast after 2400ms via setTimeout. The toast is the pill at bottom:96px (--dock bg, --dockink text, radius 100px, padding 10px 18px, sans 12px/600, z-index 20). Setting askSent also flips {{askDotS}} to display:none, extinguishing the red dot on the library's Ask pill.
+    COMPONENTS: BottomSheet + Scrim (shared with aaS), SheetTitleRow (title + mono SLA), ContextChip (tinted bg + colored border + mono ref), ComposeField (card + min-height + italic placeholder), DashedAttachRow, PrimaryButton (accent fill + lift shadow), AnsweredThreadRow (✓ circle + italic summary), Toast (dock pill, 2400ms auto-dismiss)
+    DATA: HAVE, almost completely: rca.threads → question_text (compose field), clip_url (the attach row), step_ref (free text, can carry "CH.3 · THE CORRECTION — FOOT FIRST" — though a real block_id FK would be better), status ('new'|'in_review'|'answered' maps exactly onto the sheet's own vocabulary and onto the "REVIEWS SUNDAY · ANSWERS MONDAY" cadence), title ("Wave pool prep"), reply_url + reply_type ('voice' → "replied with a voice note"), submitted_at, answered_at. The existing app already has app/s/[slug]/ask and components/student/ask-client.tsx to port from. Upload plumbing for the clip exists in lib/upload-client.ts / upload-manager.tsx and components/coach/video-uploader.tsx.
+CANNOT SUPPLY: the SLA string "REVIEWS SUNDAY · ANSWERS MONDAY" is hard-coded copy with no per-clinic office-hours config — either accept it as static i18n copy or add clinics.review_day / answer_day; the red-dot semantics on the library pill need a read receipt (the dot is driven by local askSent state, not by threads.answered_at, so "you have an unread answer" cannot be computed — NEED threads.read_at or a last_seen marker); the context chip wants a real foreign key (block_id) rather than step_ref free text if the coach's reply is to deep-link back into the chapter.
+
+--- [student] backhomeS  ·  Back Home — Companion
+    PURPOSE: The after-the-clinic volume: two short chapters that translate what was learned in Luanda into the two environments the student actually goes home to. Reached from the thin "BACK HOME" spine on the library shelf and from the reader's "Train this at home" link.
+    STRUCTURE: FIXED HEADER (flex:none, border-bottom 1px --line) + SCROLLER (flex:1, padding 24px 28px 60px, column gap 20px). Wider reading measure than todayS (28px side padding, matching the reader) because this screen is prose-first.
+
+HEADER: status bar; nav row: 34×34 "‹" → {{goLibrary}} | centered 11.5px ls2 uppercase --mut "Back Home — Companion" | 34px spacer.
+
+INTRO — centered, italic 14px --mut, line-height 1.6: "Two chapters for after the clinic — your waves at home, translated."
+
+══ CHAPTER 1 ══
+  • BLOCK HEADING — 4×16 --cor bar (radius 2) + mono 9.5px ls2.5 --cor: "CH.1 · ISRAEL OCEAN"
+  • VOICE CARD — --card, 1px --line, radius 8, padding 14, flex gap 12, align-items center: a 44px --cor circle with a white CSS play triangle (cursor:pointer), then a column: 14px/600 "Omer's note — listen first" and italic 12px --mut "voice · 1:24 · recorded Day 8"
+  • PROSE 1 — 15.5px, line-height 1.75, text-wrap:pretty, opening with a bold run-in head: <b>"What's different."</b> then "Shorter period, softer walls, more current. The section forms later than Luanda — your extra beat is already built in."
+  • PROSE 2 — same treatment: <b>"Try first."</b> then "One session, one thing: foot-first on every frontside wave, nothing else. Count them."
+  • ON-WAVE REMINDER — bordered top+bottom 1px --line, padding 14px 6px, centered: italic 18px --cor "“Decide one beat earlier than feels right.”" then mono 9px ls2 --mut "ON-WAVE REMINDER"
+
+══ CHAPTER 2 ══ (padding-top 6px on the heading)
+  • BLOCK HEADING — 4×16 --goldx bar + mono --goldx: "CH.2 · WAVE POOL"
+  • VOICE CARD — identical shell but the play circle is --goldx: 14px/600 "Omer's note — listen first" and italic 12px --mut "voice · 0:58"  ← note: NO "recorded Day 8" suffix here, so that metadata is optional
+  • PROSE — <b>"What's different."</b> then "Same wave every time — no reading, all rehearsal. Perfect place to burn in the back-foot timing."
+  • NOTE: chapter 2 has NO "Try first." paragraph — the section is genuinely optional per environment.
+  • ON-WAVE REMINDER — same bordered block: italic 18px --goldx "“Rehearse, don't react.”" then mono "ON-WAVE REMINDER"
+
+COLOR GRAMMAR: chapter 1 is green (real ocean, the continuation of the clinic), chapter 2 is gold (the artificial/rehearsal environment) — consistent with gold meaning "goal/deliberate practice" everywhere else in the design.
+    COMPONENTS: BackHeader, BlockHeading (4×16 color bar + mono kicker) — shared with readS, cor and gold variants, VoiceNoteCard (44px colored play circle + title + italic duration meta), RunInProse (bold lead phrase + body at 15.5px/1.75), PullQuote (bordered top/bottom + italic colored quote + mono attribution) — shared with readS
+    DATA: HAVE, nearly one-to-one — this is the second-best-supported screen: rca.translations (student_id, environment) with environment='israel_ocean' → CH.1 and 'wave_pool' → CH.2; .whats_different → the "What's different." paragraph; .try_first → the "Try first." paragraph (nullable, which the design already honours by omitting it in CH.2); .on_wave_reminder → the bordered pull-quote; .personal_note_url → the voice card audio; .video_url → currently unused by this screen. components/student/back-home-view.tsx and components/coach/back-home-editor.tsx already exist to port from.
+CANNOT SUPPLY: the voice-note DURATION ("1:24", "0:58") and RECORDING DAY ("recorded Day 8") — translations.personal_note_url is a bare text URL with no duration_s or recorded_on columns (rca.student_videos has duration_s, but the voice note is not stored there); the per-chapter ACCENT COLOR (green vs gold) has no column — it would have to be conventional-by-environment or a new translations.accent field; the run-in bold heads ("What's different." / "Try first.") are hard-coded labels in the design, which is fine as i18n copy, but means the column names and the visible labels must stay in sync; the intro line "Two chapters for after the clinic — your waves at home, translated." is static copy with no home; and the number of chapters is fixed at two by the environment enum — a third environment would need both a schema value and a color.
+

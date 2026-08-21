@@ -1,0 +1,332 @@
+SUMMARY:
+ DESIGN → CODE MAP, RCA CLINIC APP (Next 16 / React 19 / Tailwind 4 / Supabase `rca`).
+
+THE HEADLINE: v2 is not a reskin of the student app — it is a different information architecture wearing the same brand colors. The v1 student app is six sibling routes behind a six-tab `components/bottom-nav.tsx`. v2 is ONE book: a library home, a chapter reader, a table of contents, and everything else demoted to a sheet, a card, or a spine. Roughly 60% of the surface area is reskin/extend on code that already exists; the other 40% is the reader, and the reader is the whole product.
+
+WHAT ALREADY EXISTS AND MAPS CLEANLY (reskin/extend, ~35 of 52 items):
+- The five block types, their semantic colors and their field set are already exactly right. `components/student/debrief-detail-client.tsx:24-33` maps mistake→#ff6b5e, correction/improvement→#2fd6c0, goal/next_step→#e0b64f — the same three colors, same five types, same order as the design's `TYPE_ORDER`. `components/coach/block-editor.tsx:17-40` already authors title/body/felt_sense_quote/where_on_wave/why_it_happened/timestamp_marker/video_url/video_url_secondary. The design's Mistake / Correction / Improvement / Goal / Next Step sections are a restyle of a data model that is already correct.
+- Today: `components/ui/workout-card.tsx` + `components/ui/habit-heatmap.tsx` + `components/student/training-client.tsx` already render a workout, a habit check-in and a consistency grid off `students.training_program` and `rca.habit_logs`. The design's Today screen is the same three cards with a different grid shape.
+- Paths: `lib/patterns.ts buildPaths()` already derives goal→step paths with done/active/locked status and doneCount/totalCount — that is verbatim the design's "Own the bottom turn · 4/6" outline row.
+- Video: `components/ui/hls-player.tsx` already has a custom scrubber that seeks (`v.currentTime = …`, line 166) and speed controls; `components/coach/library-client.tsx` + `/api/coach/videos?facets=1` is the Clip Vault; `components/coach/video-library-picker.tsx` is "+ CLIP FROM VAULT".
+- Coach: `components/coach/debrief-editor.tsx` + `inbox-view.tsx` + `strategy-builder.tsx` + `training-editor.tsx` already cover Composer, I
+
+=== GAPS ===
+[AUG31] build-new         14h  Session Tagger — multi-clip ingest
+          wants: A sheet: drop a clip → pick the athlete chip → pick a movement chip → record a voice note → 'File to Noy's chapter draft ▸' with a toast, incrementing a running clip count
+          has:   components/coach/video-uploader.tsx is the ONLY dropzone in the repo and is maxFiles:1 (line 224), bound to a single video slot; components/coach/upload-panel.tsx is just the progress queue; component
+          work:  12 athletes over 5 days is roughly 400 clips, one at a time through a single-file dropzone. This is the one genuine operational blocker in the whole design and SPRINT already flags it as the top leverage item. Build a multi-file dropzone that queues through the existing UploadManagerProvider, plus t
+
+[AUG31] build-new          3h  Toast + loud saves
+          wants: A toast pill confirming every filing action ('Filed to Noy — Day 3 Afternoon draft', "Published — live in Noy's book")
+          has:   No toast system anywhere. app/api/coach/debriefs/[id]/blocks/route.ts:80 returns {ok:true} unconditionally because Supabase builders resolve {data,error} and never throw; components/coach/debrief-edit
+          work:  A debrief written on the beach can silently fail to persist with zero feedback — on Starlink with 12 athletes that is a real data-loss path, not a polish item. Add lib/api-fetch.ts with AbortSignal.timeout(15000), make the blocks route return the real error, check res.ok at the call sites, and give 
+
+[     ] build-new          3h  Font-size stepper
+          wants: A−/A+ stepper writing --fs from FS=[15.5,17,18.5,20.5]pt, default index 1, clamped 0..3, with a 'NN pt' label
+          has:   NONE
+          work:  Add the stepper to the reading-settings sheet and drive --fs on the reader root. Fix the design's own bug while building: only TWO nodes in the whole 113KB canvas consume var(--fs) (the Mistake paragraph and the Improvement paragraph) — every heading, quote, caption and card is hard-coded px. Drive 
+
+[     ] build-new          5h  Reference shelf
+          wants: A horizontal scroller of three 150px cards — a gold '★ BEST · TURN ENTRY' pick plus muted 'REFERENCE · POP UP' / 'REFERENCE · WAVE READING' cards, each with a stripe placeholder, play circle, mono kic
+          has:   rca.student_videos has kind='reference', is_best and movement_id, and the coach can filter on all three via /api/coach/videos — but NO student-side route reads student_videos at all (grep confirms zer
+          work:  New GET /api/student/videos?kind=reference returning label, poster_url, is_best and the joined movements.name for the kicker. New ReferenceCard + horizontal shelf on the library. Note rca.movements is seeded with the 5 stages but has zero code references anywhere — the kicker needs the join written 
+
+[     ] build-new          7h  Table of Contents screen
+          wants: A Contents screen: volume title block, chapter rows (mono number cell / title / ✓ or live % / 'live sync' for the unpublished one), a front-matter 'FM' row, a collapsible goal-path outline with per-st
+          has:   NONE. components/student/waves-list.tsx is the nearest thing — a flat filterable card list at /s/[slug]/waves with no read state, no progress and no outline
+          work:  New route /s/[slug]/read/[debriefId]/contents (its back arrow returns to the reader, not the library). Chapter rows come from the existing published-debriefs query; ticks from reading_progress; the outline from lib/patterns.ts buildPaths(); bookmarks from rca.bookmarks. The 'FM · How to read this bo
+
+[     ] build-new          4h  Movement taxonomy chips
+          wants: Tagger chips 'Pop up & stance / Wave reading / Turn entry & back foot / Wall stick & release' — verbatim the five rca.movements rows
+          has:   rca.movements is seeded with the 5 stages and debrief_blocks.movement_id + student_videos.movement_id exist, but grep finds ZERO references to movements anywhere in app/, lib/ or components/, and ther
+          work:  Add GET /api/coach/movements and wire the chips to write movement_id on the created student_videos row. Small job, but it wakes a table SPRINT §4 explicitly lists as dead — verify the seed data matches the design's four labels before relying on it.
+
+[     ] build-new          5h  Preview as student
+          wants: The coach jumps straight into the athlete's library view from the athlete sheet
+          has:   NONE — student routes are gated purely by the oa_token session cookie in app/s/[slug]/layout.tsx; a coach session grants nothing there
+          work:  A read-only impersonation path. Do it as an explicit signed, short-lived, read-only preview token checked alongside oa_token — never by minting a real student session for the coach, and never by loosening the slug ownership check. Given SPRINT §4's open security items, this one deserves care and sho
+
+[     ] build-new          4h  Coach analytics tile
+          wants: 'HABITS WK 71%' and 'PATH STEPS 6/11' with mini progress bars on the Coach Desk
+          has:   The inputs exist (rca.habit_logs, students.build_strategy via lib/patterns.ts) but there is no coach-side aggregate endpoint — the coach dashboard never reads habit_logs at all
+          work:  One GET /api/coach/analytics returning cohort habit completion for the week and summed path step counts. Cheap, and it is the only number in the design that tells Omer whether the cohort is actually doing the work.
+
+[     ] conflict           8h  Theme system
+          wants: Three switchable themes — Paper #F7F3EA/#211E18 (default), Light #FFFFFF/#1C1A16, Abyss #070F15/#F1EEE6 — swapped by rewriting CSS vars on the artboard root, with a picker in the reading-settings shee
+          has:   app/globals.css — a single always-dark :root with color-scheme:dark hard-set; v3-spec/OCEAN-ATHLETE-BUILD-SPEC.md:21,24,621 forbids light mode and forbids ever adding a ThemeToggle
+          work:  SPRINT §6 already ruled the design wins over the v3 rule. Refactor globals.css into a token contract (--bg/--card/--ink/--mut/--line/--accent/--err/--cor/--goldx/--ph1/--ph2/--dock/--logoflt) defined three times under :root, [data-theme="light"], [data-theme="dark"]; keep the existing --abyss/--teal
+
+[     ] conflict           4h  Typography
+          wants: Literata (serif body, a reading-first shift) + IBM Plex Mono for every kicker, label and count
+          has:   app/layout.tsx loads Bebas Neue (--font-display), Inter (--font-sans), Heebo (--font-hebrew); globals.css .font-display uppercases + letterspaces Bebas and is used on almost every label in the app
+          work:  Add Literata + IBM Plex Mono via next/font/google as --font-serif and --font-mono. Do NOT repoint --font-display: Bebas is load-bearing on ~200 call sites and on the v1 screens that must stay reachable. Introduce .font-mono-kicker for v2 and let v2 components opt in. Critical: neither Literata nor I
+
+[     ] conflict           5h  Student navigation / dock
+          wants: One floating dock pill — '▸ Continue — Ch.3 Day 3 Morning' — at bottom:22px, blurred, pointing at the reader. Nothing else is permanently on screen.
+          has:   components/bottom-nav.tsx — a fixed six-tab bar (Sessions / Home / Patterns / Training / Back Home / Ask) rendered by app/s/[slug]/layout.tsx on every student route, plus the pb-nav utility in globals
+          work:  v2 replaces six persistent destinations with one contextual action. Build DockPill and render it only on the v2 routes; keep BottomNav mounted on the v1 routes so nothing becomes unreachable (SPRINT rule 5a.1). Decide explicitly with Omer whether an athlete on v2 ever sees the six-tab bar again — tw
+
+[     ] conflict           4h  Student shell scroll model
+          wants: A fixed three-band flex column (header / scroller / footer) where only the middle band scrolls, because reading progress is read off that element's scrollTop
+          has:   app/s/[slug]/layout.tsx — min-h-dvh flex flex-col with document-level scrolling and pb-nav padding on each page
+          work:  You cannot compute scroll progress from the v1 layout. Add a v2 student shell (h-dvh, overflow-hidden, overscroll-behavior:contain) used only by the new routes, leaving the v1 layout untouched for /waves, /patterns, /training, /home-base, /ask.
+
+[     ] conflict           3h  Language toggle + logout placement
+          wants: Top-left of the library is the 'Ask ●' pill, top-right is 'Student ▾'; in the reader those corners are the back chevron and the bookmark/Aa/TOC cluster
+          has:   app/s/[slug]/layout.tsx pins LanguageToggle fixed top-left and LogoutButton fixed top-right at z-50 on EVERY student screen
+          work:  Both will overlap the v2 header on every v2 screen. Move them into a 'Student ▾' menu behind the design's existing top-right pill, or into the reading-settings sheet. Do not just raise z-index — the design has no space reserved for them.
+
+[     ] conflict           8h  Vault — clinic spines
+          wants: A physical shelf of CLINIC spines (60x92 Vol.I gold, 60x100 Vol.II blue, 66x110 Vol.III teal and tallest, plus a thin 'BACK HOME' spine), vertical mono labels, perspective rotation, page-edge shadow s
+          has:   components/student/library-home.tsx shelves DEBRIEFS grouped by the free-text debriefs.tag; components/student/book.tsx is a 3-D per-debrief cover. No student route ever queries rca.clinics — students
+          work:  The unit of the shelf changes from debrief to clinic. Build BookSpine (writing-mode:vertical-rl, rotate(180deg), the 3-layer page-edge box-shadow) and a shelf edge. Join students → clinics in app/s/[slug]/page.tsx for name/location/number/status, and count published debriefs per clinic for '11 chapt
+
+[     ] conflict           8h  Vault — cross-clinic (multi-volume) access
+          wants: One athlete sees Vol. I, II and III on one shelf — the whole point of the 'vault' metaphor and of year-round access
+          has:   Each rca.students row belongs to exactly one clinic_id. students.person_id → rca.people exists in the DB but has ZERO references in app code and is not even in lib/database.types.ts (SPRINT §4 lists i
+          work:  A returning athlete currently has N logins for N clinics with no link between them. Wake person_id: backfill it for the existing 24 students, add it to database.types.ts, and widen the layout's ownership check from 'this slug' to 'any slug whose person_id matches the session's'. This is a real auth-
+
+[     ] conflict          12h  Reader — the route and shell
+          wants: A dedicated chapter reader: fixed header (back ‹ + truncating running head + bookmark/Aa/TOC cluster), a scrolling body, a fixed footer with a progress bar, page label and minutes-left
+          has:   app/s/[slug]/waves/[debriefId]/page.tsx + components/student/debrief-detail-client.tsx (668 LOC) — a document-scrolling page with a 236px gradient header, chapter-pill anchors and no footer
+          work:  This is the centre of the redesign and it is NOT a restyle of debrief-detail-client.tsx: the scroll ownership, the header chrome and the footer are all new. Build app/s/[slug]/read/[debriefId] as a new route reusing the SAME server query (it already selects every field the reader needs). Leave /wave
+
+[     ] conflict          10h  Coach Desk (mobile)
+          wants: A 390px phone screen: Session Tagger tile, Draft Review tile with count, Clip Vault tile (128 / 14 today / 6 ★ best), Inbox tile, an Analytics tile (HABITS WK 71%, PATH STEPS 6/11) and a roster of ava
+          has:   components/coach-dashboard-client.tsx (613 LOC) — a flex h-dvh sidebar + editor-pane layout, dir="ltr", explicitly desktop; app/coach/dashboard/page.tsx feeds it students + clinics
+          work:  SPRINT rule 5a.2 says the laptop is the coach surface and rule 5a.3 says both must work in both form factors. These are two different layouts of the same state, not a restyle. Add a mobile branch (the tile stack) that shares the data layer, and keep the desktop sidebar as the ≥1024px layout. Do NOT 
+
+[     ] conflict           4h  Orphaned v1 surfaces
+          wants: No Patterns detail screen, no Waves list, no Strategy view — Patterns is compressed to one library card plus a TOC accordion
+          has:   components/student/pattern-trail.tsx (1,131 LOC — the largest file in the repo) at /s/[slug]/patterns/[pathId]; components/student/waves-list.tsx at /waves; components/student/strategy-view.tsx; /stra
+          work:  LOUD: the single biggest component in the codebase has no entry point anywhere in the v2 canvas. SPRINT rule 5a.1 forbids deleting it. Give the TOC's outline rows a link into /patterns/[pathId] so the trail stays reachable, and put the list of orphaned surfaces (pattern trail, waves list, strategy v
+
+[     ] extend             6h  Library — Today card
+          wants: An inline card on the library home: program title + '25 min · from your coach's program', a 7-square last-7-days streak strip (4 states), three round habit checkboxes that toggle instantly, habCount '
+          has:   components/student/training-client.tsx + components/ui/workout-card.tsx render the same data but only on the separate /training route; HabitLogForm requires an explicit 'SAVE CHECK-IN' button; no 7-da
+          work:  Extract HabitCheckRow and a new StreakStrip so the library card and the Today screen share one state and one POST to /api/habit-logs. Switch to optimistic toggle-and-persist (the design has no save button); keep the explicit button on the v1 /training screen so its behaviour does not change.
+
+[     ] extend             2h  Reader — prose chip that scrubs the film
+          wants: The '⏱ 0:47 IN SESSION FILM' chip inside the Mistake prose is clickable and scrubs the film above — a citation that jumps
+          has:   debrief-detail-client.tsx renders ⏱ timestamp_marker as a static, unclickable pill
+          work:  Parse the marker string to seconds and wire the chip to the player's seekTo. This one interaction is the single most 'expensive-feeling' detail in the design and it is cheap once markers exist.
+
+[     ] extend             4h  Reader — Ask row
+          wants: A centred '? Ask Omer about this chapter' row that opens a bottom sheet prefilled with 'RE: CH.3 · THE CORRECTION — "FOOT FIRST"'
+          has:   components/student/ask-client.tsx is a full page at /s/[slug]/ask; components/ui/sheet.tsx exists (base-ui Dialog); threads.step_ref is a free-text reference with no FK
+          work:  Wrap the existing AskClient form in a Sheet, prefill from the chapter/block context, and store threads.debrief_id + block_id (§11) so the coach inbox can show what a question is about. Keep the /ask page — it is where answered threads are read.
+
+[     ] extend             2h  Reader — end matter / next-chapter teaser
+          wants: 'END OF CHAPTER THREE' rule, then a dashed card 'NEXT · LIVE SYNC — Ch.4 publishes after tomorrow's session ⏳'
+          has:   Draft debriefs exist (status='draft') but student routes filter them out entirely (.eq('status','published') in every student query)
+          work:  Query the next draft debrief and expose its label ONLY (never its blocks). This is the design's best retention idea and it costs one query — but it changes the rule that students never see drafts, so gate it to label + day number.
+
+[     ] extend             6h  Composer screen
+          wants: A phone-sized draft editor with 'MISTAKE — WRITE IT' and 'CORRECTION — THE CUE' fields, a '+ CLIP FROM VAULT' chip, a LIVE STUDENT PREVIEW pane showing what the athlete will read, and a 'Publish to No
+          has:   components/coach/debrief-editor.tsx (856 LOC) authors every field, has a working draft/published toggle (line 556) and cover upload; components/coach/video-library-picker.tsx is exactly '+ CLIP FROM V
+          work:  The only genuinely new capability is the preview pane — render the student BlockCard components against the in-progress draft state, side by side on desktop and as a toggle on mobile. Everything else is a mobile layout of an editor that already works.
+
+[     ] extend             8h  i18n coverage
+          wants: Every string in the 113KB canvas is English — 'Currently reading', 'Vault', 'Reference shelf', 'END OF CHAPTER THREE', 'MY NOTES · ONLY YOU SEE THIS', 'Page 12 of 38', '9 min left in chapter', and eve
+          has:   lib/i18n.ts — a hand-maintained dict of ~120 keys, none of which cover any v2 copy
+          work:  Roughly 90 new keys with Hebrew for each. The cohort names in the design itself (Noy Bar Lev, Tal Amir, Maya Ron, Ido Katz) are Israeli — shipping any v2 student screen English-only regresses those athletes relative to v1, which is already fully translated.
+
+[     ] extend             5h  RTL for v2 chrome
+          wants: Chevrons ‹ ▸, an 86px mono label gutter, vertical spine labels (writing-mode:vertical-rl + rotate(180deg)), the scrub track and the bookmark pennant
+          has:   globals.css has [dir="rtl"] overrides and components use logical properties (borderInlineStart, ps-/me-) fairly consistently; habit-heatmap.tsx pins dir="ltr" on the grid to keep weeks chronological
+          work:  Vertical spine labels do not mirror sensibly and the mono index gutters need explicit logical properties. Follow the existing precedent: pin dir="ltr" on the shelf and on the scrub track (they are diagrams, not prose) and mirror everything else. Budget real device testing — there is no test suite to
+
+[     ] extend             3h  Clinic context for students
+          wants: 'Clinic 3 — Luanda', 'Vol. III · Active', 'Day 9 of 21', 'Today — Day 9 · Luanda' on four different screens
+          has:   rca.clinics has number, name, location, start_date, end_date, status — but no student-side route selects it; students.clinic_id is only ever used on the coach dashboard for grouping
+          work:  Join clinics in app/s/[slug]/page.tsx and the reader page, and derive the day number from start_date. Add clinics.total_days (§8) for the 'of 21'. Small change, touches four screens.
+
+[     ] reskin            14h  Hard-coded colour literals
+          wants: Every surface re-tints when the theme changes
+          has:   117 hard-coded hex literals and 453 rgba() literals inline across 25 component files — worst offenders components/student/pattern-trail.tsx (55), debrief-detail-client.tsx (33), book.tsx (31), library
+          work:  Every one of these is dark-theme-only and goes invisible on Paper. Sweep file by file replacing literals with the new tokens. Do the student surfaces first (they are the ones that get a theme picker); the coach surfaces can stay pinned to Abyss with data-theme="dark" on the coach shell until later.
+
+[     ] reskin             3h  Library — masthead
+          wants: Centred 34px logo, 'Ocean Athlete' at 13px/ls4, then "Noy's Library · Focus: Bottom turn" at 11px/ls1.5, with an absolute 'Ask ●' pill left and 'Student ▾' pill right
+          has:   components/student/library-home.tsx — a left-aligned 52-76px Bebas 'LIBRARY' wordmark, first name in teal, focus_skill line
+          work:  Restyle the header block. Data is already fetched in app/s/[slug]/page.tsx (full_name, focus_skill). The 'Student ▾' role switcher must render only when a coach session cookie exists — do not expose it to athletes.
+
+[     ] reskin             3h  Library — 'Outline · your paths' card
+          wants: Two stacked path rows: title, mono count '4 / 6', a 3px progress track, and an italic 'up next — Back foot pressure before the look'
+          has:   lib/patterns.ts buildPaths() already returns exactly this shape (title, doneCount, totalCount, and the step whose status is 'active'); components/student/patterns-home.tsx renders it as full-width car
+          work:  New compact PathProgressRow reading the same buildPaths() output. Fetch build_strategy in app/s/[slug]/page.tsx (it currently is not selected there — only /patterns and /training select it).
+
+[     ] reskin             3h  Reader — chapter hero
+          wants: 120px gradient band with a 2px teal top rule, bottom-aligned: 'VOL. III · DAY 3 · 5 ENTRIES' / 'Day 3 Morning' at 27px / 'WEDNESDAY, AUGUST 19 · PUBLISHED BY OMER'
+          has:   debrief-detail-client.tsx renders a 236px gradient header with the same three facts (day_number, wave_label, formatted published_at) and an entries count
+          work:  Same data, tighter band. 'VOL. III' needs the clinics join (see the Vault items). 'PUBLISHED BY OMER' needs debriefs.author_person_id (§7) — today debriefs has no author FK even though rca.people exists.
+
+[     ] reskin             2h  Reader — collapsible session summary
+          wants: A collapsed 'SESSION SUMMARY · OMER + NOY' strip with a ⌄/⌃ chevron that expands to max-height 420px
+          has:   SessionSummaryCard in debrief-detail-client.tsx renders all five summary_* fields always-open with emoji labels
+          work:  Wrap in a CollapsibleSection (max-height + opacity, --tr2 easing), drop the emoji for mono kickers. Data unchanged — all five columns already exist on rca.debriefs and are already authored in debrief-editor.tsx.
+
+[     ] reskin             3h  Reader — block headings and semantic colour
+          wants: A 4x16 colour bar + mono ls2.5 kicker per section: red #B8452F mistake, green #2E6E5E correction/improvement, gold #C49A3F goal/next-step
+          has:   debrief-detail-client.tsx BLOCK_VISUAL (lines 24-33) already maps the same five types to the same three semantic colours, rendered as an emoji + ChapterDivider
+          work:  Pure restyle — replace ChapterDivider with BlockHeading. The type→colour semantics need no change at all; only the paper-theme variants of the three colours are new.
+
+[     ] reskin             2h  Reader — correction pull-quote
+          wants: A bordered top/bottom pull-quote, italic 19px in correction green, with a mono 'COACH CUE · SAY IT ON THE PADDLE' attribution
+          has:   The correction block's title is already labelled 'The Fix (one line)' in block-editor.tsx:29 and felt_sense_quote is already a styled blockquote
+          work:  Restyle only. The coach is already writing exactly this sentence into exactly this field.
+
+[     ] reskin             1h  Reader — felt-sense card
+          wants: Tinted background, 2px green left border, italic 14px 'Felt sense — …'
+          has:   debrief_blocks.felt_sense_quote, already rendered as a coloured blockquote with an inline-start border
+          work:  Restyle. Zero data work.
+
+[     ] reskin             6h  Today screen
+          wants: Back header, workout card with a mono index gutter (01/02/03) and italic detail spans, a habits check-in card, and a 3x7 month heatmap with five fill states plus a legend
+          has:   components/student/training-client.tsx + components/ui/workout-card.tsx + components/ui/habit-heatmap.tsx render exactly these three cards from students.training_program and rca.habit_logs
+          work:  Two shape changes: WorkoutCard uses emoji icon circles (the design uses a mono index gutter and ignores training_program's `icon` field entirely), and HabitHeatmap is a 7-row x 10-week grid with day labels where the design is a 3x7 month grid with a gold 'today' cell and pale future cells. Both are 
+
+[     ] reskin             3h  Back Home screen
+          wants: A single scroll of two chapters (CH.1 ISRAEL OCEAN, CH.2 WAVE POOL), each with a voice-note row ('voice · 1:24 · recorded Day 8'), bold lead-ins on 'What's different.' and 'Try first.', and an on-wave
+          has:   components/student/back-home-view.tsx — a tab switcher between the two environments rendering the same five translation fields
+          work:  Flatten the tabs into one scroll and restyle. Add translations.note_duration_s + recorded_day (§12) for the voice-note meta line. Data model is otherwise a perfect match.
+
+[     ] reskin           0.5h  Prototype chrome
+          wants: A '9:41 / ●●●' status bar at the top of all seven screens
+          has:   N/A — real app chrome, real safe-area insets via the pt-safe/pb-safe utilities
+          work:  Drop it entirely. It is canvas furniture; the space it occupies must become env(safe-area-inset-top) padding, which the app already handles correctly.
+
+[     ] schema-change      3h  Reader preferences persistence
+          wants: Theme choice and font index survive across sessions and devices
+          has:   lib/language-context.tsx persists only oa_lang in localStorage; no reader prefs anywhere
+          work:  localStorage for the fast path, plus students.reader_prefs jsonb {theme, fsi} so a preference follows an athlete who logs in on a second device. Read server-side in app/s/[slug]/layout.tsx so the first paint is already correct.
+
+[     ] schema-change      6h  Library — 'Currently reading' resume card
+          wants: 118x168 gradient cover + chapter title + italic coach cue + a 2px progress bar + 'Page 12 of 38' + 'Resume ▸', all pointing back into the reader at the exact position left off
+          has:   NONE — library-home.tsx shows unordered shelves of Book covers with no notion of 'current' or 'in progress'
+          work:  New CurrentlyReadingCard. Needs rca.reading_progress (§1 of the SQL) for pct/page and to pick which chapter is 'current'. The italic cue line comes from the debrief's correction block title; the cover gradient from clinics.accent_color.
+
+[     ] schema-change      4h  Library — unread markers
+          wants: A red dot + italic 'new chapter' badge on the Currently Reading row, and a red dot on the Ask pill that disappears once a question is filed
+          has:   NONE — debriefs.published_at and threads.answered_at exist but nothing records what the student has actually seen
+          work:  Unread = a published debrief with no rca.reading_progress row. Ask dot = a thread with answered_at set and student_seen_at null (threads.student_seen_at, §11). Both are cheap once the tables land.
+
+[     ] schema-change      1h  Vault — per-volume accent colour
+          wants: Each spine carries its clinic's colour: #E0B64F Vol.I, #6BAED6 Vol.II, #2FD6C0 Vol.III
+          has:   debriefs.cover_color_index (0-5 palette index) — the colour lives on the CHAPTER, not the volume; clinics has no colour column
+          work:  clinics.accent_color + clinics.cover_color_index (§8). Reuse the existing 6-entry palette in components/student/book.tsx BOOK_PALETTES so v1 and v2 stay visually consistent.
+
+[     ] schema-change      6h  Reader — scroll progress model
+          wants: onRdScroll → pct = scrollTop/(scrollHeight−clientHeight), rAF-throttled; page = max(1, round(pct×38)); minutesLeft = max(1, ceil((1−pct)×16)). The same pct drives the footer bar, the library resume ba
+          has:   NONE — nothing in the repo tracks scroll position
+          work:  Build the hook, then persist: debounced PUT to rca.reading_progress (§1) at ~2s idle plus on visibilitychange, so a Starlink dropout does not lose the position. Important: '38 pages / 16 min' is a fiction the prototype asserts — derive pages from rendered content height and minutes from a word count
+
+[     ] schema-change      5h  Reader — bookmark + highlights
+          wants: A 13x17 clip-path pennant in the header that toggles to accent, defaulting to on; saved quotes listed in the TOC's 'Bookmarks & highlights' section
+          has:   NONE
+          work:  rca.bookmarks (§2) with kind bookmark|highlight, an optional block_id and char range, and a denormalised quote so the TOC row survives a block edit. RTL note: the pennant clip-path polygon is symmetric so it mirrors safely, but its position in the header cluster does not.
+
+[     ] schema-change      8h  Reader — session film with named markers
+          wants: A film card with a 3px scrub track, three tick marks at 9%/36%/64%, three marker buttons ('0:12 Wave 2', '0:47 Bottom turn', '1:24 Best wave') where the selected one fills with accent, and a live 'mkT
+          has:   components/ui/hls-player.tsx already has a working scrubber that seeks (v.currentTime = …, line 166), buffered bar, speed controls and fullscreen — but no marker concept and no imperative seek API exp
+          work:  Add rca.video_markers (§5) plus debriefs.session_video_id, because today debriefs.session_video_url is a bare URL with no student_videos row to attach markers to. Extend HlsPlayer with a markers prop and a forwarded seekTo(t) ref; render ticks on the existing scrub track. Coach-side marker authoring
+
+[     ] schema-change      5h  Reader — inline highlighted clause
+          wants: A specific clause inside the Mistake paragraph wrapped in a tinted span with a 2px red underline
+          has:   debrief_blocks.body is plain text rendered with whitespace-pre-wrap; no marks, no rich text
+          work:  debrief_blocks.body_marks jsonb (§6) holding [{start,len,tone}] offsets, plus a renderer that splits the body on those ranges, plus a coach-side selection UI in block-editor.tsx. Cheaper alternative worth putting to Omer: store body as markdown and support ==highlight== — one syntax, no offset drift
+
+[     ] schema-change      3h  Reader — before/after pair with captions
+          wants: Two 92px placeholders side by side with red and green play circles, captioned 'BEFORE · THIS MORNING' and 'AFTER · WAVE 7, DONE RIGHT'
+          has:   video_url + video_url_secondary exist on debrief_blocks and are already labelled Before/After for improvement blocks in debrief-detail-client.tsx; rendered stacked full-width via VideoSlot, with NO ca
+          work:  Add debrief_blocks.caption_primary / caption_secondary (§6) and a 2-up layout. VideoSlot handles every provider already — do not write a second player.
+
+[     ] schema-change      7h  Reader — annotated still
+          wants: A 180px still carrying two coloured dots with halos at fractional positions, a dashed rotated connector, two mono callout chips ('hips open early ✓', 'foot: on time'), and a 'Fig. 3.1 —' caption
+          has:   NONE — this is pure markup in the canvas with no data behind it
+          work:  debrief_blocks.annotations jsonb (§6) as [{x,y,color,label}] plus figure_caption, a renderer that positions pins in fractional coordinates, and a coach-side click-to-place editor. Be honest with Omer about the coach cost: authoring pins on a phone at the beach is slow. Consider shipping the caption 
+
+[     ] schema-change      2h  Reader — goal card deadline
+          wants: A gold card with a mono 'BY DAY 6' kicker above the goal sentence
+          has:   debrief_blocks type='goal' with title/body; no deadline column
+          work:  debrief_blocks.deadline_label text (§6) plus one input in block-editor.tsx. Do not smuggle it into title — the design renders them as two distinct type ramps.
+
+[     ] schema-change     10h  Reader — Next Step drill checklist
+          wants: Three independently checkable SQUARE checkboxes (deliberately different from the round habit checks), labels strike through when done, and a mono '{{drCount}} 0 of 3 done' counter
+          has:   debrief_blocks type='next_step' is ONE body text field ('One concrete action before next session', block-editor.tsx:14). habit_logs cannot carry this — it is date-keyed, not debrief-keyed
+          work:  rca.debrief_drills + rca.debrief_drill_logs (§4), a coach repeater in block-editor.tsx, a student toggle route, and DrillCheckRow. Note the design's deliberate visual grammar: drills strike through, habits do not — keep the two components separate.
+
+[     ] schema-change      3h  Reader — private notes
+          wants: A dashed-gold card 'MY NOTES · ONLY YOU SEE THIS' with italic body
+          has:   NotesSection inside components/student/debrief-detail-client.tsx:238-260 — the feature exists and works, but persists to localStorage under `oa_notes_<debriefId>`
+          work:  rca.student_notes (§3). Critical migration detail: the existing notes live on the athlete's device and cannot be backfilled server-side — on first load of the v2 reader, read the localStorage key client-side and POST it once, or athletes silently lose everything they have written.
+
+[     ] schema-change      4h  Habit identity
+          wants: '71% · 5-DAY STREAK' and a month heatmap that is true across program edits
+          has:   habit_logs.completed_habits is a text[] of habit LABELS, matched by string against students.training_program.habits[]
+          work:  Renaming a habit in training-editor.tsx silently orphans every prior log and the percentage quietly lies. Add habit_logs.completed_habit_ids (§10), give habits stable ids in the training_program jsonb, and dual-write during the transition. Also worth doing: training_program is typed as Record<string
+
+[     ] schema-change      6h  Coach athlete sheet
+          wants: A bottom sheet per athlete: initials, name, 'Clinic 3 · Luanda · goofy', draft status, 'FOCUS SKILL · PRIORITY CUE', a 'COACH NOTE' psych profile, 'ERROR TAGS · LAST 7 DAYS' as counted chips, WhatsApp
+          has:   components/coach/student-form.tsx holds focus_skill and whatsapp_number; no psych-note column; no stance field; no error-tag aggregation; no preview-as-student path
+          work:  Add students.coach_note (§9). Error tags can be derived by counting debrief_blocks.type='mistake' titles over the last 7 days, or properly via the existing rca.tags table which is currently only used for debrief tagging. 'goofy/regular' has no column — either add one or drop it from the sheet.
+
+=== SQL ===
+-- ============================================================
+-- Ocean Athlete v2 — additive migration for the design canvas
+-- Schema: rca.   ADDITIVE ONLY — no DROP, no destructive ALTER.
+-- Ground rule 1 of SPRINT.md: rca holds real athlete data.
+-- Convention matched from v1: RLS enabled + one allow-all policy;
+-- real scoping is enforced in the API route layer with the
+-- service-role key. Never touch the `public` schema.
+-- ============================================================
+
+
+-- ── 1. READING STATE ────────────────────────────────────────
+-- Backs {{pctW}}, {{pageLabel}}, {{timeLabel}}, {{tocPct}}, the library
+-- "Resume ▸" card, and the TOC's ✓ / read-unread ticks.
+--   • no row at all            -> unread  -> drives the red "new chapter" dot
+--   • row with completed=false -> in progress
+--   • completed=true           -> ✓ in the TOC
+CREATE TABLE IF NOT EXISTS rca.reading_progress (
+  id              uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id      uuid NOT NULL REFERENCES rca.students(id) ON DELETE CASCADE,
+  debrief_id      uuid NOT NULL REFERENCES rca.debriefs(id) ON DELETE CASCADE,
+  pct             numeric(5,4) NOT NULL DEFAULT 0 CHECK (pct >= 0 AND pct <= 1),
+  scroll_top      int4,                       -- exact resume position in px
+  completed       bool NOT NULL DEFAULT false,
+  first_opened_at timestamptz NOT NULL DEFAULT now(),
+  updated_at      timestamptz NOT NULL DEFAULT now(),
+  CONSTRAINT reading_progress_student_debrief_key UNIQUE (student_id, debrief_id)
+);
+CREATE INDEX IF NOT EXISTS reading_progress_student_updated_idx
+  ON rca.reading_progress (student_id, updated_at DESC);
+
+
+-- ── 2. BOOKMARKS & HIGHLIGHTS ───────────────────────────────
+-- Backs the reader's pennant toggle and the TOC "Bookmarks & highlights"
+-- section. block_id NULL = a chapter-level bookmark (the pennant).
+-- char_start/char_end anchor a highlight inside debrief_blocks.body.
+CREATE TABLE IF NOT EXISTS rca.bookmarks (
+  id          uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  student_id  uuid NOT NULL REFERENCES rca.students(id) ON DELETE CASCADE,
+  debrief_id  uuid NOT NULL REFERENCES rca.debriefs(id) ON DELETE CASCADE,
+  block_id    uuid REFERENCES rca.debrief_blocks(id) ON DELETE CASCADE,
+  kind        text NOT NULL DEFAULT 'bookmark'
+              CHECK (kind IN ('bookmark','highlight')),
+  quote       text,                            -- denormalised so the TOC row
+                                               -- survives a block edit
+  char_start  int4,
+  char_end    int4,
+  created_at  timestamptz NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS bookmarks_student_debrief_idx
+  ON rca.bookmarks (student_id, debrief_id);
+-- one pennant per chapter per student; highlights are unlimited
+CREATE UNIQUE INDEX IF NOT EXISTS bookmarks_one_pennant_per_chapter
+  ON rca.bookmarks (student_id, debrief_id)
+  WHERE kind = 'bookmark' AND block_id IS NULL;
+
+
+-- ── 3. PRIVATE STUDENT NOTES ────────────────────────────────
+-- "M

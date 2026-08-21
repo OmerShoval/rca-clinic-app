@@ -54,25 +54,77 @@ Full reasoning: https://claude.ai/code/artifact/bc6d8094-7975-4772-8e11-6d040cfe
 - [ ] **Ocean Athlete v2 design analysis** — extracting the spec from the design canvas
       and mapping it against the existing code. See §6.
 
-### Next, in leverage order
-- [ ] **Bulk ingest surface** — `components/coach/video-uploader.tsx` is the ONLY dropzone in the
-      repo (`upload-panel.tsx` is just the progress queue) and it is bound to a single video slot
-      with `maxFiles: 1`. Multi-file ingest needs a NEW surface, not a flag change. Holding until
-      the v2 design spec lands — the design has library and tagger screens that likely define it.
-- [ ] **Hoist the upload provider** — create `app/coach/layout.tsx` with `<UploadManagerProvider>`,
-      remove it from `app/coach/dashboard/page.tsx:24`. Today, navigating dashboard → library
-      unmounts it and destroys in-flight Cloudflare transfers (one-time upload URL, unrecoverable).
-- [ ] **Make saves loud** — `app/api/coach/debriefs/[id]/blocks/route.ts:80` returns `{ok:true}`
-      unconditionally because Supabase builders resolve `{data,error}` and never throw.
-      `components/coach/debrief-editor.tsx:467` never checks `res.ok`; `saveSummaryField` ends
-      in `.catch(() => {})`. Add `lib/api-fetch.ts` with `AbortSignal.timeout(15000)` — there
-      are currently **0** timeouts across 62 client fetches.
-- [ ] **Rate limiting** — `rca.auth_attempts` table, 5 per slug per 15 min. Key per **slug**,
-      never per IP: the whole cohort shares one hotspot.
-- [ ] **Capture columns** (irreversible — cannot be backfilled after the cohort goes home):
-      `students.consent_media`, `students.consent_recorded_at`; wire `voice-recorder.tsx` to
-      persist against a student + day.
-- [ ] **Ocean Athlete v2 implementation** — see §6 once the spec lands.
+### OPEN DECISION — blocks Step 3 onward, needs Omer
+
+**Which language do the 12 Indonesia athletes read?** The v2 canvas is 100% English: zero
+Hebrew characters, no `dir="rtl"`, and neither Literata nor IBM Plex Mono declares a Hebrew
+unicode-range. The shipped app has 108 Hebrew strings and live RTL. If the answer is Hebrew,
+someone must pick a Hebrew serif that pairs with Literata, and the reader's mono label gutter,
+chevrons, bookmark clip-path and vertical spine labels each need a mirroring decision — that is
+structural work, not a CSS flip. **Do not build a v2 screen before this is answered.**
+
+Secondary decisions, cheap now and expensive after six screens exist — full list in
+`docs/v2/BUILD-PLAN-CRITIC.md`: what a "page" is (one number feeds three bars); reading-progress
+semantics (per debrief or per block, sync or local); whether the three themes touch v1 screens;
+the v1/v2 URL map and which single navigation shell wins.
+
+### Build order (settled 2026-08-21)
+
+- [ ] **Step 0 — DEPLOY WHAT IS ALREADY BUILT. Before any new code.**
+      Add `COACH_SESSION_SECRET` to Vercel · set a PIN for `noy-bar-lev` · make the `rca-notes`
+      bucket private (it holds named clients' voice recordings with public read/write) · deploy
+      `hardening/aug31`. Verify on production: coach logs in, 24 students still authenticate,
+      13 debriefs still render. Finished code sitting undeployed is blocking everything behind
+      it, and it carries the one failure mode that locks Omer out of his own clinic.
+- [ ] **Step 1 — Settle the contracts above in writing.** No code. Append to §7.
+- [ ] **Step 2 — Ingest + save reliability.** THE Aug 31 blocker, and unblocked right now.
+      Multi-file dropzone as a NEW surface · hoist `UploadManagerProvider` into
+      `app/coach/layout.tsx` · `lib/api-fetch.ts` with `AbortSignal.timeout` · make block saves
+      check `res.ok`. Verify: drop 20 clips, navigate away mid-upload and watch them survive,
+      force a 500 and see a visible error.
+- [x] **Step 3 — v2 foundation, additive and scoped.** `app/v2-tokens.css` (paper/light/abyss,
+      all scoped `[data-v2]`), Literata + IBM Plex Mono. Commit `18a9aeb`.
+      Still to do here: the additive migration for `reading_progress` + `bookmarks`
+      (`docs/v2/MIGRATION.sql`) — **and a Hebrew fallback stack once the language call is made.**
+- [ ] **Step 4 — The reader, on real data, at both widths.** New route alongside the v1 debrief
+      detail, which stays reachable. Render the 13 real debriefs and 65 real blocks — no
+      fixtures. Anything needing new authoring degrades gracefully rather than being stubbed.
+      Desktop = measure clamp + centered column; dock hides above the breakpoint; sheets become
+      centered modals. Verify at 390px and 1440px, and that progress survives a reload.
+- [ ] **Step 5 — Library shelf + TOC**, reusing the Step 3 progress store so all three surfaces
+      show the identical number. Shelf wraps rather than stretches at 1440px. **Stop here if
+      Aug 28 arrives.**
+- [ ] **Step 6 — Aug 29 dress rehearsal.** With no tests and no CI this is the only regression
+      suite that exists.
+
+### Desktop: settled
+
+**Responsive from the mobile design, one breakpoint (~768px), student surface only. The coach
+stays on the v1 dashboard for Aug 31.** The coach's laptop surface already exists and works —
+`coach-dashboard-client.tsx` is `md:w-72 / lg:w-80` two-pane and commit `21875ec` verified it at
+both 1440x900 and 375x812. The v2 coach screens are not a desktop layout at all; Coach Desk is a
+*phone* launcher. The design does not omit the coach's desktop — it adds a new phone coach
+surface nobody has time to build. And a reader is the cheapest thing in UI to make responsive,
+because a book is a measure-constrained column: clamping prose to ~62–68ch and centering it IS
+the desktop layout.
+
+Three things resist a width clamp, each with a cheap answer: the Vault shelf wraps rather than
+stretches; the floating dock hides above the breakpoint; the four bottom sheets become centered
+modals — one shared container decision, not four.
+
+### Cut for Aug 31 (full reasoning in `docs/v2/BUILD-PLAN-CRITIC.md`)
+
+The entire **phone coach surface** (Coach Desk, Tagger, Composer, Athlete sheet) — the v1
+dashboard already satisfies coach-on-laptop *and* coach-on-phone, and rebuilding the 856-line
+debrief editor with no tests is the largest regression risk available. **Clip Vault** — depends
+on `student_videos.movement_id`, which §4 names as dead schema. **The entire Today screen** and
+**Back Home** — `habit_logs` and `translations` both have 0 rows; real work producing guaranteed
+empty screens. **Video chapter markers** — needs 3 authored markers per chapter during a live
+clinic. **Per-chapter drills with completion**, **annotated stills / captions / inline
+highlights**, **private student notes** (an "only you see this" promise that allow-all RLS
+cannot keep — do not ship it), **the TOC bookmarks list**, **front-matter chapter and read/unread
+ticks**, **the new-chapter and Ask red dots** (need a last-seen marker that exists nowhere),
+**two of the three themes — ship Paper only**, and **the Analytics tile**.
 
 ### Hard dates
 - **Aug 28** — freeze. No new code after this, whatever is unfinished.
@@ -230,7 +282,30 @@ per-node **path-step completion** (`build_strategy` is opaque jsonb).
 Reader: **reading progress, bookmarks, reader prefs, private notes, drill checklists,
 highlight ranges, figure captions, chapter read/unread**.
 
+### Reference docs (read these instead of re-deriving)
+
+| File | What it is |
+|---|---|
+| `docs/v2/SCREEN-SPEC.txt` | every v2 screen, structure and real copy, verbatim |
+| `docs/v2/GAP-MAP.txt` | 52 items mapped to existing files: reskin / extend / build-new / schema-change / conflict, with hours |
+| `docs/v2/BUILD-PLAN-CRITIC.md` | desktop verdict, build order, cut list, open questions, sequencing risks |
+| `docs/v2/MIGRATION.sql` | the additive migration (reading_progress, bookmarks, and the rest) |
+| `docs/v2/design-canvas.html` | the decoded canvas — read it in slices, never `cat` it whole |
+
+Totals from the gap map: **52 items, ~260h** — 15 schema-change (73h), 11 reskin (40.5h),
+10 conflict (66h), 8 build-new (45h), 8 extend (36h). Only **two** block Aug 31: the multi-clip
+ingest surface (14h) and loud saves + toast (3h). Everything else is post-clinic by choice.
+
+### A correction to an earlier call in this file
+
+I previously held the bulk-ingest work "until the v2 design defines it." **That was wrong and it
+was burning calendar.** The tagger describes a *per-clip* pipeline — clip → movement tag → voice
+note → draft — behind a single ＋ button. It does not define bulk ingest and never will. Step 2
+is unblocked and should start as soon as Step 0 is deployed.
+
 ### Build status
+
+
 
 - [x] **Step 1 — foundation.** `app/v2-tokens.css`: three themes as CSS vars, every rule scoped
       under `[data-v2]`. Literata + IBM Plex Mono added beside the v1 faces. Commit `18a9aeb`.
@@ -248,3 +323,7 @@ highlight ranges, figure captions, chapter read/unread**.
 | 2026-08-21 | Completed-clinic athletes stay searchable | Year-round vault access is a stated business objective |
 | 2026-08-21 | PINs are mandatory | The only way to close credential-free login while keeping the name-typeahead UX |
 | 2026-08-21 | Build in this repo, driven from Claude Code | Same working tree as Antigravity; the constraint is one driver at a time, not which tool |
+| 2026-08-21 | v2 tokens namespaced `--v2-*`, not adopted globally | In v1 `--accent` is GOLD and `--primary` is TEAL; in the design `--accent` is TEAL. 29 files reference those names — a global rename would turn every gold surface in v1 teal, violating §5a.1 |
+| 2026-08-21 | Desktop = responsive from mobile, one ~768px breakpoint, student surface only | The coach's laptop layout already exists and is verified at both widths; a separate desktop layout doubles the surface area of an untested 17.5k-LOC codebase 10 days from freeze |
+| 2026-08-21 | Phone coach surface cut for Aug 31 | v1 dashboard already satisfies coach-on-laptop and coach-on-phone; rebuilding the 856-line debrief editor with no tests is the largest available regression risk |
+| 2026-08-21 | Ship Paper theme only for Aug 31 | Removes any risk of the token swap leaking into v1, and only two elements in the whole canvas actually consume `var(--fs)` |
