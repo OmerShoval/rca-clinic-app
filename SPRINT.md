@@ -100,8 +100,16 @@ the v1/v2 URL map and which single navigation shell wins.
       force a 500 and see a visible error.
 - [x] **Step 3 — v2 foundation, additive and scoped.** `app/v2-tokens.css` (paper/light/abyss,
       all scoped `[data-v2]`), Literata + IBM Plex Mono. Commit `18a9aeb`.
-      Still to do here: the additive migration for `reading_progress` + `bookmarks`
-      (`docs/v2/MIGRATION.sql`) — **and a Hebrew fallback stack once the language call is made.**
+      Two of the four required global fixes are now in the token layer too (`color-scheme: light`,
+      and a `:focus-visible` override — without it v1's `--ring: #2fd6c0` draws a TEAL ring on
+      cream). Commit `18a9aeb` + the token follow-up.
+      Still to do here, and **all four must land before the first v2 pixel**:
+      the remaining two global fixes are per-route and belong with the first v2 route —
+      a segment `viewport.themeColor` (v1 exports `#070f15`, so a cream page sits under navy
+      browser chrome) and painting `html`/`body` with `--v2-bg` (v1's `bg-background` is
+      `#070f15`, so iOS rubber-band overscroll flashes navy above and below the paper).
+      Then the additive migration for `reading_progress` + `bookmarks` (`docs/v2/MIGRATION.sql`),
+      and a Hebrew fallback stack once the language call is made.
 - [ ] **Step 4 — The reader, on real data, at both widths.** New route alongside the v1 debrief
       detail, which stays reachable. Render the 13 real debriefs and 65 real blocks — no
       fixtures. Anything needing new authoring degrades gracefully rather than being stubbed.
@@ -305,6 +313,8 @@ highlight ranges, figure captions, chapter read/unread**.
 | `docs/v2/SCREEN-SPEC.txt` | every v2 screen, structure and real copy, verbatim |
 | `docs/v2/GAP-MAP.txt` | 52 items mapped to existing files: reskin / extend / build-new / schema-change / conflict, with hours |
 | `docs/v2/BUILD-PLAN-CRITIC.md` | desktop verdict, build order, cut list, open questions, sequencing risks |
+| `docs/v2/DERIVED-SCREENS.md` | the 12 screens the canvas lacks, derived in its language — **read DERIVED-CRITIC.md alongside it** |
+| `docs/v2/DERIVED-CRITIC.md` | corrections that supersede the above, plus the coexistence verdict |
 | `docs/v2/MIGRATION.sql` | the additive migration (reading_progress, bookmarks, and the rest) |
 | `docs/v2/design-canvas.html` | the decoded canvas — read it in slices, never `cat` it whole |
 

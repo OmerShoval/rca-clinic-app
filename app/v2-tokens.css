@@ -94,11 +94,25 @@
   }
 }
 
-/* Surface defaults for any v2 subtree. */
+/* Surface defaults for any v2 subtree.
+   `color-scheme: light` is load-bearing, not cosmetic: globals.css sets
+   `color-scheme: dark` globally, which would render the scrollbar, the text
+   selection colour, native form-control chrome and the tap highlight dark on
+   a cream page. */
 [data-v2] {
   background: var(--v2-bg);
   color: var(--v2-ink);
   font-family: var(--v2-serif);
+  color-scheme: light;
+}
+
+[data-v2="abyss"] { color-scheme: dark; }
+
+/* v1 applies `* { outline-ring/50 }` with --ring #2fd6c0, so without this every
+   focused element inside a v2 subtree draws a TEAL ring on a paper surface. */
+[data-v2] :focus-visible {
+  outline: 2px solid var(--v2-accent);
+  outline-offset: 2px;
 }
 
 /* Mono is the label/kicker voice throughout v2. */
