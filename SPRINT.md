@@ -70,12 +70,28 @@ the v1/v2 URL map and which single navigation shell wins.
 
 ### Build order (settled 2026-08-21)
 
-- [ ] **Step 0 — DEPLOY WHAT IS ALREADY BUILT. Before any new code.**
-      Add `COACH_SESSION_SECRET` to Vercel · set a PIN for `noy-bar-lev` · make the `rca-notes`
-      bucket private (it holds named clients' voice recordings with public read/write) · deploy
-      `hardening/aug31`. Verify on production: coach logs in, 24 students still authenticate,
-      13 debriefs still render. Finished code sitting undeployed is blocking everything behind
-      it, and it carries the one failure mode that locks Omer out of his own clinic.
+- [x] **Step 0 — DEPLOYED 2026-08-21.** Production is `dpl_3u4fn4zaeHTGspBRQKkv31PAo1qs`,
+      main is at `2a03ea5`, pushed to GitHub.
+      · `COACH_SESSION_SECRET` added to Vercel production.
+      · `noy-bar-lev` PIN set — **9757** (the only live athlete without one; my own change had
+        locked them out). Zero live athletes now lack a PIN.
+      · Storage hardened, surgically — see the note below.
+      · Verified ON PRODUCTION: forged cookie → 401 on data and 401 on the Cloudflare-delete
+        route and 307 on the dashboard; `q=%%` → 0 rows; wrong coach password → 401, correct →
+        200; dashboard/library → 200; roster → 24 students; student login with no PIN → 401,
+        wrong PIN → 401, correct PIN → 200 and the athlete page renders.
+
+      **Storage: what was and was NOT done.** The plan said "make `rca-notes` private." That
+      would have broken playback — **7 rows in `student_videos` point at that bucket** and are
+      served from `/object/public/`. Instead the three UNCONSTRAINED public policies were
+      dropped (`Allow deletes` / `Allow updates` / `Allow uploads` — each let any anonymous
+      caller act on ANY object). Safe because the app deletes via the service role, which
+      bypasses RLS, and client TUS sends `x-upsert: false`. Kept: `anon_insert_rca_notes`
+      (path-constrained, needed for uploads) and `Public read rca-notes` (needed for the 7
+      videos). Verified after: anon upload → 400, anon delete → 400, both athlete videos → 206.
+      **Still open:** reads are public, so anyone with a URL can still watch any clip. Closing
+      that needs signed URLs on the playback path — a real task, not a policy flip.
+
 - [ ] **Step 1 — Settle the contracts above in writing.** No code. Append to §7.
 - [ ] **Step 2 — Ingest + save reliability.** THE Aug 31 blocker, and unblocked right now.
       Multi-file dropzone as a NEW surface · hoist `UploadManagerProvider` into
