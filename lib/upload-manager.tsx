@@ -14,6 +14,9 @@ import {
   CF_MAX_DURATION_S,
 } from "@/lib/video";
 
+/** Above this size we skip content hashing — the full-file read is the crash risk. */
+const CHECKSUM_MAX_BYTES = 64 * 1024 * 1024;
+
 export interface UploadItem {
   id: string;
   fileName: string;
@@ -114,20 +117,30 @@ export function UploadManagerProvider({ children }: { children: React.ReactNode 
       const size_bytes = file.size;
       const mime_type = file.type;
       const original_filename = file.name;
-      const duration_s = await readVideoDuration(file); // null for non-videos
-      const checksum = await fileChecksum(file);
 
-      // ── Client-side validation ──────────────────────────────────────────
+      // ── Client-side validation FIRST ────────────────────────────────────
+      // Order matters: fileChecksum() reads the whole file into the JS heap,
+      // so validating afterwards meant a 2 GB file was fully loaded before
+      // being rejected for exceeding a 500 MB limit.
       if (size_bytes > MAX_UPLOAD_BYTES) {
         failItem(
           `File is ${humanBytes(size_bytes)}, over the ${humanBytes(MAX_UPLOAD_BYTES)} limit`,
         );
         return;
       }
+
+      const duration_s = await readVideoDuration(file); // null for non-videos
       if (isVideoFile(file) && duration_s != null && duration_s > CF_MAX_DURATION_S) {
         failItem("Video is longer than 10 min (Cloudflare limit)");
         return;
       }
+
+      // Content-hash dedup is a nicety; a full arrayBuffer() read of a large
+      // phone clip is a crash on iOS Safari. Above the threshold we skip it —
+      // the unique index is `(student_id, checksum) WHERE checksum IS NOT NULL`,
+      // so a null checksum simply opts that row out of dedup.
+      const checksum =
+        size_bytes <= CHECKSUM_MAX_BYTES ? await fileChecksum(file) : null;
 
       const useCloudflare = shouldUseCloudflareStream(file);
 

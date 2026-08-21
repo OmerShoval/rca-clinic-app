@@ -129,25 +129,32 @@ export function VideoUploader({
   }
 
   function onTrimCancel() {
+    // The original file is still in preview — go back to it rather than
+    // discarding the coach's drop entirely.
     setTrimmingFile(null);
-    setUploadState("idle");
+    setUploadState(previewFile ? "preview" : "idle");
   }
 
   const onDrop = useCallback((accepted: File[]) => {
     const file = accepted[0];
     if (!file) return;
     setError(null);
-    if (file.type === "image/gif") {
-      // GIFs skip the trim modal and upload to Supabase directly
-      const url = URL.createObjectURL(file);
-      setPreviewUrl(url);
-      setPreviewFile(file);
-      setUploadState("preview");
-      return;
-    }
-    setTrimmingFile(file);
-    setUploadState("trimming");
+    // Every file goes straight to preview. Trimming is opt-in via the Trim
+    // button below — it used to be mandatory for every non-GIF clip, which put
+    // a 32 MB WASM download and a full single-threaded libx264 re-encode on the
+    // critical path of every single upload.
+    const url = URL.createObjectURL(file);
+    setPreviewUrl(url);
+    setPreviewFile(file);
+    setUploadState("preview");
   }, []);
+
+  /** Opt into the FFmpeg trim modal for the file currently in preview. */
+  function startTrim() {
+    if (!previewFile) return;
+    setTrimmingFile(previewFile);
+    setUploadState("trimming");
+  }
 
   function startUpload() {
     if (!previewFile || !previewUrl) return;
@@ -369,6 +376,16 @@ export function VideoUploader({
                     >
                       Upload Video
                     </button>
+                    {previewFile.type !== "image/gif" && (
+                      <button
+                        type="button"
+                        onClick={startTrim}
+                        className="rounded-lg px-3 py-2 font-display text-[11px] tracking-widest text-ink-faint"
+                        style={{ border: "1px solid var(--glass-edge)" }}
+                      >
+                        Trim
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={cleanup}
