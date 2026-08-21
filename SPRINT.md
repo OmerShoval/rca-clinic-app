@@ -42,18 +42,19 @@ Full reasoning: https://claude.ai/code/artifact/bc6d8094-7975-4772-8e11-6d040cfe
 - [x] **Security hardening** — branch `hardening/aug31`, commit `0276bbb`. Not deployed.
       Coach cookie is now a signed expiring HMAC; roster dump closed; PINs mandatory.
       Verified end-to-end against a dev server on the live DB. See §4.
+- [x] **Upload path unlock** — commit `d574d0f`. FFmpeg trim is now opt-in (was mandatory on
+      every non-GIF drop: 32 MB WASM + single-threaded libx264 re-encode); validation now runs
+      before content hashing, and hashing is skipped above 64 MB. `next build` compiles all 25 routes.
 
 ### In progress
 - [ ] **Ocean Athlete v2 design analysis** — extracting the spec from the design canvas
       and mapping it against the existing code. See §6.
 
 ### Next, in leverage order
-- [ ] **Upload path unlock** — the change that decides whether night 1 works with 12 athletes.
-      `components/coach/video-uploader.tsx`: iterate `accepted` instead of `accepted[0]` (:137),
-      raise `maxFiles` 1 → 20 (:217), move the FFmpeg trim behind an opt-in **Trim** button.
-      Then drop the `fileChecksum()` full `arrayBuffer()` read in `lib/upload-manager.tsx`
-      (it duplicates FFmpeg's own full-file read; a 300 MB clip peaks ~900 MB against an
-      iOS Safari ceiling of 1–1.5 GB and the tab dies, taking in-flight uploads with it).
+- [ ] **Bulk ingest surface** — `components/coach/video-uploader.tsx` is the ONLY dropzone in the
+      repo (`upload-panel.tsx` is just the progress queue) and it is bound to a single video slot
+      with `maxFiles: 1`. Multi-file ingest needs a NEW surface, not a flag change. Holding until
+      the v2 design spec lands — the design has library and tagger screens that likely define it.
 - [ ] **Hoist the upload provider** — create `app/coach/layout.tsx` with `<UploadManagerProvider>`,
       remove it from `app/coach/dashboard/page.tsx:24`. Today, navigating dashboard → library
       unmounts it and destroys in-flight Cloudflare transfers (one-time upload URL, unrecoverable).
