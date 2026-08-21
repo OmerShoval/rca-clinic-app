@@ -42,6 +42,10 @@ Full reasoning: https://claude.ai/code/artifact/bc6d8094-7975-4772-8e11-6d040cfe
 - [x] **Security hardening** — branch `hardening/aug31`, commit `0276bbb`. Not deployed.
       Coach cookie is now a signed expiring HMAC; roster dump closed; PINs mandatory.
       Verified end-to-end against a dev server on the live DB. See §4.
+- [x] **Verification pass + two bug fixes** — commit `21875ec`. Caught a regression that
+      locked the coach out of the dashboard (two page files held a second copy of the auth
+      rule), and a pre-existing nested-`<button>` hydration error in the roster row.
+      Verified: 3 coach pages, 9 student routes, 6 coach APIs, at 1440x900 and 375x812.
 - [x] **Upload path unlock** — commit `d574d0f`. FFmpeg trim is now opt-in (was mandatory on
       every non-GIF drop: 32 MB WASM + single-threaded libx264 re-encode); validation now runs
       before content hashing, and hashing is skipped above 64 MB. `next build` compiles all 25 routes.
@@ -136,6 +140,28 @@ Closed in `0276bbb`: forged coach cookie · roster wildcard dump · credential-f
 5. **Year-round vault access is a product requirement.** Athletes from completed clinics must
    keep access — do not "fix" security by locking them out.
 6. Port 3000 is occupied by a different Next project. Use `autoPort`.
+
+---
+
+## 5a · Redesign rules (Ocean Athlete v2) — NON-NEGOTIABLE
+
+Set by Omer, 2026-08-21. These override any conflicting guidance in the v2 design.
+
+1. **NOTHING IN V1 GETS DELETED.** No screen, route, component or table is removed or
+   rewritten just because v2 redesigns it. v2 is **additive**. If a v2 screen replaces a v1
+   screen, the v1 screen stays reachable until Omer explicitly retires it. When in doubt,
+   add alongside — never in place of.
+2. **Two form factors, both first-class:**
+   - **Laptop is the coach surface.** Omer uploads clips, writes debriefs and runs the
+     clinic day from a laptop. The coach dashboard must be genuinely good at ≥1280px,
+     not a stretched phone layout.
+   - **Mobile is the athlete surface.** Students use the app on a phone. The v2 canvas is
+     drawn at 390px, which is the athlete's world.
+3. **Both dashboards must work in both form factors.** Coach on a phone (on the beach)
+   and student on a laptop both have to work. Responsive, not two codebases.
+4. **Missing screens:** the v2 canvas does not cover everything. Where a screen is missing,
+   either (a) list it for Omer and he will design it, or (b) derive it from the existing v2
+   design language. Always show him the list first — do not silently invent.
 
 ---
 
