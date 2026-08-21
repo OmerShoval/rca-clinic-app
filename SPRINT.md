@@ -353,3 +353,34 @@ is unblocked and should start as soon as Step 0 is deployed.
 | 2026-08-21 | Desktop = responsive from mobile, one ~768px breakpoint, student surface only | The coach's laptop layout already exists and is verified at both widths; a separate desktop layout doubles the surface area of an untested 17.5k-LOC codebase 10 days from freeze |
 | 2026-08-21 | Phone coach surface cut for Aug 31 | v1 dashboard already satisfies coach-on-laptop and coach-on-phone; rebuilding the 856-line debrief editor with no tests is the largest available regression risk |
 | 2026-08-21 | Ship Paper theme only for Aug 31 | Removes any risk of the token swap leaking into v1, and only two elements in the whole canvas actually consume `var(--fs)` |
+
+---
+
+## 8 · How to start the next session
+
+Open a new conversation **in this repo** and say:
+
+> Read SPRINT.md and start at Step 1.
+
+`CLAUDE.md` → `AGENTS.md` → points here, so it loads automatically. Antigravity too.
+
+**Step 1 is decisions, not code.** Four things must be settled in writing before the first v2
+pixel, and every one of them is cheap now and expensive after six screens exist:
+
+1. **Language** (§2) — does the book survive Hebrew, or is Hebrew a different visual design?
+2. **Is `/enter` the door, or a second door?** If it is *the* door, 26 hard-coded
+   `redirect("/")` sites under `app/s/*` plus `proxy.ts:29,33,39` get repointed, or every
+   session expiry silently lands the athlete back on the v1 login.
+3. **Does the login ship before the reader?** Recommendation: no. A paper front door onto a
+   dark app is the most visible seam available, and the reader is what athletes open daily.
+4. **Widen `/api/students/search`, or accept a flat row?** Without clinic number + location
+   there is no clinic-aware meta line and no spine palette. Widen to those two fields only —
+   never counts or roster size, which would reopen the harvesting oracle `0276bbb` closed.
+
+Then **Step 2** — ingest + save reliability — is the real Aug 31 blocker and is unblocked now.
+
+### State as of 2026-08-21
+
+- `main` = `9beb611`, pushed. Working tree clean. Production deployed and verified.
+- Branch `hardening/aug31` is merged; it can be deleted or kept as history.
+- Nothing is half-done: every commit builds, `tsc --strict` is clean, and no v2 route exists yet.
