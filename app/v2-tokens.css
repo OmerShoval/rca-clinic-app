@@ -1,0 +1,111 @@
+/* ============================================================
+   Ocean Athlete v2 — design tokens
+   Source: "Ocean Athlete v2.html" canvas (390px artboard).
+
+   EVERY rule here is scoped under [data-v2]. v1 styling is defined on
+   :root in globals.css and is not touched by anything in this file, so
+   v1 and v2 screens coexist in the same app. Per SPRINT.md §5a rule 1,
+   v2 is additive — nothing in v1 is deleted or restyled.
+
+   Three themes, exactly as the canvas defines them:
+     paper (default) · light · abyss (dark)
+   Paper values are the canvas's inline var() fallbacks; light and abyss
+   are the two override strings its script injects.
+   ============================================================ */
+
+[data-v2] {
+  /* ── Paper — the default theme ───────────────────────────── */
+  --v2-bg:      #F7F3EA;
+  --v2-card:    #FFFDF7;
+  --v2-ink:     #211E18;
+  --v2-mut:     #8A8272;
+  --v2-line:    #DDD5C4;
+
+  --v2-accent:  #0E2A3A;   /* accent fill  */
+  --v2-acct:    #F7F3EA;   /* text on accent */
+
+  --v2-cor:     #2E6E5E;   /* correction · improvement · done */
+  --v2-cor-s:   rgba(46, 110, 94, 0.10);
+  --v2-err:     #B8452F;   /* mistake */
+  --v2-err-s:   rgba(184, 69, 47, 0.10);
+  --v2-gold:    #C49A3F;   /* goal · next step · active · today */
+  --v2-gold-s:  rgba(196, 154, 63, 0.14);
+  --v2-hl:      rgba(196, 154, 63, 0.20);   /* highlight */
+
+  --v2-ph1:     #EDE7D8;   /* media placeholder, upper */
+  --v2-ph2:     #E6DFCE;   /* media placeholder, lower */
+
+  --v2-dock:    rgba(33, 30, 24, 0.92);
+  --v2-dockink: #F7F3EA;
+  --v2-logoflt: none;
+
+  /* Reader body size — stepper positions [15.5, 17, 18.5, 20.5] */
+  --v2-fs:      17px;
+
+  --v2-tr:      0.35s;
+  --v2-tr2:     0.45s;
+
+  --v2-serif:   var(--font-read), Literata, Georgia, "Times New Roman", serif;
+  --v2-mono:    var(--font-mono), "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --v2-ui:      -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+}
+
+[data-v2="light"] {
+  --v2-bg:   #FFFFFF;
+  --v2-card: #FAF9F6;
+  --v2-ink:  #1C1A16;
+  --v2-mut:  #8B857A;
+  --v2-line: #E8E4DC;
+  --v2-ph1:  #F1EFE9;
+  --v2-ph2:  #EAE7DF;
+}
+
+[data-v2="abyss"] {
+  --v2-bg:      #070F15;
+  --v2-card:    #0D1A1F;
+  --v2-ink:     #F1EEE6;
+  --v2-mut:     rgba(241, 238, 230, 0.55);
+  --v2-line:    rgba(255, 255, 255, 0.10);
+
+  --v2-accent:  #2FD6C0;
+  --v2-acct:    #070F15;
+
+  --v2-cor:     #2FD6C0;
+  --v2-cor-s:   rgba(47, 214, 192, 0.12);
+  --v2-err:     #FF6B5E;
+  --v2-err-s:   rgba(255, 107, 94, 0.12);
+  --v2-gold:    #E0B64F;
+  --v2-gold-s:  rgba(224, 182, 79, 0.14);
+  --v2-hl:      rgba(224, 182, 79, 0.20);
+
+  --v2-ph1:     #12222B;
+  --v2-ph2:     #0D1A21;
+
+  --v2-dock:    rgba(241, 238, 230, 0.94);
+  --v2-dockink: #0D1A1F;
+  --v2-logoflt: invert(1) brightness(1.9);
+}
+
+/* The canvas sets --tr/--tr2 to 0s under reduceMotion; honour the OS setting. */
+@media (prefers-reduced-motion: reduce) {
+  [data-v2] {
+    --v2-tr:  0s;
+    --v2-tr2: 0s;
+  }
+}
+
+/* Surface defaults for any v2 subtree. */
+[data-v2] {
+  background: var(--v2-bg);
+  color: var(--v2-ink);
+  font-family: var(--v2-serif);
+}
+
+/* Mono is the label/kicker voice throughout v2. */
+[data-v2] .v2-kicker {
+  font-family: var(--v2-mono);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--v2-mut);
+}

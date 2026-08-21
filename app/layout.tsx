@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Bebas_Neue, Inter, Heebo } from "next/font/google";
+import { Bebas_Neue, Inter, Heebo, Literata, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import "./v2-tokens.css";
 
 const bebasNeue = Bebas_Neue({
   weight: "400",
@@ -19,6 +20,23 @@ const heebo = Heebo({
   weight: ["300", "400", "500", "700", "800"],
   variable: "--font-hebrew",
   subsets: ["hebrew", "latin"],
+  display: "swap",
+});
+
+// ── Ocean Athlete v2 faces. Loaded alongside the v1 faces, never replacing
+// them: only [data-v2] subtrees reference these variables.
+const literata = Literata({
+  weight: ["400", "500", "600"],
+  style: ["normal", "italic"],
+  variable: "--font-read",
+  subsets: ["latin"],
+  display: "swap",
+});
+
+const plexMono = IBM_Plex_Mono({
+  weight: ["400", "500", "600", "700"],
+  variable: "--font-mono",
+  subsets: ["latin"],
   display: "swap",
 });
 
@@ -52,7 +70,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${bebasNeue.variable} ${inter.variable} ${heebo.variable} h-full dark`}
+      className={`${bebasNeue.variable} ${inter.variable} ${heebo.variable} ${literata.variable} ${plexMono.variable} h-full dark`}
     >
       <body className="min-h-full flex flex-col bg-background text-foreground antialiased">
         {children}
