@@ -72,33 +72,13 @@ export default function LoginPage() {
     setResults([]);
     setQuery(student.full_name);
 
-    if (student.has_pin) {
-      setPendingStudent(student);
-      setPin("");
-      setPinError("");
-      setTimeout(() => pinInputRef.current?.focus(), 80);
-      return;
-    }
-
-    createSession(student.slug);
-  };
-
-  const createSession = async (slug: string, pinValue?: string) => {
-    const body: Record<string, string> = { slug };
-    if (pinValue) body.pin = pinValue;
-
-    await fetch("/api/auth/session", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-
-    if (reduce) {
-      router.push(`/s/${slug}`);
-      return;
-    }
-    setShowWipe(true);
-    setTimeout(() => router.push(`/s/${slug}`), 1050);
+    // Every athlete needs a PIN — there is no credential-free path any more.
+    setPendingStudent(student);
+    setPin("");
+    setPinError(
+      student.has_pin ? "" : "No PIN set yet — ask Omer to set one for you."
+    );
+    setTimeout(() => pinInputRef.current?.focus(), 80);
   };
 
   const handlePinSubmit = async (e: { preventDefault(): void }) => {

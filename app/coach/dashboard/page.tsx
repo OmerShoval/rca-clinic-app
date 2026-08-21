@@ -1,13 +1,11 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { createServerClient } from "@/lib/supabase";
+import { hasCoachSession } from "@/lib/coach-auth";
 import { CoachDashboardClient } from "@/components/coach-dashboard-client";
 import { UploadManagerProvider } from "@/lib/upload-manager";
 
 export default async function CoachDashboard() {
-  const cookieStore = await cookies();
-  const coachCookie = cookieStore.get("oa_coach")?.value;
-  if (coachCookie !== "authenticated") redirect("/coach");
+  if (!(await hasCoachSession())) redirect("/coach");
 
   const db = createServerClient();
   const { data: students } = await db

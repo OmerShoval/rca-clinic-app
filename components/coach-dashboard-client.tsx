@@ -426,10 +426,21 @@ function RosterRow({
   const initials = student.full_name.split(" ").map((n) => n[0]).slice(0, 2).join("").toUpperCase();
 
   return (
-    <button
-      type="button"
+    // A div, not a button: this row contains its own "edit" button, and a
+    // <button> inside a <button> is invalid HTML — React logs a hydration
+    // error and the nested click target behaves inconsistently across browsers.
+    // role/tabIndex/onKeyDown keep it operable from the keyboard.
+    <div
+      role="button"
+      tabIndex={0}
       onClick={onSelect}
-      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all group"
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onSelect();
+        }
+      }}
+      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-left transition-all group cursor-pointer"
       style={selected
         ? { background: "rgba(47,214,192,0.08)", border: "1px solid rgba(47,214,192,0.25)" }
         : { background: "transparent", border: "1px solid transparent" }
@@ -462,7 +473,7 @@ function RosterRow({
       >
         {student.status.toUpperCase()}
       </span>
-    </button>
+    </div>
   );
 }
 

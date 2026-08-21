@@ -39,16 +39,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Student not found" }, { status: 404 });
   }
 
-  // PIN check
-  if (student.pin_hash) {
-    if (!pin) {
-      return NextResponse.json({ error: "PIN required", pin_required: true }, { status: 401 });
-    }
-    const { createHash } = await import("crypto");
-    const submitted = createHash("sha256").update(pin).digest("hex");
-    if (submitted !== student.pin_hash) {
-      return NextResponse.json({ error: "Incorrect PIN" }, { status: 401 });
-    }
+  // ── PIN is mandatory.
+  // Previously a student with pin_hash NULL could be logged into by anyone who
+  // knew their slug — and /api/students/search handed out both the slug and a
+  // has_pin flag naming exactly those accounts. A missing PIN is now a hard
+  // stop, not an open door.
+  if (!student.pin_hash) {
+    return NextResponse.json(
+      { error: "No PIN set for this athlete — ask Omer to set one.", no_pin: true },
+      { status: 403 }
+    );
+  }
+
+  if (!pin) {
+    return NextResponse.json({ error: "PIN required", pin_required: true }, { status: 401 });
+  }
+
+  const { createHash, timingSafeEqual } = await import("crypto");
+  const submitted = createHash("sha256").update(pin).digest("hex");
+  const expected = student.pin_hash;
+  const a = Buffer.from(submitted, "hex");
+  const b = Buffer.from(expected, "hex");
+  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+    return NextResponse.json({ error: "Incorrect PIN" }, { status: 401 });
   }
 
   // Create session row — one device token per student (latest wins)

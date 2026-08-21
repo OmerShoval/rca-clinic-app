@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@/lib/supabase";
+import { COACH_COOKIE, verifyCoachSession } from "@/lib/coach-session";
 
 const STUDENT_COOKIE = "oa_token";
-const COACH_COOKIE   = "oa_coach";
 
 export async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -10,7 +10,9 @@ export async function proxy(req: NextRequest) {
   // ── Coach routes: guard /coach/dashboard and deeper, allow /coach (login page)
   if (pathname.startsWith("/coach/") && pathname !== "/coach/") {
     const coachAuth = req.cookies.get(COACH_COOKIE)?.value;
-    if (coachAuth !== "authenticated") {
+    // Web Crypto verify — this file runs on the Edge runtime.
+    const ok = await verifyCoachSession(coachAuth, process.env.COACH_SESSION_SECRET);
+    if (!ok) {
       return NextResponse.redirect(new URL("/coach", req.url));
     }
     return NextResponse.next();
