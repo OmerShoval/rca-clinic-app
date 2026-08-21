@@ -1,10 +1,9 @@
-import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { CoachLibraryClient } from "@/components/coach/library-client";
+import { hasCoachSession } from "@/lib/coach-auth";
 
 export default async function CoachLibraryPage() {
-  const cookieStore = await cookies();
-  if (cookieStore.get("oa_coach")?.value !== "authenticated") redirect("/coach");
+  if (!(await hasCoachSession())) redirect("/coach");
 
   return <CoachLibraryClient />;
 }

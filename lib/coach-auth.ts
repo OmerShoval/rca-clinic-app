@@ -23,3 +23,19 @@ export async function requireCoachAuth(): Promise<NextResponse | null> {
   }
   return null;
 }
+
+/**
+ * Server-component guard. Pages cannot return a 401 response, so they ask this
+ * and redirect themselves.
+ *
+ * Exists because app/coach/dashboard/page.tsx and app/coach/library/page.tsx
+ * each carried their own inline `cookie !== "authenticated"` check — a second
+ * copy of the auth rule that the API guard did not cover.
+ */
+export async function hasCoachSession(): Promise<boolean> {
+  const cookieStore = await cookies();
+  return verifyCoachSession(
+    cookieStore.get(COACH_COOKIE)?.value,
+    process.env.COACH_SESSION_SECRET,
+  );
+}
