@@ -168,20 +168,73 @@ Set by Omer, 2026-08-21. These override any conflicting guidance in the v2 desig
 ## 6 · Ocean Athlete v2 design
 
 Source canvas: `/Users/omershoval/Downloads/Ocean Athlete v2.html` (1.35 MB bundled export).
-Decoded working copy: `scratchpad/design.html` (113 KB, real HTML).
+Decoded working copy: `scratchpad/design.html` (113 KB).
 
-What is known so far:
-- **One artboard only: 390 px mobile.** There is no desktop layout in the file. Open gap.
-- Fonts: **Literata** (serif body — a reading-first shift) + **IBM Plex Mono**.
-- Three themes: dark / light / **paper**. This conflicts with the v3 spec's "always dark, no
-  light mode" rule — the old rule loses, the design wins.
-- Accent `#2FD6C0`, gold `#E0B64F`, error `#FF6B5E`.
-- Screens (from state flags): library, **today**, coach, **reader**, TOC, ask, back-home,
-  athlete detail, composer, tagger, bookmarks, type settings, digest, outline.
-- The reader has a font-size stepper, TOC with % progress, bookmarks and an outline —
-  i.e. the Student Book as a genuine **reading experience**. Nothing like it exists today.
+**It is a book.** Clinics are *volumes* rendered as spines on a shelf; published debriefs are
+*chapters*; the student side is a real e-reader — Literata serif, font stepper
+`[15.5, 17, 18.5, 20.5]px`, three themes, bookmarks, TOC with live %, page-of-38 and
+minutes-left footer, progress computed from scroll position.
 
-*(Spec extraction in flight — this section gets the full screen-by-screen map and gap list.)*
+**One 390px mobile artboard.** 7 full screens cross-faded + 4 bottom sheets over a scrim + a toast.
+No desktop layout anywhere in the file. No Hebrew anywhere — every string is English.
+
+### What v2 covers
+
+| Screen | Side | What it is |
+|---|---|---|
+| `libS` Library | student | the shelf — volumes, currently-reading bar |
+| `readS` Reader | student | chapter reading, the heart of the redesign |
+| `tocS` Table of Contents | student | chapter list + live % + goal-path outline |
+| `todayS` Today | student | full program & streak |
+| `backhomeS` Back Home | student | companion after the clinic |
+| `askS` Ask Omer | student | sheet |
+| `coachS` Coach Desk | coach | the debt dashboard — drafts, inbox, clips, analytics |
+| `athS` Athlete Sheet | coach | the 5-second pre-water briefing |
+| `tgS` Session Tagger | coach | intake: clip → movement tag → voice note → draft |
+| `composerS` Composer | coach | output: draft → student prose → publish |
+
+### MISSING SCREENS — v1 has these, v2 does not cover them
+
+Under rule §5a.1 none of these get deleted. Each needs a decision: **you design it**, or
+**I derive it** from the v2 language.
+
+**Coach — the authoring tools, all absent from v2:**
+1. **Debrief editor** — `debrief-editor.tsx` (856 lines), the 5 arc blocks. v2's Composer is
+   chapter *prose*, not the block editor. This is the core authoring tool and it has no v2 form.
+2. **Add / edit student** — `student-form.tsx`. v2 shows "+ add student" as dead text.
+3. **Video library** — `/coach/library` (504 lines). v2's "Clip Vault" tile has **no click handler**.
+4. **Inbox** — `inbox-view.tsx`. v2's "Inbox" tile is also **dead**.
+5. **Analytics** — v2 shows 71% habits / 6-of-11 path steps, but nothing sits behind the tile.
+6. **Strategy builder** — React Flow canvas + 7 node components (~2,000 lines). No v2 equivalent.
+7. **Training editor** — `training-editor.tsx`. No v2 equivalent.
+8. **Back-home editor** — `back-home-editor.tsx`. No v2 equivalent.
+
+**Student:**
+9. **Patterns trail** — `pattern-trail.tsx` (1,131 lines). v2 only has `olS`, a collapsible
+   outline inside the TOC — not the trail.
+10. **Strategy view** — `strategy-view.tsx`. No v2 equivalent.
+
+**Both:**
+11. **Login screens** — neither student nor coach login exists in v2.
+12. **Every laptop layout.** The canvas is 390px only. Per §5a.2 the laptop is the coach's
+    primary surface, so the coach side needs a desktop composition that the canvas does not
+    provide. Biggest single gap.
+
+### Data the schema cannot supply yet
+
+Athlete sheet: **stance** (goofy/regular), the **coaching-psychology note**, and a *structured*
+priority cue (`focus_skill` is one free-text field; the design wants movement + quoted cue).
+Coach desk: a **clinic-day counter** ("Day 9"), an AM/PM **session** concept, a habit
+**denominator** (`completed_habits` is a bare `text[]` with no habit-definition table), and
+per-node **path-step completion** (`build_strategy` is opaque jsonb).
+Reader: **reading progress, bookmarks, reader prefs, private notes, drill checklists,
+highlight ranges, figure captions, chapter read/unread**.
+
+### Build status
+
+- [x] **Step 1 — foundation.** `app/v2-tokens.css`: three themes as CSS vars, every rule scoped
+      under `[data-v2]`. Literata + IBM Plex Mono added beside the v1 faces. Commit `18a9aeb`.
+      The attribute appears nowhere yet, so this is a no-op for every existing screen.
 
 ---
 
